@@ -1,0 +1,32 @@
+from rest_framework.permissions import BasePermission
+
+
+class IsManager(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == "manager"
+
+
+class IsEngineer(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == "engineer"
+
+
+class IsClient(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == "client"
+
+
+class IsAssignedEngineer(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return (
+            request.user.is_authenticated
+            and request.user.role == "engineer"
+            and request.user in obj.assignees.all()
+        )
+
+
+class IsManagerOrReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return request.user.is_authenticated
+        return request.user.is_authenticated and request.user.role == "manager"
