@@ -76,7 +76,7 @@ import { TagService, Tag } from '../../../../core/services/tag.service';
 
           <div class="actions">
             <button mat-button type="button" (click)="cancel()">Cancel</button>
-            <button mat-raised-button color="primary" type="submit" [disabled]="taskForm.invalid">
+            <button mat-raised-button color="primary" type="submit" [disabled]="taskForm.invalid || saving">
               {{ isEdit ? 'Update' : 'Create' }}
             </button>
           </div>
@@ -94,6 +94,7 @@ import { TagService, Tag } from '../../../../core/services/tag.service';
 export class TaskFormComponent implements OnInit {
   taskForm!: FormGroup;
   isEdit = false;
+  saving = false;
   taskId: number | null = null;
   clients: Client[] = [];
   tags: Tag[] = [];
@@ -138,7 +139,8 @@ export class TaskFormComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.taskForm.invalid) return;
+    if (this.taskForm.invalid || this.saving) return;
+    this.saving = true;
     const val = this.taskForm.value;
     const payload: TaskCreatePayload = {
       ...val,
@@ -146,12 +148,14 @@ export class TaskFormComponent implements OnInit {
     };
 
     if (this.isEdit && this.taskId) {
-      this.taskService.update(this.taskId, payload).subscribe(() => {
-        this.router.navigate(['/tasks', this.taskId]);
+      this.taskService.update(this.taskId, payload).subscribe({
+        next: () => this.router.navigate(['/tasks', this.taskId]),
+        error: () => (this.saving = false),
       });
     } else {
-      this.taskService.create(payload).subscribe((task) => {
-        this.router.navigate(['/tasks', task.id]);
+      this.taskService.create(payload).subscribe({
+        next: (task) => this.router.navigate(['/tasks', task.id]),
+        error: () => (this.saving = false),
       });
     }
   }
