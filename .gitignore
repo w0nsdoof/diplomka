@@ -58,3 +58,12 @@ coverage/
 # Misc
 *.bak
 *.orig
+
+# Screenshots / images (keep locally, don't push)
+*.png
+*.jpg
+*.jpeg
+
+# Auto Claude data directory
+.auto-claude/
+celerybeat-schedule

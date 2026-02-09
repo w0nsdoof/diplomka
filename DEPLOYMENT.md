@@ -16,8 +16,107 @@ The application consists of six containerized services:
 ## Prerequisites
 
 - Podman (or Docker) with Compose support
-- At least 4 GB RAM available for containers
+- At least 2 GB RAM available for containers (4 GB recommended)
 - Ports 5432, 6379, 8000, 4200 (or 80) available
+
+## Test Server
+
+A VPS is configured for testing deployment.
+
+### Server Specs
+
+| Spec | Value |
+|------|-------|
+| **SSH** | `ssh yandex` |
+| **vCPU** | 2 |
+| **RAM** | 2 GB |
+| **Storage** | 30 GB SSD |
+| **OS** | Ubuntu 22.04 LTS |
+
+### Quick Connect
+
+```bash
+ssh yandex
+```
+
+### Initial Server Setup
+
+```bash
+# Connect to server
+ssh yandex
+
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Docker
+sudo apt install -y docker.io docker-compose-v2
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+
+# Re-login to apply group changes
+exit
+ssh yandex
+
+# Clone repository
+git clone <your-repo-url> ~/taskmanager
+cd ~/taskmanager
+
+# Configure environment
+cp .env.example .env
+nano .env  # Set production values
+
+# Deploy
+docker compose up -d
+```
+
+### Memory Optimization (for 2 GB RAM)
+
+With limited RAM, consider these optimizations:
+
+```bash
+# Add swap space (2 GB)
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# Limit PostgreSQL memory in docker-compose override
+# Create docker-compose.override.yml with:
+cat > docker-compose.override.yml << 'EOF'
+services:
+  db:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+  redis:
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+  celery-worker:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+  celery-beat:
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+EOF
+```
+
+### Access After Deployment
+
+Replace `<server-ip>` with your VPS IP address:
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://\<server-ip\>:4200 |
+| Backend API | http://\<server-ip\>:8000/api/ |
+| Swagger UI | http://\<server-ip\>:8000/api/schema/swagger/ |
 
 ### Podman Registry Configuration
 
@@ -55,9 +154,17 @@ DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 ACCESS_TOKEN_LIFETIME_MINUTES=30
 REFRESH_TOKEN_LIFETIME_DAYS=7
 
-# Superuser
+# Superuser (created automatically on startup)
 DJANGO_SUPERUSER_EMAIL=admin@example.com
 DJANGO_SUPERUSER_PASSWORD=<strong-password>
+
+# Test accounts (optional, omit in production)
+TEST_MANAGER_EMAIL=manager@example.com
+TEST_MANAGER_PASSWORD=<password>
+TEST_ENGINEER_EMAIL=engineer@example.com
+TEST_ENGINEER_PASSWORD=<password>
+TEST_CLIENT_EMAIL=client@example.com
+TEST_CLIENT_PASSWORD=<password>
 ```
 
 ### Additional Production Variables
@@ -119,9 +226,16 @@ sleep 5
 podman-compose up -d frontend
 ```
 
-### Create Initial Superuser
+### Initial Users
 
-The custom User model requires `--first_name` and `--last_name` fields:
+The backend `entrypoint.sh` automatically creates users on startup from environment variables:
+
+- **Superuser** from `DJANGO_SUPERUSER_EMAIL` / `DJANGO_SUPERUSER_PASSWORD` (role: manager, staff + superuser)
+- **Test accounts** from `TEST_MANAGER_EMAIL` / `TEST_MANAGER_PASSWORD`, `TEST_ENGINEER_EMAIL` / `TEST_ENGINEER_PASSWORD`, `TEST_CLIENT_EMAIL` / `TEST_CLIENT_PASSWORD` (one per role)
+
+Users are only created if the env vars are set and the email doesn't already exist. Existing inactive users are automatically activated.
+
+For manual creation, the custom User model requires `--first_name` and `--last_name`:
 
 ```bash
 podman-compose exec backend python manage.py createsuperuser \
@@ -129,17 +243,6 @@ podman-compose exec backend python manage.py createsuperuser \
     --email admin@example.com \
     --first_name Admin \
     --last_name User
-```
-
-Then set the password:
-
-```bash
-podman-compose exec backend python manage.py shell -c "
-from apps.accounts.models import User
-u = User.objects.get(email='admin@example.com')
-u.set_password('your-password')
-u.save()
-"
 ```
 
 ### Access Points
@@ -212,12 +315,7 @@ Static files are collected during the Docker build (`collectstatic --noinput` wi
 
 ### 5. Create Superuser
 
-```bash
-podman-compose exec backend python manage.py createsuperuser \
-    --email admin@yourdomain.com \
-    --first_name Admin \
-    --last_name User
-```
+The superuser is created automatically on startup from `DJANGO_SUPERUSER_EMAIL` / `DJANGO_SUPERUSER_PASSWORD` in `.env`. Do **not** set `TEST_*` variables in production.
 
 ### 6. Compile Translations (if needed)
 
@@ -360,7 +458,8 @@ included in production requirements.
 | Static files 404 in production | Ensure `DJANGO_SETTINGS_MODULE=config.settings.prod` for WhiteNoise |
 | CORS errors | Set `CORS_ALLOWED_ORIGINS` in `.env` to your frontend domain |
 | File upload fails | Check `client_max_body_size` in external Nginx (must be >= 25M) |
-| `createsuperuser` fails with `--noinput` | Must include `--first_name` and `--last_name` flags (custom User model) |
+| Superuser not created on startup | Verify `DJANGO_SUPERUSER_EMAIL` and `DJANGO_SUPERUSER_PASSWORD` are set in `.env` and passed to the backend in `podman-compose.yml` |
+| Manual `createsuperuser` fails with `--noinput` | Must include `--first_name` and `--last_name` flags (custom User model) |
 | Podman "short-name did not resolve" | All images use `docker.io/library/` prefix; check your registries.conf if pulling fails |
 
 ## Useful Management Commands
