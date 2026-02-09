@@ -48,24 +48,24 @@ The application is served over plain HTTP on ports 4200 and 8000. Credentials an
 
 ---
 
-## 7. Django admin panel missing CSS
+## ~~7. Django admin panel missing CSS~~ (FIXED)
 
-The Django admin at `/admin/` renders without styles when `DEBUG=False`. WhiteNoise is installed and configured for serving static files in production, but the admin panel CSS may not load if `collectstatic` wasn't run with the correct settings or if the `STATIC_URL`/`STATICFILES_STORAGE` configuration doesn't match.
+~~The Django admin at `/admin/` renders without styles when `DEBUG=False`.~~
 
-**Fix:** Ensure `STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"` is set in `prod.py`, `whitenoise.middleware.WhiteNoiseMiddleware` is in `MIDDLEWARE` (right after `SecurityMiddleware`), and `collectstatic --noinput` runs during the Docker build with `DJANGO_SETTINGS_MODULE=config.settings.prod`.
-
----
-
-## 8. No backend health check endpoint
-
-There is no `/api/health/` endpoint to verify the backend is actually serving requests. Docker health checks only exist for `db` and `redis`.
-
-**Fix:** Add a simple health view returning 200 and wire it into the Docker `healthcheck` for the backend container.
+**Resolved:** Added `STORAGES` with `CompressedManifestStaticFilesStorage` to `prod.py`, fixed `STATIC_URL` to `/static/`, and added `collectstatic` to `entrypoint.sh` so static files are collected at container startup (handles volume-mount override of build-time output).
 
 ---
 
-## 9. Staged container startup with sleep
+## ~~8. No backend health check endpoint~~ (FIXED)
 
-Services must be started in stages with `sleep` delays because podman-compose doesn't fully respect `depends_on` health conditions. Docker Compose v2 on the server supports `--wait` but we don't use it.
+~~There is no `/api/health/` endpoint to verify the backend is actually serving requests.~~
 
-**Fix:** Use `docker compose up -d --wait` or add health checks to the backend container so `depends_on` with `condition: service_healthy` works end-to-end.
+**Resolved:** Added `/api/health/` endpoint returning `{"status": "ok"}` and wired it into the backend container `healthcheck` in `podman-compose.yml`.
+
+---
+
+## ~~9. Staged container startup with sleep~~ (FIXED)
+
+~~Services must be started in stages with `sleep` delays because podman-compose doesn't fully respect `depends_on` health conditions.~~
+
+**Resolved:** Added backend health check and changed frontend `depends_on` to `condition: service_healthy`, so containers wait for the backend to be ready before starting.
