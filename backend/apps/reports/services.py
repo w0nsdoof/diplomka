@@ -1,4 +1,5 @@
 import io
+import logging
 from datetime import datetime
 
 from django.db.models import Avg, Count, F, Q
@@ -8,6 +9,8 @@ from openpyxl import Workbook
 from weasyprint import HTML
 
 from apps.tasks.models import Task
+
+logger = logging.getLogger(__name__)
 
 
 def get_report_data(date_from=None, date_to=None, client_id=None):
@@ -92,6 +95,7 @@ def get_report_data(date_from=None, date_to=None, client_id=None):
 
 
 def generate_pdf_report(data):
+    logger.info("Generating PDF report period=%s", data.get("period"))
     html_content = f"""
     <html>
     <head><style>
@@ -147,6 +151,7 @@ def generate_pdf_report(data):
 
 
 def generate_excel_report(data):
+    logger.info("Generating Excel report period=%s", data.get("period"))
     wb = Workbook()
 
     ws_summary = wb.active

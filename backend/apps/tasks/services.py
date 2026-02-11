@@ -1,3 +1,5 @@
+import logging
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db.models import F
@@ -5,6 +7,8 @@ from django.db.models import F
 from apps.audit.models import AuditLogEntry
 from apps.notifications.services import create_notification
 from apps.tasks.models import Task
+
+logger = logging.getLogger(__name__)
 
 VALID_TRANSITIONS = {
     Task.Status.CREATED: [Task.Status.IN_PROGRESS],
@@ -29,6 +33,10 @@ def apply_status_change(task, new_status, actor, comment=None):
     old_status = task.status
     valid, error = validate_transition(old_status, new_status)
     if not valid:
+        logger.warning(
+            "Invalid status transition task=%s from=%s to=%s actor=%s",
+            task.pk, old_status, new_status, actor.pk,
+        )
         return False, error, None
 
     rows = Task.objects.filter(pk=task.pk, version=task.version).update(
@@ -36,9 +44,11 @@ def apply_status_change(task, new_status, actor, comment=None):
         version=F("version") + 1,
     )
     if rows == 0:
+        logger.warning("Optimistic lock conflict task=%s version=%s actor=%s", task.pk, task.version, actor.pk)
         return False, "Conflict: task was modified by another user.", None
 
     task.refresh_from_db()
+    logger.info("Status changed task=%s from=%s to=%s actor=%s", task.pk, old_status, new_status, actor.pk)
 
     AuditLogEntry.objects.create(
         task=task,
@@ -79,9 +89,11 @@ def update_task_with_version(task, validated_data, actor):
         **update_fields,
     )
     if rows == 0:
+        logger.warning("Optimistic lock conflict task=%s version=%s actor=%s", task.pk, task.version, actor.pk)
         return False, "Conflict: task was modified by another user.", None
 
     task.refresh_from_db()
+    logger.info("Task updated task=%s fields=%s actor=%s", task.pk, list(update_fields.keys()), actor.pk)
 
     for field, new_value in update_fields.items():
         old_val = old_values.get(field, "")
@@ -103,6 +115,7 @@ def update_task_with_version(task, validated_data, actor):
 
 def _broadcast_task_event(event_type, task):
     channel_layer = get_channel_layer()
+    logger.debug("Broadcasting %s for task=%s", event_type, task.pk)
     async_to_sync(channel_layer.group_send)(
         "kanban_board",
         {

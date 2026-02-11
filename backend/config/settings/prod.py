@@ -30,3 +30,11 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+# Production logging: JSON format for structured log aggregation
+LOGGING["formatters"]["json"] = {  # noqa: F405
+    "()": "django.utils.log.ServerFormatter",
+    "format": "{asctime} {levelname} {name} {message}",
+    "style": "{",
+}
+LOGGING["loggers"]["django.request"]["level"] = "ERROR"  # noqa: F405

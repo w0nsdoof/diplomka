@@ -8,7 +8,6 @@
 
 | Issue | Sev | Cpx | Notes |
 |-------|-----|-----|-------|
-| No structured logging | 1 | 2 | No LOGGING config; add per-app loggers, JSON format for prod |
 | No API rate limiting | 1 | 2 | No DRF throttle classes; auth endpoints vulnerable to brute-force |
 | N+1 query patterns | 2 | 2 | ClientDetailSerializer loops `.count()`, Task views missing prefetch |
 | No transaction safety on writes | 2 | 2 | Task create + assignee set not atomic; partial failures possible |

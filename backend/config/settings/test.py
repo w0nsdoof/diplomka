@@ -30,3 +30,18 @@ CELERY_TASK_EAGER_PROPAGATES = True
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Suppress logging during tests to keep output clean
+LOGGING = {  # noqa: F405
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "null": {
+            "class": "logging.NullHandler",
+        },
+    },
+    "root": {
+        "handlers": ["null"],
+        "level": "CRITICAL",
+    },
+}

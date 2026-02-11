@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 from rest_framework import status, viewsets
@@ -10,6 +12,8 @@ from apps.accounts.serializers import (
     UserListSerializer,
     UserUpdateSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -40,4 +44,9 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         user.is_active = False
         user.save(update_fields=["is_active"])
+        logger.info("User deactivated user=%s by=%s", user.pk, request.user.pk)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        logger.info("User created user=%s email=%s role=%s by=%s", user.pk, user.email, user.role, self.request.user.pk)

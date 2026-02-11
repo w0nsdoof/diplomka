@@ -1,6 +1,10 @@
+import logging
+from datetime import timedelta
+
 from celery import shared_task
 from django.utils import timezone
-from datetime import timedelta
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task
@@ -52,6 +56,7 @@ def check_approaching_deadlines():
                 )
                 count += 1
 
+    logger.info("Deadline check complete: %d warnings sent", count)
     return f"Sent {count} deadline warning notifications"
 
 
@@ -63,6 +68,7 @@ def send_client_status_email(task_id, old_status, new_status):
     try:
         task = Task.objects.select_related("client").get(pk=task_id)
     except Task.DoesNotExist:
+        logger.warning("send_client_status_email: task %s not found", task_id)
         return
 
     if not task.client:
@@ -73,6 +79,10 @@ def send_client_status_email(task_id, old_status, new_status):
     if not emails:
         return
 
+    logger.info(
+        "Sending status email task=%s %s->%s to %d recipients",
+        task_id, old_status, new_status, len(emails),
+    )
     send_mail(
         subject=f"Ticket #{task.id} status updated: {new_status}",
         message=f"Your ticket '{task.title}' has been updated from {old_status} to {new_status}.",

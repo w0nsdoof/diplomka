@@ -1,9 +1,11 @@
-import json
+import logging
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -12,11 +14,13 @@ class KanbanConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         token = self.scope["query_string"].decode().split("token=")[-1] if b"token=" in self.scope["query_string"] else None
         if not token:
+            logger.warning("WebSocket connection rejected: no token provided")
             await self.close(code=4401)
             return
 
         user = await self.authenticate(token)
         if not user:
+            logger.warning("WebSocket connection rejected: invalid token")
             await self.close(code=4401)
             return
 
@@ -26,6 +30,7 @@ class KanbanConsumer(AsyncJsonWebsocketConsumer):
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
+        logger.info("WebSocket connected user=%s role=%s", user.id, user.role)
         await self.send_json({
             "type": "connection_established",
             "user_id": user.id,
@@ -33,6 +38,8 @@ class KanbanConsumer(AsyncJsonWebsocketConsumer):
         })
 
     async def disconnect(self, close_code):
+        user_id = getattr(self, "user", None) and self.user.id
+        logger.info("WebSocket disconnected user=%s code=%s", user_id, close_code)
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
@@ -72,6 +79,8 @@ class KanbanConsumer(AsyncJsonWebsocketConsumer):
             user = User.objects.get(pk=access_token["user_id"])
             if user.is_active:
                 return user
+            logger.warning("WebSocket auth: inactive user=%s", user.pk)
         except Exception:
+            logger.debug("WebSocket auth failed: invalid or expired token")
             return None
         return None
