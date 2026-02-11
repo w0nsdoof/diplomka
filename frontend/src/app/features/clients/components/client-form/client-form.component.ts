@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -7,6 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { ClientService } from '../../../../core/services/client.service';
 
 @Component({
@@ -46,14 +47,16 @@ import { ClientService } from '../../../../core/services/client.service';
     </mat-card>
   `,
   styles: [`.full-width { width: 100%; } .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }`],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ClientFormComponent implements OnInit {
+export class ClientFormComponent implements OnInit, OnDestroy {
   form!: FormGroup;
   isEdit = false;
   saving = false;
   clientId: number | null = null;
+  private destroy$ = new Subject<void>();
 
-  constructor(private fb: FormBuilder, private clientService: ClientService, private router: Router, private route: ActivatedRoute) {}
+  constructor(private fb: FormBuilder, private clientService: ClientService, private router: Router, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -64,7 +67,10 @@ export class ClientFormComponent implements OnInit {
     const id = this.route.snapshot.params['id'];
     if (id) {
       this.isEdit = true; this.clientId = +id;
-      this.clientService.get(this.clientId).subscribe((c) => this.form.patchValue(c));
+      this.clientService.get(this.clientId).pipe(takeUntil(this.destroy$)).subscribe((c) => {
+        this.form.patchValue(c);
+        this.cdr.markForCheck();
+      });
     }
   }
 
@@ -75,11 +81,16 @@ export class ClientFormComponent implements OnInit {
     this.router.navigate(['/clients']);
 
     if (this.isEdit && this.clientId) {
-      this.clientService.update(this.clientId, this.form.value).subscribe();
+      this.clientService.update(this.clientId, this.form.value).pipe(takeUntil(this.destroy$)).subscribe();
     } else {
-      this.clientService.create(this.form.value).subscribe();
+      this.clientService.create(this.form.value).pipe(takeUntil(this.destroy$)).subscribe();
     }
   }
 
   cancel(): void { this.router.navigate(['/clients']); }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

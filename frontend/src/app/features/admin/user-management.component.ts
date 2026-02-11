@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { Subject, takeUntil } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -73,30 +74,44 @@ import { environment } from '../../../environments/environment';
     .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
     .form-row mat-form-field { flex: 1; min-width: 200px; }
   `],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UserManagementComponent implements OnInit {
+export class UserManagementComponent implements OnInit, OnDestroy {
   users: any[] = [];
   columns = ['email', 'name', 'role', 'is_active', 'actions'];
   showCreateForm = false;
   newUser = { email: '', first_name: '', last_name: '', role: 'engineer', password: '' };
+  private destroy$ = new Subject<void>();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void { this.loadUsers(); }
 
   loadUsers(): void {
-    this.http.get<any>(`${environment.apiUrl}/users/`).subscribe((res) => { this.users = res.results; });
+    this.http.get<any>(`${environment.apiUrl}/users/`).pipe(takeUntil(this.destroy$)).subscribe((res) => {
+      this.users = res.results;
+      this.cdr.markForCheck();
+    });
   }
 
   createUser(): void {
-    this.http.post(`${environment.apiUrl}/users/`, this.newUser).subscribe(() => {
+    this.http.post(`${environment.apiUrl}/users/`, this.newUser).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.showCreateForm = false;
       this.newUser = { email: '', first_name: '', last_name: '', role: 'engineer', password: '' };
       this.loadUsers();
+      this.cdr.markForCheck();
     });
   }
 
   deactivateUser(id: number): void {
-    this.http.delete(`${environment.apiUrl}/users/${id}/`).subscribe(() => this.loadUsers());
+    this.http.delete(`${environment.apiUrl}/users/${id}/`).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.loadUsers();
+      this.cdr.markForCheck();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

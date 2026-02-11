@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -11,6 +11,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskCreatePayload } from '../../../../core/services/task.service';
 import { ClientService, Client } from '../../../../core/services/client.service';
 import { TagService, Tag } from '../../../../core/services/tag.service';
@@ -90,14 +91,16 @@ import { TagService, Tag } from '../../../../core/services/tag.service';
     .row mat-form-field { flex: 1; }
     .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
   `],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TaskFormComponent implements OnInit {
+export class TaskFormComponent implements OnInit, OnDestroy {
   taskForm!: FormGroup;
   isEdit = false;
   saving = false;
   taskId: number | null = null;
   clients: Client[] = [];
   tags: Tag[] = [];
+  private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
@@ -106,6 +109,7 @@ export class TaskFormComponent implements OnInit {
     private tagService: TagService,
     private router: Router,
     private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -118,14 +122,20 @@ export class TaskFormComponent implements OnInit {
       tag_ids: [[]],
     });
 
-    this.clientService.list({ page_size: 100 } as any).subscribe((res) => (this.clients = res.results));
-    this.tagService.list().subscribe((res) => (this.tags = res.results));
+    this.clientService.list({ page_size: 100 } as any).pipe(takeUntil(this.destroy$)).subscribe((res) => {
+      this.clients = res.results;
+      this.cdr.markForCheck();
+    });
+    this.tagService.list().pipe(takeUntil(this.destroy$)).subscribe((res) => {
+      this.tags = res.results;
+      this.cdr.markForCheck();
+    });
 
     const id = this.route.snapshot.params['id'];
     if (id) {
       this.isEdit = true;
       this.taskId = +id;
-      this.taskService.get(this.taskId).subscribe((task) => {
+      this.taskService.get(this.taskId).pipe(takeUntil(this.destroy$)).subscribe((task) => {
         this.taskForm.patchValue({
           title: task.title,
           description: task.description,
@@ -134,6 +144,7 @@ export class TaskFormComponent implements OnInit {
           client_id: task.client?.id || null,
           tag_ids: task.tags.map((t) => t.id),
         });
+        this.cdr.markForCheck();
       });
     }
   }
@@ -150,13 +161,18 @@ export class TaskFormComponent implements OnInit {
     this.router.navigate(['/tasks']);
 
     if (this.isEdit && this.taskId) {
-      this.taskService.update(this.taskId, payload).subscribe();
+      this.taskService.update(this.taskId, payload).pipe(takeUntil(this.destroy$)).subscribe();
     } else {
-      this.taskService.create(payload).subscribe();
+      this.taskService.create(payload).pipe(takeUntil(this.destroy$)).subscribe();
     }
   }
 
   cancel(): void {
     this.router.navigate(['/tasks']);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

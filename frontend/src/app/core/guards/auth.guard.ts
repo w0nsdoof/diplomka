@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { map } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 export const authGuard: CanActivateFn = () => {
@@ -9,7 +10,11 @@ export const authGuard: CanActivateFn = () => {
   if (authService.isLoggedIn()) {
     return true;
   }
-  return router.createUrlTree(['/login']);
+
+  // Try to restore session from refresh cookie (page refresh scenario)
+  return authService.tryRestoreSession().pipe(
+    map((restored) => restored ? true : router.createUrlTree(['/login'])),
+  );
 };
 
 export const managerGuard: CanActivateFn = () => {

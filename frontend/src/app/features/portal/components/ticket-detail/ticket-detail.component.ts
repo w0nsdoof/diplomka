@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { Subject, takeUntil } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatListModule } from '@angular/material/list';
@@ -46,14 +47,24 @@ import { environment } from '../../../../../environments/environment';
     .meta { display: flex; gap: 12px; align-items: center; margin: 12px 0; }
     .date { color: #757575; font-size: 12px; }
   `],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TicketDetailComponent implements OnInit {
+export class TicketDetailComponent implements OnInit, OnDestroy {
   ticket: any = null;
+  private destroy$ = new Subject<void>();
 
-  constructor(private route: ActivatedRoute, private http: HttpClient) {}
+  constructor(private route: ActivatedRoute, private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     const id = this.route.snapshot.params['id'];
-    this.http.get(`${environment.apiUrl}/portal/tickets/${id}/`).subscribe((data) => { this.ticket = data; });
+    this.http.get(`${environment.apiUrl}/portal/tickets/${id}/`).pipe(takeUntil(this.destroy$)).subscribe((data) => {
+      this.ticket = data;
+      this.cdr.markForCheck();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

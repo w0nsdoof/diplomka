@@ -23,7 +23,12 @@ export class WebSocketService {
     const token = this.authService.getAccessToken();
     if (!token) return;
 
-    const wsUrl = `${environment.wsUrl}/kanban/?token=${token}`;
+    let wsBase = environment.wsUrl;
+    if (wsBase.startsWith('/')) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsBase = `${protocol}//${window.location.host}${wsBase}`;
+    }
+    const wsUrl = `${wsBase}/kanban/?token=${token}`;
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {

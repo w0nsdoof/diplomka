@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Subject, takeUntil } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -60,20 +61,23 @@ import { environment } from '../../../environments/environment';
     .stat { font-size: 32px; font-weight: bold; text-align: center; }
     .report-content { margin-top: 24px; }
   `],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ReportsComponent {
+export class ReportsComponent implements OnDestroy {
   dateFrom: Date | null = null;
   dateTo: Date | null = null;
   reportData: any = null;
+  private destroy$ = new Subject<void>();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
   loadReport(): void {
     let params = new HttpParams();
     if (this.dateFrom) params = params.set('date_from', this.dateFrom.toISOString().split('T')[0]);
     if (this.dateTo) params = params.set('date_to', this.dateTo.toISOString().split('T')[0]);
-    this.http.get(`${environment.apiUrl}/reports/summary/`, { params }).subscribe((data) => {
+    this.http.get(`${environment.apiUrl}/reports/summary/`, { params }).pipe(takeUntil(this.destroy$)).subscribe((data) => {
       this.reportData = data;
+      this.cdr.markForCheck();
     });
   }
 
@@ -81,7 +85,7 @@ export class ReportsComponent {
     let params = new HttpParams();
     if (this.dateFrom) params = params.set('date_from', this.dateFrom.toISOString().split('T')[0]);
     if (this.dateTo) params = params.set('date_to', this.dateTo.toISOString().split('T')[0]);
-    this.http.get(`${environment.apiUrl}/reports/export/pdf/`, { params, responseType: 'blob' }).subscribe((blob) => {
+    this.http.get(`${environment.apiUrl}/reports/export/pdf/`, { params, responseType: 'blob' }).pipe(takeUntil(this.destroy$)).subscribe((blob) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = 'report.pdf'; a.click();
@@ -93,11 +97,16 @@ export class ReportsComponent {
     let params = new HttpParams();
     if (this.dateFrom) params = params.set('date_from', this.dateFrom.toISOString().split('T')[0]);
     if (this.dateTo) params = params.set('date_to', this.dateTo.toISOString().split('T')[0]);
-    this.http.get(`${environment.apiUrl}/reports/export/excel/`, { params, responseType: 'blob' }).subscribe((blob) => {
+    this.http.get(`${environment.apiUrl}/reports/export/excel/`, { params, responseType: 'blob' }).pipe(takeUntil(this.destroy$)).subscribe((blob) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = 'report.xlsx'; a.click();
       URL.revokeObjectURL(url);
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

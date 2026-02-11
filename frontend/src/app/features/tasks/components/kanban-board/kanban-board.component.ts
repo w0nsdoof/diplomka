@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { MatCardModule } from '@angular/material/card';
@@ -6,7 +6,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskListItem } from '../../../../core/services/task.service';
 import { WebSocketService } from '../../../../core/services/websocket.service';
 
@@ -61,6 +61,7 @@ interface KanbanColumn {
     .cdk-drag-preview { box-shadow: 0 5px 5px -3px rgba(0,0,0,.2); }
     .cdk-drag-placeholder { opacity: 0; }
   `],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KanbanBoardComponent implements OnInit, OnDestroy {
   columns: KanbanColumn[] = [
@@ -71,12 +72,13 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   ];
 
   columnIds: string[] = [];
-  private wsSub?: Subscription;
+  private destroy$ = new Subject<void>();
 
   constructor(
     private taskService: TaskService,
     private wsService: WebSocketService,
     private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef,
   ) {
     this.columnIds = this.columns.map((c) => c.status);
   }
@@ -84,40 +86,45 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadTasks();
     this.wsService.connect();
-    this.wsSub = this.wsService.messages$.subscribe((msg) => {
+    this.wsService.messages$.pipe(takeUntil(this.destroy$)).subscribe((msg) => {
       if (msg.type === 'task_status_changed') {
         this.handleStatusChange(msg.payload);
       } else if (msg.type === 'task_created') {
         this.loadTasks();
       }
+      this.cdr.markForCheck();
     });
   }
 
   ngOnDestroy(): void {
-    this.wsSub?.unsubscribe();
+    this.destroy$.next();
+    this.destroy$.complete();
     this.wsService.disconnect();
   }
 
   loadTasks(): void {
-    this.taskService.list({ page_size: 100 }).subscribe((res) => {
+    this.taskService.list({ page_size: 100 }).pipe(takeUntil(this.destroy$)).subscribe((res) => {
       for (const col of this.columns) {
         col.tasks = res.results.filter((t) => t.status === col.status);
       }
+      this.cdr.markForCheck();
     });
   }
 
   onDrop(event: CdkDragDrop<TaskListItem[]>, targetCol: KanbanColumn): void {
     if (event.previousContainer === event.container) return;
     const task = event.previousContainer.data[event.previousIndex];
-    this.taskService.changeStatus(task.id, targetCol.status).subscribe({
+    this.taskService.changeStatus(task.id, targetCol.status).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         event.previousContainer.data.splice(event.previousIndex, 1);
         task.status = targetCol.status;
         event.container.data.splice(event.currentIndex, 0, task);
+        this.cdr.markForCheck();
       },
       error: (err) => {
         const msg = err.error?.detail || 'Invalid transition';
         this.snackBar.open(msg, 'Close', { duration: 3000 });
+        this.cdr.markForCheck();
       },
     });
   }

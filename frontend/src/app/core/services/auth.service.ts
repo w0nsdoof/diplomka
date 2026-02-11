@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, tap, catchError, of } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 
 export interface TokenResponse {
   access: string;
-  refresh: string;
 }
 
 export interface UserInfo {
@@ -19,10 +18,9 @@ export interface UserInfo {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly TOKEN_KEY = 'access_token';
-  private readonly REFRESH_KEY = 'refresh_token';
   private readonly USER_KEY = 'user_info';
 
+  private accessToken: string | null = null;
   private currentUserSubject = new BehaviorSubject<UserInfo | null>(this.getStoredUser());
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -32,42 +30,70 @@ export class AuthService {
   ) {}
 
   login(email: string, password: string): Observable<TokenResponse> {
-    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/token/`, { email, password }).pipe(
-      tap((tokens) => {
-        this.storeTokens(tokens);
-        this.decodeAndStoreUser(tokens.access);
-      }),
-    );
-  }
-
-  refreshToken(): Observable<{ access: string }> {
-    const refresh = this.getRefreshToken();
-    return this.http.post<{ access: string }>(`${environment.apiUrl}/auth/token/refresh/`, { refresh }).pipe(
+    return this.http.post<TokenResponse>(
+      `${environment.apiUrl}/auth/token/`,
+      { email, password },
+      { withCredentials: true },
+    ).pipe(
       tap((res) => {
-        localStorage.setItem(this.TOKEN_KEY, res.access);
+        this.accessToken = res.access;
         this.decodeAndStoreUser(res.access);
       }),
     );
   }
 
+  refreshToken(): Observable<{ access: string }> {
+    return this.http.post<{ access: string }>(
+      `${environment.apiUrl}/auth/token/refresh/`,
+      {},
+      { withCredentials: true },
+    ).pipe(
+      tap((res) => {
+        this.accessToken = res.access;
+        this.decodeAndStoreUser(res.access);
+      }),
+    );
+  }
+
+  /**
+   * Try to restore session from refresh cookie on app init.
+   * Returns true if session was restored, false otherwise.
+   */
+  tryRestoreSession(): Observable<boolean> {
+    return new Observable<boolean>((observer) => {
+      this.refreshToken().pipe(
+        catchError(() => {
+          observer.next(false);
+          observer.complete();
+          return of(null);
+        }),
+      ).subscribe((res) => {
+        if (res) {
+          observer.next(true);
+          observer.complete();
+        }
+      });
+    });
+  }
+
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.REFRESH_KEY);
+    this.http.post(
+      `${environment.apiUrl}/auth/logout/`,
+      {},
+      { withCredentials: true },
+    ).subscribe();
+    this.accessToken = null;
     localStorage.removeItem(this.USER_KEY);
     this.currentUserSubject.next(null);
     this.router.navigate(['/login']);
   }
 
   getAccessToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
-  getRefreshToken(): string | null {
-    return localStorage.getItem(this.REFRESH_KEY);
+    return this.accessToken;
   }
 
   isLoggedIn(): boolean {
-    return !!this.getAccessToken();
+    return !!this.accessToken;
   }
 
   getCurrentUser(): UserInfo | null {
@@ -77,11 +103,6 @@ export class AuthService {
   hasRole(role: string): boolean {
     const user = this.getCurrentUser();
     return user?.role === role;
-  }
-
-  private storeTokens(tokens: TokenResponse): void {
-    localStorage.setItem(this.TOKEN_KEY, tokens.access);
-    localStorage.setItem(this.REFRESH_KEY, tokens.refresh);
   }
 
   private decodeAndStoreUser(token: string): void {

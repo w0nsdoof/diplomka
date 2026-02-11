@@ -8,12 +8,14 @@ from tests.factories import EngineerFactory, ManagerFactory
 class TestTokenObtain:
     URL = "/api/auth/token/"
 
-    def test_login_returns_tokens(self, api_client):
+    def test_login_returns_access_token_and_refresh_cookie(self, api_client):
         user = ManagerFactory()
         resp = api_client.post(self.URL, {"email": user.email, "password": "testpass123"})
         assert resp.status_code == 200
         assert "access" in resp.data
-        assert "refresh" in resp.data
+        # Refresh token is now in httpOnly cookie, not in response body
+        assert "refresh" not in resp.data
+        assert "refresh_token" in resp.cookies
 
     def test_token_contains_custom_claims(self, api_client):
         import jwt
@@ -33,14 +35,24 @@ class TestTokenObtain:
         resp = api_client.post(self.URL, {"email": user.email, "password": "testpass123"})
         assert resp.status_code == 401
 
-    def test_refresh_token(self, api_client):
+    def test_refresh_token_from_cookie(self, api_client):
         user = ManagerFactory()
         resp = api_client.post(self.URL, {"email": user.email, "password": "testpass123"})
-        refresh = resp.data["refresh"]
-
-        resp2 = api_client.post("/api/auth/token/refresh/", {"refresh": refresh})
+        # The refresh cookie is set by the login response
+        # DRF test client automatically sends cookies on subsequent requests
+        resp2 = api_client.post("/api/auth/token/refresh/")
         assert resp2.status_code == 200
         assert "access" in resp2.data
+
+    def test_refresh_without_cookie_returns_401(self, api_client):
+        resp = api_client.post("/api/auth/token/refresh/")
+        assert resp.status_code == 401
+
+    def test_logout_clears_refresh_cookie(self, api_client):
+        user = ManagerFactory()
+        api_client.post(self.URL, {"email": user.email, "password": "testpass123"})
+        resp = api_client.post("/api/auth/logout/")
+        assert resp.status_code == 204
 
 
 @pytest.mark.django_db

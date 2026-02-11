@@ -1,6 +1,6 @@
 # Frontend — Angular 17 SPA
 
-Angular Material UI, standalone components, JWT auth.
+Angular Material UI, standalone components, JWT auth (httpOnly cookie refresh + in-memory access token).
 
 ## Commands
 
@@ -12,13 +12,12 @@ npm run test:ci    # headless Chrome, single run (CI)
 
 ## Testing
 
-146 tests, ~99% coverage. Patterns:
+152 tests, ~99% coverage. Patterns:
 
 - **Services**: `provideHttpClient()` + `provideHttpClientTesting()` + `HttpTestingController.verify()` in `afterEach`
-- **Guards**: `TestBed.runInInjectionContext()` with mocked `AuthService`
+- **Guards**: `TestBed.runInInjectionContext()` with mocked `AuthService` (guard returns `Observable` for async session restore)
 - **Interceptors**: `provideHttpClient(withInterceptors([...]))` + `HttpTestingController`
 - **Components**: `jasmine.createSpyObj` for services, `provideNoopAnimations()` for Material, `provideRouter([])` for routing
-- **localStorage**: always clean up in `afterEach` to prevent cross-test contamination
 
 When adding new code, add a `.spec.ts` next to it following these patterns.
 
@@ -43,6 +42,12 @@ src/app/
 ## Key conventions
 
 - All components are standalone (no NgModules)
+- All components use `ChangeDetectionStrategy.OnPush` with `ChangeDetectorRef.markForCheck()` in subscribe callbacks
+- All subscriptions use `takeUntil(destroy$)` pattern with `OnDestroy` for cleanup
 - Environment config in `src/environments/environment.ts` (`apiUrl`, `wsUrl`)
+- WebSocket URLs auto-detect ws/wss protocol from `window.location`
+- Error interceptor shows `MatSnackBar` notifications (skips 401s and auth endpoints)
+- Auth: access token in memory only, refresh token in httpOnly cookie (`withCredentials: true`)
+- Auth guard calls `tryRestoreSession()` on page refresh to restore session from cookie
 - Roles: `manager` (full access), `engineer` (tasks + kanban), `client` (portal only)
 - Nav items filtered by role in `LayoutComponent`

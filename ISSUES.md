@@ -20,11 +20,6 @@
 
 | Issue | Sev | Cpx | Notes |
 |-------|-----|-----|-------|
-| Subscription memory leaks | 1 | 2 | Only 1/18 components implements OnDestroy; need takeUntil pattern |
-| No global error handler | 2 | 2 | ErrorInterceptor only logs to console; no user-facing notifications |
-| Tokens stored in localStorage | 2 | 3 | XSS-vulnerable; should use httpOnly cookies (needs backend changes) |
-| No OnPush change detection | 3 | 2 | No components use OnPush or trackBy; unnecessary CD cycles |
-| WebSocket URL hardcoded to `localhost` | 2 | 1 | Kanban WS breaks in production; needs env-based config |
 | i18n set up but empty | 3 | 2 | en.json/ru.json are `{}`; no translation markers in templates |
 
 ## Infrastructure
@@ -34,6 +29,7 @@
 | Docker containers run as root | 1 | 1 | No USER directive in either Dockerfile |
 | Dev deps in production Docker image | 2 | 1 | Backend Dockerfile installs dev.txt (pytest, debug-toolbar) in prod |
 | No CI/CD pipeline | 1 | 3 | No GitHub Actions; manual deploy only; no automated lint/test/build |
+| No automated deployment to server | 2 | 3 | Deploy to 94.131.90.61 is fully manual (ssh + docker compose); need CD pipeline (e.g. GitHub Actions) to auto-deploy on push to main |
 | No database backup strategy | 1 | 2 | No pg_dump automation; volume-only; no recovery procedure |
 | No HTTPS/TLS termination | 2 | 2 | nginx listens HTTP only; needs reverse proxy or cert setup |
 | Weak CORS prod defaults | 3 | 1 | CORS_ALLOWED_ORIGINS defaults to empty string if env var unset |

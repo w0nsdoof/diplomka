@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatMenuModule } from '@angular/material/menu';
+import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskListItem, PaginatedResponse, TaskFilters } from '../../../../core/services/task.service';
 import { AuthService } from '../../../../core/services/auth.service';
 
@@ -83,18 +84,21 @@ import { AuthService } from '../../../../core/services/auth.service';
     table { margin-bottom: 16px; }
     a { text-decoration: none; color: #1976d2; }
   `],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TaskListComponent implements OnInit {
+export class TaskListComponent implements OnInit, OnDestroy {
   tasks: TaskListItem[] = [];
   totalCount = 0;
   currentPage = 1;
   pageSize = 20;
   isManager = false;
   displayedColumns = ['title', 'status', 'priority', 'assignees', 'client', 'deadline'];
+  private destroy$ = new Subject<void>();
 
   constructor(
     private taskService: TaskService,
     private authService: AuthService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -104,9 +108,10 @@ export class TaskListComponent implements OnInit {
 
   loadTasks(): void {
     const filters: TaskFilters = { page: this.currentPage, page_size: this.pageSize };
-    this.taskService.list(filters).subscribe((res) => {
+    this.taskService.list(filters).pipe(takeUntil(this.destroy$)).subscribe((res) => {
       this.tasks = res.results;
       this.totalCount = res.count;
+      this.cdr.markForCheck();
     });
   }
 
@@ -114,5 +119,10 @@ export class TaskListComponent implements OnInit {
     this.currentPage = event.pageIndex + 1;
     this.pageSize = event.pageSize;
     this.loadTasks();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

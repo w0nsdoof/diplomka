@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatMenuModule } from '@angular/material/menu';
+import { Subject, takeUntil } from 'rxjs';
 import { AuthService, UserInfo } from '../../services/auth.service';
 
 interface NavItem {
@@ -99,11 +100,13 @@ interface NavItem {
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LayoutComponent implements OnInit {
+export class LayoutComponent implements OnInit, OnDestroy {
   currentUser: UserInfo | null = null;
   unreadCount = 0;
   filteredNavItems: NavItem[] = [];
+  private destroy$ = new Subject<void>();
 
   private navItems: NavItem[] = [
     { label: 'Tasks', icon: 'assignment', route: '/tasks', roles: ['manager', 'engineer'] },
@@ -115,15 +118,21 @@ export class LayoutComponent implements OnInit {
     { label: 'My Tickets', icon: 'confirmation_number', route: '/portal', roles: ['client'] },
   ];
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    this.authService.currentUser$.subscribe((user) => {
+    this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe((user) => {
       this.currentUser = user;
       this.filteredNavItems = this.navItems.filter((item) =>
         user ? item.roles.includes(user.role) : false,
       );
+      this.cdr.markForCheck();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   logout(): void {

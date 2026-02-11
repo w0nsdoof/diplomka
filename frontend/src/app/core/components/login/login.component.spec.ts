@@ -137,7 +137,12 @@ describe('LoginComponent', () => {
 
   describe('template', () => {
     it('should show error message in DOM', () => {
-      component.errorMessage = 'Test error';
+      authService.login.and.returnValue(throwError(() => ({
+        error: { detail: 'Test error' },
+      })));
+
+      component.loginForm.patchValue({ email: 'bad@test.com', password: 'wrong' });
+      component.onSubmit();
       fixture.detectChanges();
 
       const el = fixture.nativeElement.querySelector('.error-message');

@@ -67,7 +67,7 @@ Configured in `config/settings/base.py` via Django `LOGGING` dict. Per-module lo
 
 ## Auth & Roles
 
-JWT via `djangorestframework-simplejwt`. Three roles enforced throughout:
+JWT via `djangorestframework-simplejwt`. Refresh token is set as httpOnly cookie (not in response body); access token returned in JSON body only. Login: `POST /api/auth/token/`, refresh: `POST /api/auth/token/refresh/` (reads cookie), logout: `POST /api/auth/logout/` (clears cookie). Three roles enforced throughout:
 
 - **manager** — full access (CRUD tasks, users, clients, reports, audit history)
 - **engineer** — read tasks, read clients; cannot create/update tasks or change status via API

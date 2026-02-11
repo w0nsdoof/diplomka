@@ -9,10 +9,9 @@ describe('AuthService', () => {
   let httpMock: HttpTestingController;
   let router: jasmine.SpyObj<Router>;
 
-  // JWT token with payload: { user_id: 1, email: "test@example.com", first_name: "Test", last_name: "User", role: "manager" }
   const fakePayload = { user_id: 1, email: 'test@example.com', first_name: 'Test', last_name: 'User', role: 'manager' };
   const fakeToken = 'header.' + btoa(JSON.stringify(fakePayload)) + '.signature';
-  const fakeTokens: TokenResponse = { access: fakeToken, refresh: 'refresh-token-123' };
+  const fakeTokenResponse: TokenResponse = { access: fakeToken };
 
   beforeEach(() => {
     router = jasmine.createSpyObj('Router', ['navigate']);
@@ -32,8 +31,6 @@ describe('AuthService', () => {
 
   afterEach(() => {
     httpMock.verify();
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_info');
   });
 
@@ -42,18 +39,18 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('should POST credentials and store tokens', () => {
+    it('should POST credentials with withCredentials and store access token in memory', () => {
       service.login('test@example.com', 'pass123').subscribe((res) => {
-        expect(res).toEqual(fakeTokens);
+        expect(res).toEqual(fakeTokenResponse);
       });
 
       const req = httpMock.expectOne('/api/auth/token/');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({ email: 'test@example.com', password: 'pass123' });
-      req.flush(fakeTokens);
+      expect(req.request.withCredentials).toBeTrue();
+      req.flush(fakeTokenResponse);
 
-      expect(localStorage.getItem('access_token')).toBe(fakeToken);
-      expect(localStorage.getItem('refresh_token')).toBe('refresh-token-123');
+      expect(service.getAccessToken()).toBe(fakeToken);
     });
 
     it('should decode JWT and update currentUser$', () => {
@@ -61,7 +58,7 @@ describe('AuthService', () => {
       service.currentUser$.subscribe((u) => (user = u));
 
       service.login('test@example.com', 'pass123').subscribe();
-      httpMock.expectOne('/api/auth/token/').flush(fakeTokens);
+      httpMock.expectOne('/api/auth/token/').flush(fakeTokenResponse);
 
       expect(user).toEqual(jasmine.objectContaining({
         id: 1,
@@ -72,16 +69,23 @@ describe('AuthService', () => {
 
     it('should store user info in localStorage', () => {
       service.login('test@example.com', 'pass123').subscribe();
-      httpMock.expectOne('/api/auth/token/').flush(fakeTokens);
+      httpMock.expectOne('/api/auth/token/').flush(fakeTokenResponse);
 
       const stored = JSON.parse(localStorage.getItem('user_info')!);
       expect(stored.email).toBe('test@example.com');
     });
+
+    it('should not store tokens in localStorage', () => {
+      service.login('test@example.com', 'pass123').subscribe();
+      httpMock.expectOne('/api/auth/token/').flush(fakeTokenResponse);
+
+      expect(localStorage.getItem('access_token')).toBeNull();
+      expect(localStorage.getItem('refresh_token')).toBeNull();
+    });
   });
 
   describe('refreshToken', () => {
-    it('should POST refresh token and update access token', () => {
-      localStorage.setItem('refresh_token', 'old-refresh');
+    it('should POST with withCredentials (cookie) and update access token', () => {
       const newPayload = { ...fakePayload, role: 'engineer' };
       const newToken = 'header.' + btoa(JSON.stringify(newPayload)) + '.signature';
 
@@ -91,23 +95,29 @@ describe('AuthService', () => {
 
       const req = httpMock.expectOne('/api/auth/token/refresh/');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ refresh: 'old-refresh' });
+      expect(req.request.body).toEqual({});
+      expect(req.request.withCredentials).toBeTrue();
       req.flush({ access: newToken });
 
-      expect(localStorage.getItem('access_token')).toBe(newToken);
+      expect(service.getAccessToken()).toBe(newToken);
     });
   });
 
   describe('logout', () => {
-    it('should clear all stored data and navigate to login', () => {
-      localStorage.setItem('access_token', 'tok');
-      localStorage.setItem('refresh_token', 'ref');
-      localStorage.setItem('user_info', '{}');
+    it('should clear in-memory token, localStorage, and navigate to login', () => {
+      // First login to set state
+      service.login('test@example.com', 'pass').subscribe();
+      httpMock.expectOne('/api/auth/token/').flush(fakeTokenResponse);
 
       service.logout();
 
-      expect(localStorage.getItem('access_token')).toBeNull();
-      expect(localStorage.getItem('refresh_token')).toBeNull();
+      // Flush the logout POST
+      const req = httpMock.expectOne('/api/auth/logout/');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.withCredentials).toBeTrue();
+      req.flush(null, { status: 204, statusText: 'No Content' });
+
+      expect(service.getAccessToken()).toBeNull();
       expect(localStorage.getItem('user_info')).toBeNull();
       expect(router.navigate).toHaveBeenCalledWith(['/login']);
     });
@@ -117,31 +127,34 @@ describe('AuthService', () => {
       service.currentUser$.subscribe((u) => (user = u));
 
       service.logout();
+      httpMock.expectOne('/api/auth/logout/').flush(null, { status: 204, statusText: 'No Content' });
+
       expect(user).toBeNull();
     });
   });
 
-  describe('getAccessToken / getRefreshToken', () => {
-    it('should return token from localStorage', () => {
+  describe('getAccessToken', () => {
+    it('should return null when not logged in', () => {
       expect(service.getAccessToken()).toBeNull();
-      localStorage.setItem('access_token', 'my-token');
-      expect(service.getAccessToken()).toBe('my-token');
     });
 
-    it('should return refresh token from localStorage', () => {
-      expect(service.getRefreshToken()).toBeNull();
-      localStorage.setItem('refresh_token', 'my-refresh');
-      expect(service.getRefreshToken()).toBe('my-refresh');
+    it('should return in-memory token after login', () => {
+      service.login('test@example.com', 'pass').subscribe();
+      httpMock.expectOne('/api/auth/token/').flush(fakeTokenResponse);
+
+      expect(service.getAccessToken()).toBe(fakeToken);
     });
   });
 
   describe('isLoggedIn', () => {
-    it('should return false when no token', () => {
+    it('should return false when no token in memory', () => {
       expect(service.isLoggedIn()).toBeFalse();
     });
 
-    it('should return true when token present', () => {
-      localStorage.setItem('access_token', 'tok');
+    it('should return true after login', () => {
+      service.login('test@example.com', 'pass').subscribe();
+      httpMock.expectOne('/api/auth/token/').flush(fakeTokenResponse);
+
       expect(service.isLoggedIn()).toBeTrue();
     });
   });
@@ -149,7 +162,7 @@ describe('AuthService', () => {
   describe('hasRole', () => {
     it('should return true for matching role', () => {
       service.login('test@example.com', 'pass').subscribe();
-      httpMock.expectOne('/api/auth/token/').flush(fakeTokens);
+      httpMock.expectOne('/api/auth/token/').flush(fakeTokenResponse);
 
       expect(service.hasRole('manager')).toBeTrue();
       expect(service.hasRole('engineer')).toBeFalse();
@@ -167,10 +180,35 @@ describe('AuthService', () => {
 
     it('should return user after login', () => {
       service.login('test@example.com', 'pass').subscribe();
-      httpMock.expectOne('/api/auth/token/').flush(fakeTokens);
+      httpMock.expectOne('/api/auth/token/').flush(fakeTokenResponse);
 
       const user = service.getCurrentUser();
       expect(user?.email).toBe('test@example.com');
+    });
+  });
+
+  describe('tryRestoreSession', () => {
+    it('should return true when refresh succeeds', () => {
+      let result: boolean | undefined;
+      service.tryRestoreSession().subscribe((r) => (result = r));
+
+      httpMock.expectOne('/api/auth/token/refresh/').flush(fakeTokenResponse);
+
+      expect(result).toBeTrue();
+      expect(service.isLoggedIn()).toBeTrue();
+    });
+
+    it('should return false when refresh fails', () => {
+      let result: boolean | undefined;
+      service.tryRestoreSession().subscribe((r) => (result = r));
+
+      httpMock.expectOne('/api/auth/token/refresh/').flush(
+        { detail: 'Token expired' },
+        { status: 401, statusText: 'Unauthorized' },
+      );
+
+      expect(result).toBeFalse();
+      expect(service.isLoggedIn()).toBeFalse();
     });
   });
 
@@ -179,7 +217,6 @@ describe('AuthService', () => {
       const storedUser: UserInfo = { id: 5, email: 'stored@test.com', first_name: 'S', last_name: 'U', role: 'client' };
       localStorage.setItem('user_info', JSON.stringify(storedUser));
 
-      // Re-create service to pick up localStorage state
       const freshService = new (AuthService as any)(
         TestBed.inject(AuthService)['http'],
         router,

@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, UrlTree } from '@angular/router';
+import { of } from 'rxjs';
 import { authGuard, managerGuard, engineerGuard, clientGuard } from './auth.guard';
 import { AuthService } from '../services/auth.service';
 
@@ -10,7 +11,7 @@ describe('Auth Guards', () => {
   const rootUrlTree = {} as UrlTree;
 
   beforeEach(() => {
-    authService = jasmine.createSpyObj('AuthService', ['isLoggedIn', 'hasRole']);
+    authService = jasmine.createSpyObj('AuthService', ['isLoggedIn', 'hasRole', 'tryRestoreSession']);
     router = jasmine.createSpyObj('Router', ['createUrlTree']);
 
     router.createUrlTree.and.callFake((commands: string[]) => {
@@ -36,10 +37,28 @@ describe('Auth Guards', () => {
       expect(runGuard(authGuard)).toBeTrue();
     });
 
-    it('should redirect to /login when not logged in', () => {
+    it('should try to restore session and allow when refresh succeeds', (done: DoneFn) => {
       authService.isLoggedIn.and.returnValue(false);
-      expect(runGuard(authGuard)).toBe(loginUrlTree);
-      expect(router.createUrlTree).toHaveBeenCalledWith(['/login']);
+      authService.tryRestoreSession.and.returnValue(of(true));
+
+      const result = runGuard(authGuard);
+      // Result is an Observable when session needs restoring
+      result.subscribe((val: boolean | UrlTree) => {
+        expect(val).toBeTrue();
+        done();
+      });
+    });
+
+    it('should redirect to /login when session restore fails', (done: DoneFn) => {
+      authService.isLoggedIn.and.returnValue(false);
+      authService.tryRestoreSession.and.returnValue(of(false));
+
+      const result = runGuard(authGuard);
+      result.subscribe((val: boolean | UrlTree) => {
+        expect(val).toBe(loginUrlTree);
+        expect(router.createUrlTree).toHaveBeenCalledWith(['/login']);
+        done();
+      });
     });
   });
 
