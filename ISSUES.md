@@ -1,71 +1,41 @@
-# Known Issues
+# Issues Tracker
 
-## 1. WebSocket URL hardcoded to localhost
+> Add issues below. Remove after fix is committed. Format:
+> `| Short description | S(1-3) | C(1-3) | Notes |`
+> Severity: 1=critical 2=major 3=minor | Complexity: 1=quick 2=moderate 3=hard
 
-The Kanban board's WebSocket connection uses `ws://localhost:80/ws/kanban/` in production, causing 403 errors on the remote server. Real-time task updates don't work; the board still loads fine via REST.
+## Backend
 
-**Fix:** Make the WS URL configurable through `environment.prod.ts` using the server hostname/IP.
+| Issue | Sev | Cpx | Notes |
+|-------|-----|-----|-------|
+| No structured logging | 1 | 2 | No LOGGING config; add per-app loggers, JSON format for prod |
+| No API rate limiting | 1 | 2 | No DRF throttle classes; auth endpoints vulnerable to brute-force |
+| N+1 query patterns | 2 | 2 | ClientDetailSerializer loops `.count()`, Task views missing prefetch |
+| No transaction safety on writes | 2 | 2 | Task create + assignee set not atomic; partial failures possible |
+| Sentry installed but not initialized | 2 | 1 | `sentry-sdk` in prod requirements but no `sentry_sdk.init()` |
+| No Redis caching for reads | 3 | 2 | Redis only used for Channels + Celery; no view/query caching |
+| Celery hardcodes dev settings module | 3 | 1 | `config/celery.py` hardcodes `settings.dev`; should use env var |
+| Celery worker/beat race on first start | 3 | 1 | Fails if backend still migrating; restart fixes it |
 
----
+## Frontend
 
-## 2. Untracked files required for deployment
+| Issue | Sev | Cpx | Notes |
+|-------|-----|-----|-------|
+| Subscription memory leaks | 1 | 2 | Only 1/18 components implements OnDestroy; need takeUntil pattern |
+| No global error handler | 2 | 2 | ErrorInterceptor only logs to console; no user-facing notifications |
+| Tokens stored in localStorage | 2 | 3 | XSS-vulnerable; should use httpOnly cookies (needs backend changes) |
+| No OnPush change detection | 3 | 2 | No components use OnPush or trackBy; unnecessary CD cycles |
+| WebSocket URL hardcoded to `localhost` | 2 | 1 | Kanban WS breaks in production; needs env-based config |
+| i18n set up but empty | 3 | 2 | en.json/ru.json are `{}`; no translation markers in templates |
 
-`backend/entrypoint.sh` and `backend/apps/clients/migrations/0002_alter_client_name.py` are not committed to git. Deploying from a fresh `git clone` fails without manually copying these files.
+## Infrastructure
 
-**Fix:** Commit both files to the repository.
-
----
-
-## 3. Migration race condition on first start
-
-When `backend`, `celery-worker`, and `celery-beat` all start simultaneously, they each run `entrypoint.sh` which calls `migrate`. Concurrent migration attempts cause `duplicate key` errors and crash the worker/beat containers.
-
-**Fix:** Either remove migrations from the worker/beat entrypoint (use a separate command override), or just restart failed containers after backend finishes migrating.
-
----
-
-## 4. No CI/CD pipeline
-
-Deployment is fully manual: rsync files, SSH in, rebuild, restart. Any code change requires repeating the full process.
-
-**Fix:** Add a GitHub Actions workflow that on push to `main` SSHs into the server and runs `git pull && docker compose -f podman-compose.yml up -d --build`.
-
----
-
-## 5. No deploy key for private repo access
-
-The server clones via HTTPS (works while repo is public). If the repo goes private, deployment breaks.
-
-**Fix:** Generate an SSH deploy key on the server, add it as a read-only deploy key in GitHub repo settings, switch remote to SSH.
-
----
-
-## 6. No HTTPS
-
-The application is served over plain HTTP on ports 4200 and 8000. Credentials and JWT tokens are transmitted unencrypted.
-
-**Fix:** Add Caddy or Nginx as a reverse proxy with Let's Encrypt auto-TLS. ~5 lines of Caddyfile config.
-
----
-
-## ~~7. Django admin panel missing CSS~~ (FIXED)
-
-~~The Django admin at `/admin/` renders without styles when `DEBUG=False`.~~
-
-**Resolved:** Added `STORAGES` with `CompressedManifestStaticFilesStorage` to `prod.py`, fixed `STATIC_URL` to `/static/`, and added `collectstatic` to `entrypoint.sh` so static files are collected at container startup (handles volume-mount override of build-time output).
-
----
-
-## ~~8. No backend health check endpoint~~ (FIXED)
-
-~~There is no `/api/health/` endpoint to verify the backend is actually serving requests.~~
-
-**Resolved:** Added `/api/health/` endpoint returning `{"status": "ok"}` and wired it into the backend container `healthcheck` in `podman-compose.yml`.
-
----
-
-## ~~9. Staged container startup with sleep~~ (FIXED)
-
-~~Services must be started in stages with `sleep` delays because podman-compose doesn't fully respect `depends_on` health conditions.~~
-
-**Resolved:** Added backend health check and changed frontend `depends_on` to `condition: service_healthy`, so containers wait for the backend to be ready before starting.
+| Issue | Sev | Cpx | Notes |
+|-------|-----|-----|-------|
+| Docker containers run as root | 1 | 1 | No USER directive in either Dockerfile |
+| Dev deps in production Docker image | 2 | 1 | Backend Dockerfile installs dev.txt (pytest, debug-toolbar) in prod |
+| No CI/CD pipeline | 1 | 3 | No GitHub Actions; manual deploy only; no automated lint/test/build |
+| No database backup strategy | 1 | 2 | No pg_dump automation; volume-only; no recovery procedure |
+| No HTTPS/TLS termination | 2 | 2 | nginx listens HTTP only; needs reverse proxy or cert setup |
+| Weak CORS prod defaults | 3 | 1 | CORS_ALLOWED_ORIGINS defaults to empty string if env var unset |
+| Missing security headers | 2 | 1 | No HSTS, CSP, or Referrer-Policy configured in prod settings |
