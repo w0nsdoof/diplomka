@@ -1,0 +1,459 @@
+openapi: "3.0.3"
+info:
+  title: AI Report Summaries API
+  version: "1.0.0"
+  description: |
+    API endpoints for AI-generated report summaries.
+    All endpoints require JWT authentication and manager role.
+
+servers:
+  - url: /api
+
+paths:
+  /summaries/:
+    get:
+      operationId: summaries_list
+      summary: List report summaries
+      description: |
+        Returns a paginated list of report summaries (latest version per period only).
+        Ordered by generated_at descending.
+      tags: [Summaries]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period_type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [daily, weekly, on_demand]
+          description: Filter by period type
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, generating, completed, failed]
+          description: Filter by generation status
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Paginated list of summaries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedSummaryList"
+              example:
+                count: 42
+                next: "/api/summaries/?page=2"
+                previous: null
+                results:
+                  - id: 1
+                    period_type: "daily"
+                    period_start: "2026-02-13"
+                    period_end: "2026-02-13"
+                    summary_text: "Yesterday, 12 new tasks were created and 8 were completed..."
+                    generation_method: "ai"
+                    status: "completed"
+                    generated_at: "2026-02-14T00:05:32Z"
+                    has_versions: false
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not a manager
+
+  /summaries/{id}/:
+    get:
+      operationId: summaries_detail
+      summary: Get summary detail
+      description: Returns full detail of a specific summary including raw metrics data.
+      tags: [Summaries]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Summary detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryDetail"
+              example:
+                id: 1
+                period_type: "daily"
+                period_start: "2026-02-13"
+                period_end: "2026-02-13"
+                summary_text: "Yesterday, 12 new tasks were created and 8 were completed. The engineering team closed 3 critical tickets. Client Acme Corp has 2 overdue tasks that need attention."
+                generation_method: "ai"
+                status: "completed"
+                llm_model: "openai/gpt-4o-mini"
+                prompt_tokens: 850
+                completion_tokens: 320
+                generation_time_ms: 4500
+                raw_data:
+                  total: 45
+                  by_status:
+                    created: 5
+                    in_progress: 18
+                    done: 20
+                    archived: 2
+                  created_in_period: 12
+                  closed_in_period: 8
+                  overdue: 3
+                  by_client: []
+                  by_engineer: []
+                error_message: ""
+                requested_by: null
+                generated_at: "2026-02-14T00:05:32Z"
+                version_count: 1
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not a manager
+        "404":
+          description: Summary not found
+
+  /summaries/{id}/versions/:
+    get:
+      operationId: summaries_versions
+      summary: List all versions of a summary
+      description: |
+        Returns all versions (regenerations) of a summary for the same period.
+        Ordered by generated_at descending (latest first).
+      tags: [Summaries]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of any version in the group
+      responses:
+        "200":
+          description: List of summary versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SummaryVersion"
+              example:
+                - id: 5
+                  summary_text: "Updated summary text..."
+                  generation_method: "ai"
+                  status: "completed"
+                  generated_at: "2026-02-14T10:30:00Z"
+                  requested_by:
+                    id: 1
+                    email: "manager@example.com"
+                    first_name: "Admin"
+                    last_name: "User"
+                - id: 1
+                  summary_text: "Original summary text..."
+                  generation_method: "ai"
+                  status: "completed"
+                  generated_at: "2026-02-14T00:05:32Z"
+                  requested_by: null
+        "404":
+          description: Summary not found
+
+  /summaries/generate/:
+    post:
+      operationId: summaries_generate
+      summary: Generate on-demand summary
+      description: |
+        Trigger AI summary generation for a custom date range.
+        Returns immediately with the pending summary; generation happens asynchronously.
+      tags: [Summaries]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateRequest"
+            example:
+              period_start: "2026-02-01"
+              period_end: "2026-02-14"
+      responses:
+        "202":
+          description: Summary generation started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryDetail"
+              example:
+                id: 10
+                period_type: "on_demand"
+                period_start: "2026-02-01"
+                period_end: "2026-02-14"
+                summary_text: ""
+                generation_method: ""
+                status: "pending"
+                generated_at: "2026-02-14T12:00:00Z"
+        "400":
+          description: Invalid date range
+          content:
+            application/json:
+              example:
+                period_start: ["This field is required."]
+                period_end: ["period_end must be >= period_start."]
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not a manager
+        "409":
+          description: Summary for this period is already being generated
+
+  /summaries/{id}/regenerate/:
+    post:
+      operationId: summaries_regenerate
+      summary: Regenerate an existing summary
+      description: |
+        Creates a new version of an existing summary. The original remains accessible.
+        Returns immediately with the pending new version; generation happens asynchronously.
+      tags: [Summaries]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "202":
+          description: Regeneration started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryDetail"
+              example:
+                id: 11
+                period_type: "daily"
+                period_start: "2026-02-13"
+                period_end: "2026-02-13"
+                summary_text: ""
+                status: "pending"
+                generated_at: "2026-02-14T14:00:00Z"
+        "404":
+          description: Original summary not found
+        "409":
+          description: Regeneration already in progress for this period
+
+  /summaries/latest/:
+    get:
+      operationId: summaries_latest
+      summary: Get latest summaries
+      description: |
+        Returns the most recent completed daily and weekly summaries.
+        Convenience endpoint for the reports dashboard.
+      tags: [Summaries]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Latest summaries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatestSummaries"
+              example:
+                daily:
+                  id: 1
+                  period_type: "daily"
+                  period_start: "2026-02-13"
+                  period_end: "2026-02-13"
+                  summary_text: "Yesterday, 12 tasks were created..."
+                  generation_method: "ai"
+                  status: "completed"
+                  generated_at: "2026-02-14T00:05:32Z"
+                weekly:
+                  id: 2
+                  period_type: "weekly"
+                  period_start: "2026-02-03"
+                  period_end: "2026-02-09"
+                  summary_text: "Last week, the team completed 45 tasks..."
+                  generation_method: "ai"
+                  status: "completed"
+                  generated_at: "2026-02-10T06:00:15Z"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    PaginatedSummaryList:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SummaryListItem"
+
+    SummaryListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        period_type:
+          type: string
+          enum: [daily, weekly, on_demand]
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        summary_text:
+          type: string
+          description: Full summary text (or empty if still generating)
+        generation_method:
+          type: string
+          enum: [ai, fallback, ""]
+        status:
+          type: string
+          enum: [pending, generating, completed, failed]
+        generated_at:
+          type: string
+          format: date-time
+        has_versions:
+          type: boolean
+          description: True if multiple versions exist for this period
+
+    SummaryDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        period_type:
+          type: string
+          enum: [daily, weekly, on_demand]
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        summary_text:
+          type: string
+        generation_method:
+          type: string
+          enum: [ai, fallback, ""]
+        status:
+          type: string
+          enum: [pending, generating, completed, failed]
+        llm_model:
+          type: string
+        prompt_tokens:
+          type: integer
+          nullable: true
+        completion_tokens:
+          type: integer
+          nullable: true
+        generation_time_ms:
+          type: integer
+          nullable: true
+        raw_data:
+          type: object
+          description: Snapshot of the metrics used for generation
+        error_message:
+          type: string
+        requested_by:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            email:
+              type: string
+            first_name:
+              type: string
+            last_name:
+              type: string
+        generated_at:
+          type: string
+          format: date-time
+        version_count:
+          type: integer
+          description: Total number of versions for this period
+
+    SummaryVersion:
+      type: object
+      properties:
+        id:
+          type: integer
+        summary_text:
+          type: string
+        generation_method:
+          type: string
+          enum: [ai, fallback]
+        status:
+          type: string
+          enum: [pending, generating, completed, failed]
+        generated_at:
+          type: string
+          format: date-time
+        requested_by:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            email:
+              type: string
+            first_name:
+              type: string
+            last_name:
+              type: string
+
+    GenerateRequest:
+      type: object
+      required:
+        - period_start
+        - period_end
+      properties:
+        period_start:
+          type: string
+          format: date
+          description: Start date of the period (inclusive)
+        period_end:
+          type: string
+          format: date
+          description: End date of the period (inclusive)
+
+    LatestSummaries:
+      type: object
+      properties:
+        daily:
+          $ref: "#/components/schemas/SummaryListItem"
+          nullable: true
+          description: Most recent completed daily summary, or null
+        weekly:
+          $ref: "#/components/schemas/SummaryListItem"
+          nullable: true
+          description: Most recent completed weekly summary, or null

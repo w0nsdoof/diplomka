@@ -9,7 +9,8 @@ export interface Notification {
   title: string;
   message: string;
   is_read: boolean;
-  task_id: number;
+  task_id: number | null;
+  summary_id: number | null;
   created_at: string;
 }
 

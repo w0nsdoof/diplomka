@@ -4,7 +4,7 @@ Django 5 + DRF REST API with Celery async tasks and Django Channels WebSockets.
 
 ## Stack
 
-Python 3.11+, Django 5, DRF, PostgreSQL 16, Redis 7, Celery, Django Channels, drf-spectacular (OpenAPI).
+Python 3.11+, Django 5, DRF, PostgreSQL 16, Redis 7, Celery, Django Channels, LiteLLM, drf-spectacular (OpenAPI).
 
 ## Project Layout
 
@@ -19,6 +19,7 @@ apps/
   tags/           # Tag CRUD with auto-slug
   notifications/  # In-app notifications + Celery tasks (deadline warnings, status emails)
   reports/        # Summary/PDF/Excel report generation
+  ai_summaries/   # AI-generated report summaries via LiteLLM (Celery tasks, LLM prompts, versioned summaries)
   audit/          # Immutable audit log for all task changes
 tests/
   conftest.py     # Shared pytest fixtures (authenticated API clients per role)
@@ -62,7 +63,7 @@ Configured in `config/settings/base.py` via Django `LOGGING` dict. Per-module lo
 - **Request logging**: `config.middleware.RequestLoggingMiddleware` logs method, path, status, duration, user for every HTTP request (skips `/api/health/`)
 - **Exception logging**: `config.exceptions` logs unhandled exceptions with tracebacks, 5xx errors
 - **Celery logging**: `config.celery` uses signals to log task start/finish/failure
-- **App logging**: `apps.tasks.services` (status changes, conflicts), `apps.tasks.consumers` (WS connect/disconnect/auth), `apps.notifications.tasks` (deadline checks, emails), `apps.reports.services` (report generation), `apps.accounts.views` (user create/deactivate)
+- **App logging**: `apps.tasks.services` (status changes, conflicts), `apps.tasks.consumers` (WS connect/disconnect/auth), `apps.notifications.tasks` (deadline checks, emails), `apps.reports.services` (report generation), `apps.ai_summaries.services` (summary generation, LLM calls, fallback), `apps.ai_summaries.tasks` (Celery task lifecycle, Redis locks), `apps.accounts.views` (user create/deactivate)
 - **Env vars**: `LOG_LEVEL` (default: INFO), `SQL_LOG_LEVEL` (dev only, default: WARNING)
 
 ## Auth & Roles
@@ -81,3 +82,7 @@ JWT via `djangorestframework-simplejwt`. Refresh token is set as httpOnly cookie
 - Comments support `@First Last` mention parsing; mentioned users get notifications
 - Clients only see `is_public=True` comments
 - Deadline warning notifications are sent hourly via Celery beat (deduplicated per 24h window)
+- AI summaries are auto-generated daily (00:05 UTC) and weekly (Monday 06:00 UTC) via Celery Beat
+- Summary generation uses LiteLLM (provider-agnostic); falls back to template if LLM unavailable
+- Redis locks prevent duplicate concurrent summary generation for the same period
+- Notification model has `related_object_id` for linking to summaries (nullable, generic)

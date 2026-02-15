@@ -9,7 +9,7 @@ describe('NotificationService', () => {
 
   const mockNotification: Notification = {
     id: 1, type: 'task_assigned', title: 'Assigned', message: 'You were assigned',
-    is_read: false, task_id: 10, created_at: '2025-01-01T00:00:00Z',
+    is_read: false, task_id: 10, summary_id: null, created_at: '2025-01-01T00:00:00Z',
   };
 
   const mockPaginated: PaginatedResponse<Notification> = {

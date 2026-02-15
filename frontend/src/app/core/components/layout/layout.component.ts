@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
@@ -8,8 +8,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { Subject, takeUntil } from 'rxjs';
 import { AuthService, UserInfo } from '../../services/auth.service';
+import { NotificationService, Notification } from '../../services/notification.service';
 
 interface NavItem {
   label: string;
@@ -31,6 +33,7 @@ interface NavItem {
     MatButtonModule,
     MatBadgeModule,
     MatMenuModule,
+    MatDividerModule,
   ],
   template: `
     <mat-sidenav-container class="app-container">
@@ -49,13 +52,29 @@ interface NavItem {
       <mat-sidenav-content>
         <mat-toolbar color="primary">
           <span class="spacer"></span>
-          <button mat-icon-button [matMenuTriggerFor]="notifMenu">
+          <button mat-icon-button [matMenuTriggerFor]="notifMenu" (click)="loadNotifications()">
             <mat-icon [matBadge]="unreadCount > 0 ? unreadCount : null" matBadgeColor="warn">
               notifications
             </mat-icon>
           </button>
-          <mat-menu #notifMenu="matMenu">
-            <div class="notif-placeholder" style="padding: 16px;">No notifications</div>
+          <mat-menu #notifMenu="matMenu" class="notif-menu">
+            <div class="notif-header" style="padding: 8px 16px; display: flex; justify-content: space-between; align-items: center;">
+              <strong>Notifications</strong>
+              <button mat-button *ngIf="unreadCount > 0" (click)="markAllRead($event)" style="font-size: 12px;">
+                Mark all read
+              </button>
+            </div>
+            <mat-divider></mat-divider>
+            <div *ngIf="notifications.length === 0" style="padding: 16px; color: #888; text-align: center;">
+              No notifications
+            </div>
+            <button mat-menu-item *ngFor="let notif of notifications"
+                    (click)="onNotificationClick(notif)"
+                    [style.opacity]="notif.is_read ? 0.6 : 1"
+                    [style.font-weight]="notif.is_read ? 'normal' : '500'">
+              <mat-icon>{{ getNotifIcon(notif) }}</mat-icon>
+              <span>{{ notif.message }}</span>
+            </button>
           </mat-menu>
           <button mat-icon-button [matMenuTriggerFor]="userMenu">
             <mat-icon>account_circle</mat-icon>
@@ -105,6 +124,7 @@ interface NavItem {
 export class LayoutComponent implements OnInit, OnDestroy {
   currentUser: UserInfo | null = null;
   unreadCount = 0;
+  notifications: Notification[] = [];
   filteredNavItems: NavItem[] = [];
   private destroy$ = new Subject<void>();
 
@@ -118,7 +138,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
     { label: 'My Tickets', icon: 'confirmation_number', route: '/portal', roles: ['client'] },
   ];
 
-  constructor(private authService: AuthService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private authService: AuthService,
+    private notificationService: NotificationService,
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit(): void {
     this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe((user) => {
@@ -126,6 +151,14 @@ export class LayoutComponent implements OnInit, OnDestroy {
       this.filteredNavItems = this.navItems.filter((item) =>
         user ? item.roles.includes(user.role) : false,
       );
+      if (user) {
+        this.notificationService.refreshUnreadCount();
+      }
+      this.cdr.markForCheck();
+    });
+
+    this.notificationService.unreadCount$.pipe(takeUntil(this.destroy$)).subscribe((count) => {
+      this.unreadCount = count;
       this.cdr.markForCheck();
     });
   }
@@ -133,6 +166,45 @@ export class LayoutComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  loadNotifications(): void {
+    this.notificationService.list(undefined, 1).pipe(takeUntil(this.destroy$)).subscribe((res) => {
+      this.notifications = res.results.slice(0, 10);
+      this.cdr.markForCheck();
+    });
+  }
+
+  onNotificationClick(notif: Notification): void {
+    if (!notif.is_read) {
+      this.notificationService.markAsRead(notif.id).pipe(takeUntil(this.destroy$)).subscribe();
+    }
+
+    if (notif.type === 'summary_ready' && notif.summary_id) {
+      this.router.navigate(['/reports/summaries', notif.summary_id]);
+    } else if (notif.task_id) {
+      this.router.navigate(['/tasks', notif.task_id]);
+    }
+  }
+
+  markAllRead(event: Event): void {
+    event.stopPropagation();
+    this.notificationService.markAllAsRead().pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.notifications = this.notifications.map((n) => ({ ...n, is_read: true }));
+      this.cdr.markForCheck();
+    });
+  }
+
+  getNotifIcon(notif: Notification): string {
+    switch (notif.type) {
+      case 'summary_ready': return 'auto_awesome';
+      case 'task_assigned': return 'assignment_ind';
+      case 'comment_added': return 'comment';
+      case 'mention': return 'alternate_email';
+      case 'status_changed': return 'sync_alt';
+      case 'deadline_warning': return 'warning';
+      default: return 'notifications';
+    }
   }
 
   logout(): void {

@@ -30,7 +30,20 @@ export const routes: Routes = [
       {
         path: 'reports',
         canActivate: [managerGuard],
-        loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent),
+          },
+          {
+            path: 'summaries',
+            loadComponent: () => import('./features/reports/summary-list/summary-list.component').then(m => m.SummaryListComponent),
+          },
+          {
+            path: 'summaries/:id',
+            loadComponent: () => import('./features/reports/summary-detail/summary-detail.component').then(m => m.SummaryDetailComponent),
+          },
+        ],
       },
       {
         path: 'admin/users',

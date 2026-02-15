@@ -1,15 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import { LayoutComponent } from './layout.component';
 import { AuthService, UserInfo } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
 
 describe('LayoutComponent', () => {
   let component: LayoutComponent;
   let fixture: ComponentFixture<LayoutComponent>;
   let currentUserSubject: BehaviorSubject<UserInfo | null>;
   let authService: jasmine.SpyObj<AuthService> & { currentUser$: any };
+  let notificationService: jasmine.SpyObj<NotificationService> & { unreadCount$: any };
 
   function setupWithRole(role: 'manager' | 'engineer' | 'client') {
     const user: UserInfo = { id: 1, email: `${role}@test.com`, first_name: 'Test', last_name: 'User', role };
@@ -23,6 +25,13 @@ describe('LayoutComponent', () => {
       ...jasmine.createSpyObj('AuthService', ['logout']),
       currentUser$: currentUserSubject.asObservable(),
     } as any;
+    notificationService = {
+      ...jasmine.createSpyObj('NotificationService', ['list', 'markAsRead', 'markAllAsRead', 'refreshUnreadCount']),
+      unreadCount$: new BehaviorSubject<number>(0).asObservable(),
+    } as any;
+    notificationService.list.and.returnValue(of({ count: 0, next: null, previous: null, results: [] }));
+    notificationService.markAsRead.and.returnValue(of({}));
+    notificationService.markAllAsRead.and.returnValue(of({ updated_count: 0 }));
 
     await TestBed.configureTestingModule({
       imports: [LayoutComponent],
@@ -30,6 +39,7 @@ describe('LayoutComponent', () => {
         provideNoopAnimations(),
         provideRouter([]),
         { provide: AuthService, useValue: authService },
+        { provide: NotificationService, useValue: notificationService },
       ],
     }).compileComponents();
 

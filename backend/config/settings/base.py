@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.reports",
     "apps.audit",
+    "apps.ai_summaries",
 ]
 
 MIDDLEWARE = [
@@ -170,7 +171,23 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.notifications.tasks.check_approaching_deadlines",
         "schedule": crontab(minute=0, hour="*/1"),
     },
+    "generate-daily-summary": {
+        "task": "apps.ai_summaries.tasks.generate_daily_summary",
+        "schedule": crontab(minute=5, hour=0),
+    },
+    "generate-weekly-summary": {
+        "task": "apps.ai_summaries.tasks.generate_weekly_summary",
+        "schedule": crontab(minute=0, hour=6, day_of_week=1),
+    },
 }
+
+# LLM (AI Summaries)
+
+LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-4o-mini")
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_API_BASE = os.getenv("LLM_API_BASE", "")
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", 2000))
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", 0.3))
 
 # Internationalization
 

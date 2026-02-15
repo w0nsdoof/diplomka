@@ -52,6 +52,12 @@ services:
       - TEST_ENGINEER_PASSWORD=${TEST_ENGINEER_PASSWORD:-}
       - TEST_CLIENT_EMAIL=${TEST_CLIENT_EMAIL:-}
       - TEST_CLIENT_PASSWORD=${TEST_CLIENT_PASSWORD:-}
+      - LLM_MODEL=${LLM_MODEL:-openai/gpt-4o-mini}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_API_BASE=${LLM_API_BASE:-}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2000}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.3}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
     ports:
       - "8000:8000"
     volumes:
@@ -95,6 +101,12 @@ services:
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
       - REDIS_URL=redis://redis:6379/0
+      - LLM_MODEL=${LLM_MODEL:-openai/gpt-4o-mini}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_API_BASE=${LLM_API_BASE:-}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2000}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.3}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
     volumes:
       - ./backend:/app
     depends_on:
@@ -118,6 +130,10 @@ services:
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
       - REDIS_URL=redis://redis:6379/0
+      - LLM_MODEL=${LLM_MODEL:-openai/gpt-4o-mini}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_API_BASE=${LLM_API_BASE:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
     volumes:
       - ./backend:/app
     depends_on:

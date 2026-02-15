@@ -26,7 +26,7 @@ When adding new code, add a `.spec.ts` next to it following these patterns.
 ```
 src/app/
   core/
-    services/       # AuthService, TaskService, NotificationService, etc.
+    services/       # AuthService, TaskService, NotificationService, SummaryService, etc.
     guards/         # authGuard, managerGuard, engineerGuard, clientGuard
     interceptors/   # jwtInterceptor (token + 401 refresh), errorInterceptor
     components/     # LoginComponent, LayoutComponent (shell + nav)
@@ -34,7 +34,7 @@ src/app/
     tasks/          # TaskList, TaskForm, KanbanBoard, TaskDetail
     clients/        # ClientList, ClientDetail
     calendar/       # CalendarView
-    reports/        # ReportsView
+    reports/        # ReportsView, SummaryList, SummaryDetail (AI summaries)
     admin/          # UserManagement
     portal/         # ClientPortal
 ```
@@ -51,3 +51,4 @@ src/app/
 - Auth guard calls `tryRestoreSession()` on page refresh to restore session from cookie
 - Roles: `manager` (full access), `engineer` (tasks + kanban), `client` (portal only)
 - Nav items filtered by role in `LayoutComponent`
+- LayoutComponent integrates NotificationService: loads notifications on bell click, routes `summary_ready` to `/reports/summaries/{id}`, task notifications to `/tasks/{id}`

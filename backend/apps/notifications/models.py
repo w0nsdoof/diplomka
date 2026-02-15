@@ -10,6 +10,7 @@ class Notification(models.Model):
         COMMENT_ADDED = "comment_added", "Comment Added"
         STATUS_CHANGED = "status_changed", "Status Changed"
         DEADLINE_WARNING = "deadline_warning", "Deadline Warning"
+        SUMMARY_READY = "summary_ready", "Summary Ready"
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications"
@@ -18,8 +19,9 @@ class Notification(models.Model):
         max_length=30, choices=EventType.choices, db_index=True
     )
     task = models.ForeignKey(
-        "tasks.Task", on_delete=models.CASCADE, related_name="notifications"
+        "tasks.Task", on_delete=models.CASCADE, null=True, blank=True, related_name="notifications"
     )
+    related_object_id = models.PositiveIntegerField(null=True, blank=True)
     message = models.TextField()
     is_read = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
