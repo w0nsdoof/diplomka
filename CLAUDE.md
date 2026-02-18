@@ -1,60 +1,51 @@
-# diplomka Development Guidelines
+# Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-02-15
+See [README.md](README.md) for project overview, tech stack, and setup.
 
-## Active Technologies
-- Python 3.11+ (backend), TypeScript 5.x (frontend) + Django 5, Django REST Framework, Django Channels, Celery, djangorestframework-simplejwt, drf-spectacular, WeasyPrint, openpyxl, django-simple-history; Angular 17, Angular Material, FullCalendar, @angular/localize (001-task-management)
-- PostgreSQL 16 (primary), Redis 7 (Channels layer + Celery broker), local filesystem (file attachments via MEDIA_ROOT) (001-task-management)
-- Python 3.11+ (backend), TypeScript 5.x (frontend) + Django 5, DRF, Celery, LiteLLM (new), drf-spectacular; Angular 17, Angular Material (002-ai-report-summaries)
-- PostgreSQL 16 (summaries table), Redis 7 (Celery broker + task locks) (002-ai-report-summaries)
+## Git Workflow
 
-- (001-task-management)
+- **`main`** — stable branch, auto-deploys to production on push
+- **Feature branches** — `NNN-feature-name` (e.g. `003-add-caching`)
+- Work on feature branch, push, create PR to `main`
+- CI runs on PR (lint + test + build); merge triggers deploy
+- Never push directly to `main` — always go through a PR
 
-## Project Structure
+## CI/CD
 
-```text
-backend/
-frontend/
-tests/
-```
+- **PR to `main`**: runs backend lint (ruff), backend tests (pytest), frontend tests (karma), frontend build
+- **Push to `main`**: runs CI, then auto-deploys via SSH to production server
+- Workflows: `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`
+- Deploy uses a dedicated `deploy` user on the server (not root)
 
 ## Commands
 
 ```bash
-# Deploy to remote server (uses git pull, not rsync)
+# Deploy (manual fallback)
 ./deploy.sh                    # deploy current branch
 ./deploy.sh main               # deploy specific branch
 
 # Backend
 cd backend && python manage.py runserver
-cd backend && python manage.py test
+cd backend && python -m pytest tests/
+cd backend && ruff check .
 
 # Frontend
 cd frontend && npm start       # dev server on :4200
 cd frontend && npm run test:ci # headless tests
 ```
 
-## Deployment
-
-- Script: `deploy.sh` — git-pull based deployment to remote server (`ssh yandex`)
-- Compose file: `podman-compose.yml` with `name: taskmanager` (fixed project name)
-- Remote `.env` is managed separately on the server (NOT synced from local)
-- First deploy: manually `scp .env` to remote, then add server IP to `DJANGO_ALLOWED_HOSTS`
-
 ## Code Style
 
-Follow standard conventions for Python (PEP 8) and TypeScript (Angular style guide)
+- Python: PEP 8, enforced by `ruff` (config in `backend/pyproject.toml`)
+- TypeScript: Angular style guide
+- All Angular components use standalone (no NgModules) + `OnPush` change detection
 
-## Recent Changes
-- 002-ai-report-summaries: Added Python 3.11+ (backend), TypeScript 5.x (frontend) + Django 5, DRF, Celery, LiteLLM (new), drf-spectacular; Angular 17, Angular Material
-- 001-task-management: Added Python 3.11+ (backend), TypeScript 5.x (frontend) + Django 5, Django REST Framework, Django Channels, Celery, djangorestframework-simplejwt, drf-spectacular, WeasyPrint, openpyxl, django-simple-history; Angular 17, Angular Material, FullCalendar, @angular/localize
+## Deployment
 
-- 001-task-management: Added
-
-<!-- MANUAL ADDITIONS START -->
+- Script: `deploy.sh` — git-pull based, SSHes to server (`ssh yandex` for manual, `deploy` user for CI)
+- Compose file: `podman-compose.yml` with `name: taskmanager`
+- Remote `.env` is managed separately on the server (NOT synced from local)
 
 ## Issue Tracking
 
 Known bugs and issues are tracked in [ISSUES.md](ISSUES.md). When fixing an issue, remove its row from the table in the same commit as the fix.
-
-<!-- MANUAL ADDITIONS END -->
