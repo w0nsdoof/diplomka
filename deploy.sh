@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Configuration
-REMOTE_HOST="yandex"
+REMOTE_HOST="${DEPLOY_SSH_HOST:-yandex}"
 REPO_URL="https://github.com/w0nsdoof/diplomka.git"
 COMPOSE_FILE="podman-compose.yml"
 
