@@ -25,14 +25,8 @@
 
 | Issue | Sev | Cpx | Notes |
 |-------|-----|-----|-------|
-| Docker containers run as root | 1 | 1 | No USER directive in either Dockerfile |
-| Dev deps in production Docker image | 2 | 1 | Backend Dockerfile installs dev.txt (pytest, debug-toolbar) in prod |
-| No CI/CD pipeline | 1 | 3 | No GitHub Actions; manual deploy only; no automated lint/test/build |
-| No automated deployment to server | 2 | 3 | Deploy to 94.131.90.61 is fully manual (ssh + docker compose); need CD pipeline (e.g. GitHub Actions) to auto-deploy on push to main |
-| No database backup strategy | 1 | 2 | No pg_dump automation; volume-only; no recovery procedure |
-| No HTTPS/TLS termination | 2 | 2 | nginx listens HTTP only; needs reverse proxy or cert setup |
-| Weak CORS prod defaults | 3 | 1 | CORS_ALLOWED_ORIGINS defaults to empty string if env var unset |
-| Missing security headers | 2 | 1 | No HSTS, CSP, or Referrer-Policy configured in prod settings |
+| No HTTPS | 2 | 2 | nginx listens HTTP only; needs reverse proxy or cert setup |
+| Security | 3 | 1 | CORS, Security Headers, other stuff |
 
 ## Deployment
 
