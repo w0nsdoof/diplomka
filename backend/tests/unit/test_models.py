@@ -2,7 +2,7 @@ import pytest
 
 from apps.accounts.models import User
 from apps.tags.models import Tag
-from tests.factories import ClientFactory, EngineerFactory, ManagerFactory
+from tests.factories import ClientFactory, EngineerFactory
 
 
 @pytest.mark.django_db

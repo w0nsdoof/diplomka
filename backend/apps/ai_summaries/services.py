@@ -3,7 +3,6 @@ import logging
 import time
 
 from django.conf import settings
-from django.utils import timezone
 
 from apps.reports.services import get_report_data
 

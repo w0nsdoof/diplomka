@@ -1,9 +1,7 @@
 from django.db.models import Count, Q
 from rest_framework import generics, serializers
-from rest_framework.response import Response
 
 from apps.accounts.permissions import IsClient
-from apps.comments.models import Comment
 from apps.tasks.models import Task
 
 

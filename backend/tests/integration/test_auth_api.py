@@ -1,7 +1,6 @@
 import pytest
-from django.urls import reverse
 
-from tests.factories import EngineerFactory, ManagerFactory
+from tests.factories import ManagerFactory
 
 
 @pytest.mark.django_db
@@ -37,7 +36,7 @@ class TestTokenObtain:
 
     def test_refresh_token_from_cookie(self, api_client):
         user = ManagerFactory()
-        resp = api_client.post(self.URL, {"email": user.email, "password": "testpass123"})
+        api_client.post(self.URL, {"email": user.email, "password": "testpass123"})
         # The refresh cookie is set by the login response
         # DRF test client automatically sends cookies on subsequent requests
         resp2 = api_client.post("/api/auth/token/refresh/")

@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from apps.audit.models import AuditLogEntry
 from apps.notifications.models import Notification

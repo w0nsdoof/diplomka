@@ -117,8 +117,8 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         if tag_ids:
             task.tags.set(tag_ids)
 
-        from apps.audit.services import create_audit_entry
         from apps.audit.models import AuditLogEntry
+        from apps.audit.services import create_audit_entry
         create_audit_entry(
             task=task,
             actor=self.context["request"].user,

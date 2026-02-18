@@ -142,10 +142,10 @@ class TaskViewSet(viewsets.ModelViewSet):
         removed = old_ids - new_ids
 
         from django.contrib.auth import get_user_model
-        User = get_user_model()
+        user_model = get_user_model()
 
         for uid in added:
-            user = User.objects.get(pk=uid)
+            user = user_model.objects.get(pk=uid)
             create_notification(
                 recipient=user,
                 event_type="task_assigned",
@@ -161,7 +161,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             )
 
         for uid in removed:
-            user = User.objects.get(pk=uid)
+            user = user_model.objects.get(pk=uid)
             create_notification(
                 recipient=user,
                 event_type="task_unassigned",

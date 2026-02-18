@@ -63,6 +63,7 @@ def check_approaching_deadlines():
 @shared_task
 def send_client_status_email(task_id, old_status, new_status):
     from django.core.mail import send_mail
+
     from apps.tasks.models import Task
 
     try:

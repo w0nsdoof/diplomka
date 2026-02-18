@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 from apps.accounts.permissions import (
     IsAssignedEngineer,
@@ -8,7 +9,7 @@ from apps.accounts.permissions import (
     IsManager,
     IsManagerOrReadOnly,
 )
-from tests.factories import EngineerFactory, ManagerFactory, TaskFactory
+from tests.factories import EngineerFactory, TaskFactory
 
 
 def _make_request(user, method="GET"):

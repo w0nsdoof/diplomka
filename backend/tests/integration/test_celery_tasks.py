@@ -1,6 +1,7 @@
+from datetime import timedelta
+
 import pytest
 from django.utils import timezone
-from datetime import timedelta
 
 from apps.notifications.models import Notification
 from apps.notifications.tasks import check_approaching_deadlines

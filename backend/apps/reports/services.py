@@ -1,9 +1,7 @@
 import io
 import logging
-from datetime import datetime
 
-from django.db.models import Avg, Count, F, Q
-from django.template.loader import render_to_string
+from django.db.models import Count, Q
 from django.utils import timezone
 from openpyxl import Workbook
 from weasyprint import HTML

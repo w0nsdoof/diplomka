@@ -1,4 +1,3 @@
-from datetime import datetime
 
 from django.http import FileResponse
 from rest_framework.response import Response
