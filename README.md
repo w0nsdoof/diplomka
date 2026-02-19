@@ -116,6 +116,15 @@ Key variables in `.env`:
 | `LLM_MODEL`, `GROQ_API_KEY` | AI summary generation (LiteLLM) |
 | `SENTRY_DSN` | Error monitoring (optional) |
 
+## Team
+
+| Student ID | Name | Role |
+|------------|------|------|
+| 22B030361 | [Askar Zhumabayev](https://github.com/w0nsdoof) | Fullstack |
+| 22BXXXXX1 | Dariga Orazbai | PM / QA |
+| 22BXXXXX2 | Merey Kemelbay | UI/UX / BA |
+| 22BXXXXX3 | Madi Kuanyshbekov | Frontend |
+
 ## Issue Tracking
 
 Known bugs and issues are tracked in [ISSUES.md](ISSUES.md).
