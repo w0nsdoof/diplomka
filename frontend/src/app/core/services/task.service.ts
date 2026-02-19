@@ -99,4 +99,18 @@ export class TaskService {
       params: { page: String(page) },
     });
   }
+
+  getAttachments(id: number): Observable<PaginatedResponse<any>> {
+    return this.http.get<PaginatedResponse<any>>(`${this.baseUrl}/${id}/attachments/`);
+  }
+
+  uploadAttachment(id: number, file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<any>(`${this.baseUrl}/${id}/attachments/`, formData);
+  }
+
+  deleteAttachment(taskId: number, attachmentId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${taskId}/attachments/${attachmentId}/`);
+  }
 }

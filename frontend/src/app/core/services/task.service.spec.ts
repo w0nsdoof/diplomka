@@ -156,4 +156,38 @@ describe('TaskService', () => {
       req.flush({ count: 0, next: null, previous: null, results: [] });
     });
   });
+
+  describe('getAttachments', () => {
+    it('should GET attachments for a task', () => {
+      service.getAttachments(5).subscribe((res) => {
+        expect(res.results.length).toBe(1);
+      });
+
+      const req = httpMock.expectOne('/api/tasks/5/attachments/');
+      expect(req.request.method).toBe('GET');
+      req.flush({ count: 1, next: null, previous: null, results: [{ id: 1, filename: 'doc.pdf', file_size: 1024 }] });
+    });
+  });
+
+  describe('uploadAttachment', () => {
+    it('should POST file as FormData', () => {
+      const file = new File(['content'], 'test.txt', { type: 'text/plain' });
+      service.uploadAttachment(5, file).subscribe();
+
+      const req = httpMock.expectOne('/api/tasks/5/attachments/');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body instanceof FormData).toBeTrue();
+      req.flush({ id: 1, filename: 'test.txt' });
+    });
+  });
+
+  describe('deleteAttachment', () => {
+    it('should DELETE an attachment', () => {
+      service.deleteAttachment(5, 10).subscribe();
+
+      const req = httpMock.expectOne('/api/tasks/5/attachments/10/');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+  });
 });
