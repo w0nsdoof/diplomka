@@ -40,6 +40,11 @@ class Task(models.Model):
         settings.AUTH_USER_MODEL, blank=True, related_name="assigned_tasks"
     )
     tags = models.ManyToManyField("tags.Tag", blank=True, related_name="tasks")
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="tasks",
+    )
     version = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

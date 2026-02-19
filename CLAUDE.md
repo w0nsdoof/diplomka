@@ -49,3 +49,10 @@ cd frontend && npm run test:ci # headless tests
 ## Issue Tracking
 
 Known bugs and issues are tracked in [ISSUES.md](ISSUES.md). When fixing an issue, remove its row from the table in the same commit as the fix.
+
+## Active Technologies
+- Python 3.11+ (Django 4.2+ / DRF), Angular 17+ (TypeScript) + Django REST Framework, djangorestframework-simplejwt, LiteLLM, Django Channels, Angular Material, factory-boy (003-multi-tenancy)
+- PostgreSQL 16 (shared database, organization FK discriminator), Redis 7 (Celery broker, cache, channel layer) (003-multi-tenancy)
+
+## Recent Changes
+- 003-multi-tenancy: Added Python 3.11+ (Django 4.2+ / DRF), Angular 17+ (TypeScript) + Django REST Framework, djangorestframework-simplejwt, LiteLLM, Django Channels, Angular Material, factory-boy

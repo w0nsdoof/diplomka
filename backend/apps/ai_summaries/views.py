@@ -28,12 +28,15 @@ class SummaryLatestView(APIView):
         tags=["Summaries"],
     )
     def get(self, request):
+        org = request.user.organization
         daily = ReportSummary.objects.filter(
+            organization=org,
             period_type=ReportSummary.PeriodType.DAILY,
             status=ReportSummary.Status.COMPLETED,
         ).first()
 
         weekly = ReportSummary.objects.filter(
+            organization=org,
             period_type=ReportSummary.PeriodType.WEEKLY,
             status=ReportSummary.Status.COMPLETED,
         ).first()
@@ -62,8 +65,10 @@ class SummaryListView(ListAPIView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
+        org = self.request.user.organization
         latest_ids_subquery = (
             ReportSummary.objects.filter(
+                organization=org,
                 period_type=OuterRef("period_type"),
                 period_start=OuterRef("period_start"),
                 period_end=OuterRef("period_end"),
@@ -73,11 +78,13 @@ class SummaryListView(ListAPIView):
         )
 
         qs = ReportSummary.objects.filter(
+            organization=org,
             id=Subquery(latest_ids_subquery),
         ).order_by("-generated_at")
 
         version_count = (
             ReportSummary.objects.filter(
+                organization=org,
                 period_type=OuterRef("period_type"),
                 period_start=OuterRef("period_start"),
                 period_end=OuterRef("period_end"),
@@ -123,9 +130,11 @@ class SummaryDetailView(RetrieveAPIView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        return ReportSummary.objects.select_related("requested_by").annotate(
+        org = self.request.user.organization
+        return ReportSummary.objects.filter(organization=org).select_related("requested_by").annotate(
             version_count=Subquery(
                 ReportSummary.objects.filter(
+                    organization=org,
                     period_type=OuterRef("period_type"),
                     period_start=OuterRef("period_start"),
                     period_end=OuterRef("period_end"),
@@ -148,12 +157,14 @@ class SummaryVersionsView(APIView):
         tags=["Summaries"],
     )
     def get(self, request, pk):
+        org = request.user.organization
         try:
-            summary = ReportSummary.objects.get(pk=pk)
+            summary = ReportSummary.objects.get(pk=pk, organization=org)
         except ReportSummary.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         versions = ReportSummary.objects.filter(
+            organization=org,
             period_type=summary.period_type,
             period_start=summary.period_start,
             period_end=summary.period_end,
@@ -184,8 +195,10 @@ class SummaryGenerateView(APIView):
 
         period_start = serializer.validated_data["period_start"]
         period_end = serializer.validated_data["period_end"]
+        org = request.user.organization
 
         in_progress = ReportSummary.objects.filter(
+            organization=org,
             period_type=ReportSummary.PeriodType.ON_DEMAND,
             period_start=period_start,
             period_end=period_end,
@@ -198,6 +211,7 @@ class SummaryGenerateView(APIView):
             )
 
         summary = ReportSummary.objects.create(
+            organization=org,
             period_type=ReportSummary.PeriodType.ON_DEMAND,
             period_start=period_start,
             period_end=period_end,
@@ -230,12 +244,14 @@ class SummaryRegenerateView(APIView):
         tags=["Summaries"],
     )
     def post(self, request, pk):
+        org = request.user.organization
         try:
-            original = ReportSummary.objects.get(pk=pk)
+            original = ReportSummary.objects.get(pk=pk, organization=org)
         except ReportSummary.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         in_progress = ReportSummary.objects.filter(
+            organization=org,
             period_type=original.period_type,
             period_start=original.period_start,
             period_end=original.period_end,
@@ -248,6 +264,7 @@ class SummaryRegenerateView(APIView):
             )
 
         summary = ReportSummary.objects.create(
+            organization=org,
             period_type=original.period_type,
             period_start=original.period_start,
             period_end=original.period_end,

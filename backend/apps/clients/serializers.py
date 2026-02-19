@@ -1,3 +1,4 @@
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.clients.models import Client
@@ -38,3 +39,13 @@ class ClientCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
         fields = ["name", "client_type", "phone", "email", "contact_person"]
+
+    def validate_name(self, value):
+        request = self.context.get("request")
+        if request and request.user.organization:
+            qs = Client.objects.filter(name=value, organization=request.user.organization)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError(_("A client with this name already exists in your organization."))
+        return value

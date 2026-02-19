@@ -3,8 +3,18 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.clients.models import Client
+from apps.organizations.models import Organization
 from apps.tags.models import Tag
 from apps.tasks.models import Task
+
+
+class OrganizationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Organization
+
+    name = factory.Sequence(lambda n: f"Organization {n}")
+    slug = factory.LazyAttribute(lambda o: o.name.lower().replace(" ", "-"))
+    is_active = True
 
 
 class ClientFactory(factory.django.DjangoModelFactory):
@@ -14,6 +24,7 @@ class ClientFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f"Client {n}")
     client_type = Client.ClientType.COMPANY
     email = factory.LazyAttribute(lambda o: f"{o.name.lower().replace(' ', '')}@example.com")
+    organization = factory.SubFactory(OrganizationFactory)
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -26,6 +37,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     last_name = factory.Faker("last_name")
     role = User.Role.ENGINEER
     is_active = True
+    organization = factory.SubFactory(OrganizationFactory)
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
@@ -44,9 +56,15 @@ class EngineerFactory(UserFactory):
     role = User.Role.ENGINEER
 
 
+class SuperadminFactory(UserFactory):
+    role = User.Role.SUPERADMIN
+    organization = None
+    is_staff = True
+
+
 class ClientUserFactory(UserFactory):
     role = User.Role.CLIENT
-    client = factory.SubFactory(ClientFactory)
+    client = factory.SubFactory(ClientFactory, organization=factory.SelfAttribute("..organization"))
 
 
 class TagFactory(factory.django.DjangoModelFactory):
@@ -56,6 +74,7 @@ class TagFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f"tag-{n}")
     slug = factory.LazyAttribute(lambda o: o.name)
     color = "#6c757d"
+    organization = factory.SubFactory(OrganizationFactory)
 
 
 class TaskFactory(factory.django.DjangoModelFactory):
@@ -69,6 +88,7 @@ class TaskFactory(factory.django.DjangoModelFactory):
     status = Task.Status.CREATED
     deadline = factory.LazyFunction(lambda: timezone.now() + timezone.timedelta(days=7))
     created_by = factory.SubFactory(ManagerFactory)
+    organization = factory.LazyAttribute(lambda o: o.created_by.organization)
 
     @factory.post_generation
     def assignees(self, create, extracted, **kwargs):

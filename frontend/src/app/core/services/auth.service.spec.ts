@@ -9,7 +9,7 @@ describe('AuthService', () => {
   let httpMock: HttpTestingController;
   let router: jasmine.SpyObj<Router>;
 
-  const fakePayload = { user_id: 1, email: 'test@example.com', first_name: 'Test', last_name: 'User', role: 'manager' };
+  const fakePayload = { user_id: 1, email: 'test@example.com', first_name: 'Test', last_name: 'User', role: 'manager', organization_id: 1 };
   const fakeToken = 'header.' + btoa(JSON.stringify(fakePayload)) + '.signature';
   const fakeTokenResponse: TokenResponse = { access: fakeToken };
 
@@ -214,7 +214,7 @@ describe('AuthService', () => {
 
   describe('initialization from localStorage', () => {
     it('should restore user from localStorage on creation', () => {
-      const storedUser: UserInfo = { id: 5, email: 'stored@test.com', first_name: 'S', last_name: 'U', role: 'client' };
+      const storedUser: UserInfo = { id: 5, email: 'stored@test.com', first_name: 'S', last_name: 'U', role: 'client', organization_id: 2 };
       localStorage.setItem('user_info', JSON.stringify(storedUser));
 
       const freshService = new (AuthService as any)(

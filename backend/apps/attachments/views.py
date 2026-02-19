@@ -1,4 +1,5 @@
 from django.http import FileResponse
+from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -20,12 +21,20 @@ class AttachmentViewSet(viewsets.ModelViewSet):
             return [IsManager()]
         return [IsAuthenticated()]
 
-    def get_queryset(self):
+    def _get_scoped_task(self):
+        """Get task scoped to the requesting user's organization."""
         task_id = self.kwargs.get("task_pk")
-        return Attachment.objects.filter(task_id=task_id).select_related("uploaded_by")
+        return get_object_or_404(
+            Task.objects.filter(organization=self.request.user.organization),
+            pk=task_id,
+        )
+
+    def get_queryset(self):
+        task = self._get_scoped_task()
+        return Attachment.objects.filter(task=task).select_related("uploaded_by")
 
     def create(self, request, task_pk=None):
-        task = Task.objects.get(pk=task_pk)
+        task = self._get_scoped_task()
         serializer = AttachmentUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

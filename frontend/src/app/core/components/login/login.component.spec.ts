@@ -74,7 +74,7 @@ describe('LoginComponent', () => {
 
     it('should call login with form values', () => {
       authService.login.and.returnValue(of({ access: 'a', refresh: 'r' }));
-      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'manager' });
+      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'manager', organization_id: 1 });
 
       component.loginForm.patchValue({ email: 'test@test.com', password: 'pass' });
       component.onSubmit();
@@ -84,7 +84,7 @@ describe('LoginComponent', () => {
 
     it('should set loading=true during request', () => {
       authService.login.and.returnValue(of({ access: 'a', refresh: 'r' }));
-      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'manager' });
+      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'manager', organization_id: 1 });
 
       component.loginForm.patchValue({ email: 'test@test.com', password: 'pass' });
       component.onSubmit();
@@ -95,7 +95,7 @@ describe('LoginComponent', () => {
 
     it('should navigate to /portal for client role', () => {
       authService.login.and.returnValue(of({ access: 'a', refresh: 'r' }));
-      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'client' });
+      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'client', organization_id: 2 });
 
       component.loginForm.patchValue({ email: 'client@test.com', password: 'pass' });
       component.onSubmit();
@@ -105,7 +105,7 @@ describe('LoginComponent', () => {
 
     it('should navigate to /tasks for non-client roles', () => {
       authService.login.and.returnValue(of({ access: 'a', refresh: 'r' }));
-      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'engineer' });
+      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'engineer', organization_id: 3 });
 
       component.loginForm.patchValue({ email: 'eng@test.com', password: 'pass' });
       component.onSubmit();

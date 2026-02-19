@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
@@ -21,9 +23,10 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        MANAGER = "manager", "Manager"
-        ENGINEER = "engineer", "Engineer"
-        CLIENT = "client", "Client"
+        SUPERADMIN = "superadmin", _("Superadmin")
+        MANAGER = "manager", _("Manager")
+        ENGINEER = "engineer", _("Engineer")
+        CLIENT = "client", _("Client")
 
     username = None
     email = models.EmailField(max_length=254, unique=True)
@@ -37,6 +40,13 @@ class User(AbstractUser):
         blank=True,
         related_name="portal_users",
     )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["first_name", "last_name"]
@@ -47,6 +57,17 @@ class User(AbstractUser):
         indexes = [
             models.Index(fields=["role"], name="ix_user_role"),
         ]
+
+    @property
+    def is_superadmin(self):
+        return self.role == self.Role.SUPERADMIN
+
+    def clean(self):
+        super().clean()
+        if self.role == self.Role.SUPERADMIN and self.organization_id is not None:
+            raise ValidationError(_("Superadmin users must not have an organization."))
+        if self.role and self.role != self.Role.SUPERADMIN and not self.organization_id:
+            raise ValidationError(_("Non-superadmin users must have an organization."))
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"

@@ -47,13 +47,13 @@ class TestUserModel:
 
 @pytest.mark.django_db
 class TestTagModel:
-    def test_auto_slug_on_save(self):
-        tag = Tag(name="Bug Fix", color="#ff0000")
+    def test_auto_slug_on_save(self, organization):
+        tag = Tag(name="Bug Fix", color="#ff0000", organization=organization)
         tag.save()
         assert tag.slug == "bug-fix"
 
-    def test_preserves_explicit_slug(self):
-        tag = Tag(name="Bug Fix", slug="custom-slug", color="#ff0000")
+    def test_preserves_explicit_slug(self, organization):
+        tag = Tag(name="Bug Fix", slug="custom-slug", color="#ff0000", organization=organization)
         tag.save()
         assert tag.slug == "custom-slug"
 

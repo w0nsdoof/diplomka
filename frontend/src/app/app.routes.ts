@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, managerGuard, clientGuard } from './core/guards/auth.guard';
+import { authGuard, managerGuard, clientGuard, superadminGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./core/components/login/login.component').then(m => m.LoginComponent) },
@@ -54,6 +54,11 @@ export const routes: Routes = [
         path: 'portal',
         canActivate: [clientGuard],
         loadChildren: () => import('./features/portal/portal.routes').then(m => m.PORTAL_ROUTES),
+      },
+      {
+        path: 'platform',
+        canActivate: [superadminGuard],
+        loadChildren: () => import('./features/platform/platform.routes').then(m => m.PLATFORM_ROUTES),
       },
     ],
   },

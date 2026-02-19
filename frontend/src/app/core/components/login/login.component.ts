@@ -116,7 +116,9 @@ export class LoginComponent implements OnDestroy {
     this.authService.login(email, password).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         const user = this.authService.getCurrentUser();
-        if (user?.role === 'client') {
+        if (user?.role === 'superadmin') {
+          this.router.navigate(['/platform/organizations']);
+        } else if (user?.role === 'client') {
           this.router.navigate(['/portal']);
         } else {
           this.router.navigate(['/tasks']);

@@ -101,11 +101,12 @@ def generate_fallback_summary(period_type, metrics_data):
     )
 
 
-def collect_metrics(period_start, period_end):
+def collect_metrics(period_start, period_end, organization=None):
     """Collect task metrics for a given date range using the existing reports service."""
     return get_report_data(
         date_from=str(period_start),
         date_to=str(period_end),
+        organization=organization,
     )
 
 
@@ -153,7 +154,7 @@ def notify_managers_of_summary(summary):
         f"for {period_desc} is available."
     )
 
-    managers = User.objects.filter(role=User.Role.MANAGER, is_active=True)
+    managers = User.objects.filter(role=User.Role.MANAGER, is_active=True, organization=summary.organization)
     for manager in managers:
         create_notification(
             recipient=manager,
@@ -178,7 +179,7 @@ def generate_summary_for_period(summary_id, prev_metrics=None):
         summary.id, summary.period_type, summary.period_start, summary.period_end,
     )
 
-    metrics_data = collect_metrics(summary.period_start, summary.period_end)
+    metrics_data = collect_metrics(summary.period_start, summary.period_end, organization=summary.organization)
     summary.raw_data = metrics_data
     summary.save(update_fields=["raw_data"])
 

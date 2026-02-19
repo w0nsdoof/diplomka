@@ -129,6 +129,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   private navItems: NavItem[] = [
+    { label: 'Organizations', icon: 'corporate_fare', route: '/platform/organizations', roles: ['superadmin'] },
     { label: 'Tasks', icon: 'assignment', route: '/tasks', roles: ['manager', 'engineer'] },
     { label: 'Kanban', icon: 'view_kanban', route: '/kanban', roles: ['manager', 'engineer'] },
     { label: 'Clients', icon: 'business', route: '/clients', roles: ['manager'] },

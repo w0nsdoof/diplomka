@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -17,9 +18,17 @@ class CommentViewSet(viewsets.ModelViewSet):
     ordering = ["created_at"]
     http_method_names = ["get", "post", "head", "options"]
 
-    def get_queryset(self):
+    def _get_scoped_task(self):
+        """Get task scoped to the requesting user's organization."""
         task_id = self.kwargs.get("task_pk")
-        qs = Comment.objects.filter(task_id=task_id).select_related("author").prefetch_related("mentions")
+        return get_object_or_404(
+            Task.objects.filter(organization=self.request.user.organization),
+            pk=task_id,
+        )
+
+    def get_queryset(self):
+        task = self._get_scoped_task()
+        qs = Comment.objects.filter(task=task).select_related("author").prefetch_related("mentions")
         user = self.request.user
         if user.role == "client":
             qs = qs.filter(is_public=True)
@@ -32,7 +41,7 @@ class CommentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        task = Task.objects.get(pk=task_pk)
+        task = self._get_scoped_task()
         serializer = CommentCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -43,7 +52,7 @@ class CommentViewSet(viewsets.ModelViewSet):
             is_public=serializer.validated_data["is_public"],
         )
 
-        mentioned_users = parse_mentions(comment.content)
+        mentioned_users = parse_mentions(comment.content, organization=request.user.organization)
         if mentioned_users:
             comment.mentions.set(mentioned_users)
             for user in mentioned_users:

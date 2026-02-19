@@ -46,3 +46,13 @@ export const clientGuard: CanActivateFn = () => {
   }
   return router.createUrlTree(['/']);
 };
+
+export const superadminGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (authService.isLoggedIn() && authService.hasRole('superadmin')) {
+    return true;
+  }
+  return router.createUrlTree(['/']);
+};

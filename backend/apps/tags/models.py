@@ -3,11 +3,17 @@ from django.utils.text import slugify
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-    slug = models.SlugField(max_length=60, unique=True)
+    name = models.CharField(max_length=50)
+    slug = models.SlugField(max_length=60)
     color = models.CharField(max_length=7, blank=True, default="#6c757d")
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="tags",
+    )
 
     class Meta:
+        unique_together = [("name", "organization"), ("slug", "organization")]
         indexes = [
             models.Index(fields=["slug"], name="ix_tag_slug"),
         ]
