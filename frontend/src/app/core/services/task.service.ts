@@ -110,6 +110,12 @@ export class TaskService {
     return this.http.post<any>(`${this.baseUrl}/${id}/attachments/`, formData);
   }
 
+  downloadAttachment(taskId: number, attachmentId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${taskId}/attachments/${attachmentId}/`, {
+      responseType: 'blob',
+    });
+  }
+
   deleteAttachment(taskId: number, attachmentId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${taskId}/attachments/${attachmentId}/`);
   }

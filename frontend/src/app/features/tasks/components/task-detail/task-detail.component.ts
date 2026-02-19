@@ -12,7 +12,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskDetail } from '../../../../core/services/task.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-task-detail',
@@ -79,7 +78,7 @@ import { environment } from '../../../../../environments/environment';
             <mat-list *ngIf="attachments.length; else noAttachments">
               <mat-list-item *ngFor="let a of attachments">
                 <mat-icon matListItemIcon>attach_file</mat-icon>
-                <a matListItemTitle [href]="getDownloadUrl(a.id)" target="_blank">{{ a.filename }}</a>
+                <a matListItemTitle href="#" (click)="downloadAttachment(a.id, a.filename, $event)">{{ a.filename }}</a>
                 <span matListItemLine>
                   {{ formatFileSize(a.file_size) }}
                   &middot; {{ a.uploaded_by?.first_name }} {{ a.uploaded_by?.last_name }}
@@ -195,8 +194,18 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
       .subscribe(() => this.loadAttachments());
   }
 
-  getDownloadUrl(attachmentId: number): string {
-    return `${environment.apiUrl}/tasks/${this.taskId}/attachments/${attachmentId}/`;
+  downloadAttachment(attachmentId: number, filename: string, event: Event): void {
+    event.preventDefault();
+    this.taskService.downloadAttachment(this.taskId, attachmentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
   }
 
   formatFileSize(bytes: number): string {

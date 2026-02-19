@@ -35,13 +35,14 @@ describe('TaskDetailComponent', () => {
   };
 
   beforeEach(async () => {
-    taskServiceSpy = jasmine.createSpyObj('TaskService', ['get', 'getAttachments', 'getHistory', 'uploadAttachment', 'deleteAttachment']);
+    taskServiceSpy = jasmine.createSpyObj('TaskService', ['get', 'getAttachments', 'getHistory', 'uploadAttachment', 'downloadAttachment', 'deleteAttachment']);
     authServiceSpy = jasmine.createSpyObj('AuthService', ['hasRole']);
 
     taskServiceSpy.get.and.returnValue(of(mockTask));
     taskServiceSpy.getAttachments.and.returnValue(of(mockAttachmentsPage));
     taskServiceSpy.getHistory.and.returnValue(of(mockHistoryPage));
     taskServiceSpy.uploadAttachment.and.returnValue(of({ id: 2, filename: 'new.txt' }));
+    taskServiceSpy.downloadAttachment.and.returnValue(of(new Blob(['test'])));
     taskServiceSpy.deleteAttachment.and.returnValue(of(undefined));
     authServiceSpy.hasRole.and.returnValue(true);
 

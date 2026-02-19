@@ -181,6 +181,19 @@ describe('TaskService', () => {
     });
   });
 
+  describe('downloadAttachment', () => {
+    it('should GET attachment as blob', () => {
+      service.downloadAttachment(5, 10).subscribe((res) => {
+        expect(res instanceof Blob).toBeTrue();
+      });
+
+      const req = httpMock.expectOne('/api/tasks/5/attachments/10/');
+      expect(req.request.method).toBe('GET');
+      expect(req.request.responseType).toBe('blob');
+      req.flush(new Blob(['data']));
+    });
+  });
+
   describe('deleteAttachment', () => {
     it('should DELETE an attachment', () => {
       service.deleteAttachment(5, 10).subscribe();
