@@ -7,7 +7,6 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.ai_summaries.models import ReportSummary
-from apps.comments.models import Comment
 from apps.notifications.models import Notification
 from tests.factories import (
     ClientFactory,

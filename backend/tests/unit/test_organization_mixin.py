@@ -21,23 +21,11 @@ class TestOrganizationQuerySetMixin:
         manager2 = ManagerFactory(organization=org2)
         TaskFactory(created_by=manager2, organization=org2)
 
-        # Create a mixin instance with a mock viewset
-        class FakeViewSet(OrganizationQuerySetMixin):
-            def get_queryset(_self):
-                return Task.objects.all()
-
-        # Create the "super" chain properly
         class TestViewSet(OrganizationQuerySetMixin):
             def __init__(self, request):
                 self.request = request
 
             def get_queryset(self):
-                # The parent get_queryset returns all tasks
-                class _Parent:
-                    def get_queryset(self_inner):
-                        return Task.objects.all()
-
-                # Manually invoke the mixin's logic
                 qs = Task.objects.all()
                 user = self.request.user
                 if user.is_superadmin:

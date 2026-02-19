@@ -1,7 +1,7 @@
 import pytest
 
 from apps.organizations.models import Organization
-from tests.factories import ManagerFactory, OrganizationFactory, SuperadminFactory
+from tests.factories import ManagerFactory, OrganizationFactory
 
 ORGS_URL = "/api/platform/organizations/"
 
