@@ -8,8 +8,8 @@ CLIENTS_URL = "/api/clients/"
 
 @pytest.mark.django_db
 class TestClientList:
-    def test_manager_lists_clients(self, manager_client):
-        ClientFactory.create_batch(3)
+    def test_manager_lists_clients(self, manager_client, organization):
+        ClientFactory.create_batch(3, organization=organization)
         resp = manager_client.get(CLIENTS_URL)
         assert resp.status_code == 200
         assert resp.data["count"] == 3

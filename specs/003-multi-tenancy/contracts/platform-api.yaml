@@ -1,0 +1,271 @@
+openapi: "3.0.3"
+info:
+  title: Platform Admin API (Multi-Tenancy)
+  version: "1.0.0"
+  description: |
+    New endpoints for superadmin platform management.
+    All endpoints require JWT authentication with superadmin role.
+
+paths:
+  /api/platform/organizations/:
+    get:
+      operationId: listOrganizations
+      summary: List all organizations
+      description: Returns paginated list of all organizations with basic stats.
+      tags: [Platform]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Filter by name (case-insensitive contains)
+        - name: is_active
+          in: query
+          schema: { type: boolean }
+          description: Filter by active status
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+      responses:
+        "200":
+          description: Paginated organization list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  next: { type: string, nullable: true }
+                  previous: { type: string, nullable: true }
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/OrganizationList"
+        "403":
+          description: Not a superadmin
+
+    post:
+      operationId: createOrganization
+      summary: Create a new organization
+      tags: [Platform]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationCreate"
+      responses:
+        "201":
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationDetail"
+        "400":
+          description: Validation error (e.g., duplicate name)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+        "403":
+          description: Not a superadmin
+
+  /api/platform/organizations/{id}/:
+    get:
+      operationId: getOrganization
+      summary: Get organization details with stats
+      tags: [Platform]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Organization detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationDetail"
+        "404":
+          description: Organization not found
+
+    patch:
+      operationId: updateOrganization
+      summary: Update organization (name, active status)
+      tags: [Platform]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationUpdate"
+      responses:
+        "200":
+          description: Organization updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationDetail"
+        "400":
+          description: Validation error
+
+  /api/platform/organizations/{id}/managers/:
+    get:
+      operationId: listOrganizationManagers
+      summary: List managers for an organization
+      tags: [Platform]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: List of managers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ManagerBrief"
+
+    post:
+      operationId: createOrganizationManager
+      summary: Create a manager user for an organization
+      tags: [Platform]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManagerCreate"
+      responses:
+        "201":
+          description: Manager created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagerBrief"
+        "400":
+          description: Validation error (duplicate email, inactive org)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    OrganizationList:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        is_active: { type: boolean }
+        user_count: { type: integer }
+        task_count: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    OrganizationDetail:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        is_active: { type: boolean }
+        user_count: { type: integer }
+        manager_count: { type: integer }
+        engineer_count: { type: integer }
+        client_user_count: { type: integer }
+        task_count: { type: integer }
+        client_count: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    OrganizationCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Unique organization name
+
+    OrganizationUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        is_active:
+          type: boolean
+          description: Set to false to deactivate organization
+
+    ManagerBrief:
+      type: object
+      properties:
+        id: { type: integer }
+        email: { type: string, format: email }
+        first_name: { type: string }
+        last_name: { type: string }
+        is_active: { type: boolean }
+        date_joined: { type: string, format: date-time }
+
+    ManagerCreate:
+      type: object
+      required: [email, first_name, last_name, password]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Globally unique email
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          minLength: 8
+          description: Must meet Django password validation rules
+
+    ValidationError:
+      type: object
+      properties:
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }

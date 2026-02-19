@@ -100,7 +100,9 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         if client_id:
             validated_data["client_id"] = client_id
 
-        validated_data["created_by"] = self.context["request"].user
+        user = self.context["request"].user
+        validated_data["created_by"] = user
+        validated_data["organization"] = user.organization
         task = Task.objects.create(**validated_data)
 
         if assignee_ids:

@@ -11,9 +11,11 @@ from apps.tasks.models import Task
 logger = logging.getLogger(__name__)
 
 
-def get_report_data(date_from=None, date_to=None, client_id=None):
+def get_report_data(date_from=None, date_to=None, client_id=None, organization=None):
     qs = Task.objects.all()
 
+    if organization:
+        qs = qs.filter(organization=organization)
     if date_from:
         qs = qs.filter(created_at__gte=date_from)
     if date_to:

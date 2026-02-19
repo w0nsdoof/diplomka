@@ -16,67 +16,82 @@ def _get_redis():
 
 @shared_task
 def generate_daily_summary():
-    """Generate yesterday's daily summary. Skips if already exists."""
+    """Generate yesterday's daily summary for each active organization."""
     from apps.ai_summaries.models import ReportSummary
+    from apps.organizations.models import Organization
 
     yesterday = date.today() - timedelta(days=1)
-    existing = ReportSummary.objects.filter(
-        period_type=ReportSummary.PeriodType.DAILY,
-        period_start=yesterday,
-        period_end=yesterday,
-        status=ReportSummary.Status.COMPLETED,
-    ).exists()
-    if existing:
-        logger.info("Daily summary for %s already exists, skipping", yesterday)
-        return None
+    dispatched = []
 
-    result = generate_summary.delay(
-        "daily", str(yesterday), str(yesterday),
-    )
-    logger.info("Dispatched daily summary for %s, task_id=%s", yesterday, result.id)
-    return result.id
+    for org in Organization.objects.filter(is_active=True):
+        existing = ReportSummary.objects.filter(
+            organization=org,
+            period_type=ReportSummary.PeriodType.DAILY,
+            period_start=yesterday,
+            period_end=yesterday,
+            status=ReportSummary.Status.COMPLETED,
+        ).exists()
+        if existing:
+            logger.info("Daily summary for %s org=%s already exists, skipping", yesterday, org.slug)
+            continue
+
+        result = generate_summary.delay(
+            "daily", str(yesterday), str(yesterday),
+            organization_id=org.id,
+        )
+        logger.info("Dispatched daily summary for %s org=%s, task_id=%s", yesterday, org.slug, result.id)
+        dispatched.append(result.id)
+
+    return dispatched or None
 
 
 @shared_task
 def generate_weekly_summary():
-    """Generate previous Mon-Sun weekly summary. Includes trend data if prior week exists."""
+    """Generate previous Mon-Sun weekly summary for each active organization."""
     from apps.ai_summaries.models import ReportSummary
     from apps.ai_summaries.services import collect_metrics
+    from apps.organizations.models import Organization
 
     today = date.today()
     days_since_monday = today.weekday()
     last_monday = today - timedelta(days=days_since_monday + 7)
     last_sunday = last_monday + timedelta(days=6)
+    dispatched = []
 
-    existing = ReportSummary.objects.filter(
-        period_type=ReportSummary.PeriodType.WEEKLY,
-        period_start=last_monday,
-        period_end=last_sunday,
-        status=ReportSummary.Status.COMPLETED,
-    ).exists()
-    if existing:
-        logger.info("Weekly summary for %s-%s already exists, skipping", last_monday, last_sunday)
-        return None
+    for org in Organization.objects.filter(is_active=True):
+        existing = ReportSummary.objects.filter(
+            organization=org,
+            period_type=ReportSummary.PeriodType.WEEKLY,
+            period_start=last_monday,
+            period_end=last_sunday,
+            status=ReportSummary.Status.COMPLETED,
+        ).exists()
+        if existing:
+            logger.info("Weekly summary for %s-%s org=%s already exists, skipping", last_monday, last_sunday, org.slug)
+            continue
 
-    prev_monday = last_monday - timedelta(days=7)
-    prev_sunday = prev_monday + timedelta(days=6)
-    prev_metrics = None
-    try:
-        prev_metrics = collect_metrics(prev_monday, prev_sunday)
-    except Exception:
-        logger.info("Could not collect previous week metrics for trend comparison")
+        prev_monday = last_monday - timedelta(days=7)
+        prev_sunday = prev_monday + timedelta(days=6)
+        prev_metrics = None
+        try:
+            prev_metrics = collect_metrics(prev_monday, prev_sunday, organization=org)
+        except Exception:
+            logger.info("Could not collect previous week metrics for org=%s", org.slug)
 
-    result = generate_summary.delay(
-        "weekly", str(last_monday), str(last_sunday),
-        prev_metrics=prev_metrics,
-    )
-    logger.info("Dispatched weekly summary for %s-%s, task_id=%s", last_monday, last_sunday, result.id)
-    return result.id
+        result = generate_summary.delay(
+            "weekly", str(last_monday), str(last_sunday),
+            organization_id=org.id,
+            prev_metrics=prev_metrics,
+        )
+        logger.info("Dispatched weekly summary for %s-%s org=%s, task_id=%s", last_monday, last_sunday, org.slug, result.id)
+        dispatched.append(result.id)
+
+    return dispatched or None
 
 
 @shared_task
 def generate_summary(period_type, period_start, period_end, requested_by_id=None,
-                     prev_metrics=None, summary_id=None):
+                     prev_metrics=None, summary_id=None, organization_id=None):
     """Core shared task: acquire lock, create or use existing ReportSummary, generate content.
 
     If summary_id is provided, use the existing row (created by view).
@@ -85,7 +100,7 @@ def generate_summary(period_type, period_start, period_end, requested_by_id=None
     from apps.ai_summaries.models import ReportSummary
     from apps.ai_summaries.services import generate_summary_for_period
 
-    lock_key = f"summary:{period_type}:{period_start}:{period_end}"
+    lock_key = f"summary:{period_type}:{period_start}:{period_end}:{organization_id or 'global'}"
     redis = _get_redis()
     lock = redis.lock(lock_key, timeout=LOCK_TTL)
 
@@ -108,7 +123,13 @@ def generate_summary(period_type, period_start, period_end, requested_by_id=None
                 from apps.accounts.models import User
                 requested_by = User.objects.filter(pk=requested_by_id).first()
 
+            organization = None
+            if organization_id:
+                from apps.organizations.models import Organization
+                organization = Organization.objects.filter(pk=organization_id).first()
+
             summary = ReportSummary.objects.create(
+                organization=organization,
                 period_type=period_type,
                 period_start=period_start,
                 period_end=period_end,

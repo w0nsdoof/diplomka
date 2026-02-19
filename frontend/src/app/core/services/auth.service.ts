@@ -13,7 +13,8 @@ export interface UserInfo {
   email: string;
   first_name: string;
   last_name: string;
-  role: 'manager' | 'engineer' | 'client';
+  role: 'superadmin' | 'manager' | 'engineer' | 'client';
+  organization_id: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -105,6 +106,10 @@ export class AuthService {
     return user?.role === role;
   }
 
+  isSuperadmin(): boolean {
+    return this.hasRole('superadmin');
+  }
+
   private decodeAndStoreUser(token: string): void {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
@@ -114,6 +119,7 @@ export class AuthService {
         first_name: payload.first_name || '',
         last_name: payload.last_name || '',
         role: payload.role || 'engineer',
+        organization_id: payload.organization_id ?? null,
       };
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
       this.currentUserSubject.next(user);

@@ -8,9 +8,11 @@ from apps.clients.serializers import (
     ClientDetailSerializer,
     ClientListSerializer,
 )
+from apps.organizations.mixins import OrganizationQuerySetMixin
 
 
-class ClientViewSet(viewsets.ModelViewSet):
+class ClientViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
+    queryset = Client.objects.all()
     permission_classes = [IsManagerOrReadOnly]
     search_fields = ["name", "email"]
     ordering_fields = ["name", "created_at"]
@@ -18,7 +20,7 @@ class ClientViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
-        qs = Client.objects.all()
+        qs = super().get_queryset()
         user = self.request.user
         if user.role == "client" and user.client_id:
             qs = qs.filter(pk=user.client_id)
@@ -32,3 +34,6 @@ class ClientViewSet(viewsets.ModelViewSet):
         if self.action == "retrieve":
             return ClientDetailSerializer
         return ClientCreateUpdateSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(organization=self.request.user.organization)

@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "channels",
     # Local apps
+    "apps.organizations",
+    "apps.platform",
     "apps.accounts",
     "apps.tasks",
     "apps.clients",
@@ -119,7 +121,7 @@ SIMPLE_JWT = {
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "config.authentication.OrganizationJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -142,6 +144,16 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API for IT outsourcing task management",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SECURITY": [{"jwtAuth": []}],
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "jwtAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            },
+        },
+    },
 }
 
 # Channels

@@ -28,8 +28,8 @@ class TestCommentCreate:
         )
         assert resp.status_code == 403
 
-    def test_mention_creates_notification(self, api_client, task, manager):
-        eng = EngineerFactory(first_name="Alice", last_name="Smith")
+    def test_mention_creates_notification(self, api_client, task, manager, organization):
+        eng = EngineerFactory(first_name="Alice", last_name="Smith", organization=organization)
         api_client.force_authenticate(user=manager)
         api_client.post(
             comments_url(task.id),
@@ -40,9 +40,9 @@ class TestCommentCreate:
             recipient=eng, event_type="mention"
         ).exists()
 
-    def test_comment_notifies_other_assignees(self, api_client, task, manager):
-        eng1 = EngineerFactory()
-        eng2 = EngineerFactory()
+    def test_comment_notifies_other_assignees(self, api_client, task, manager, organization):
+        eng1 = EngineerFactory(organization=organization)
+        eng2 = EngineerFactory(organization=organization)
         task.assignees.set([eng1, eng2])
         api_client.force_authenticate(user=eng1)
         api_client.post(

@@ -14,7 +14,7 @@ class ReportSummaryView(APIView):
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
         client_id = request.query_params.get("client_id")
-        data = get_report_data(date_from, date_to, client_id)
+        data = get_report_data(date_from, date_to, client_id, organization=request.user.organization)
         return Response(data)
 
 
@@ -25,7 +25,7 @@ class ReportPDFExportView(APIView):
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
         client_id = request.query_params.get("client_id")
-        data = get_report_data(date_from, date_to, client_id)
+        data = get_report_data(date_from, date_to, client_id, organization=request.user.organization)
         pdf_buffer = generate_pdf_report(data)
 
         filename = f"report_{date_from or 'all'}_{date_to or 'all'}.pdf"
@@ -44,7 +44,7 @@ class ReportExcelExportView(APIView):
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
         client_id = request.query_params.get("client_id")
-        data = get_report_data(date_from, date_to, client_id)
+        data = get_report_data(date_from, date_to, client_id, organization=request.user.organization)
         excel_buffer = generate_excel_report(data)
 
         filename = f"report_{date_from or 'all'}_{date_to or 'all'}.xlsx"

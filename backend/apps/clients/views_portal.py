@@ -74,7 +74,7 @@ class PortalTicketListView(generics.ListAPIView):
         if not user.client_id:
             return Task.objects.none()
         return (
-            Task.objects.filter(client_id=user.client_id)
+            Task.objects.filter(client_id=user.client_id, organization=user.organization)
             .exclude(status="archived")
             .annotate(
                 public_comments_count=Count("comments", filter=Q(comments__is_public=True)),
@@ -91,6 +91,6 @@ class PortalTicketDetailView(generics.RetrieveAPIView):
         user = self.request.user
         if not user.client_id:
             return Task.objects.none()
-        return Task.objects.filter(client_id=user.client_id).prefetch_related(
+        return Task.objects.filter(client_id=user.client_id, organization=user.organization).prefetch_related(
             "comments__author", "attachments"
         )

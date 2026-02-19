@@ -7,9 +7,9 @@ from .models import ReportSummary
 class ReportSummaryAdmin(admin.ModelAdmin):
     list_display = [
         "period_type", "period_start", "period_end",
-        "status", "generation_method", "generated_at",
+        "status", "generation_method", "organization", "generated_at",
     ]
-    list_filter = ["period_type", "status", "generation_method"]
+    list_filter = ["period_type", "status", "generation_method", "organization"]
     search_fields = ["summary_text"]
     readonly_fields = ["generated_at", "created_at"]
     ordering = ["-generated_at"]

@@ -7,6 +7,7 @@ from apps.accounts.permissions import IsManager, IsManagerOrReadOnly
 from apps.audit.models import AuditLogEntry
 from apps.audit.services import create_audit_entry
 from apps.notifications.services import create_notification
+from apps.organizations.mixins import OrganizationQuerySetMixin
 from apps.tasks.models import Task
 from apps.tasks.serializers import (
     TaskAssignSerializer,
@@ -19,7 +20,8 @@ from apps.tasks.serializers import (
 from apps.tasks.services import MANAGER_ONLY_TRANSITIONS, apply_status_change
 
 
-class TaskViewSet(viewsets.ModelViewSet):
+class TaskViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
+    queryset = Task.objects.all()
     filterset_fields = ["status", "priority", "client"]
     search_fields = ["title", "description"]
     ordering_fields = ["created_at", "deadline", "priority"]
@@ -32,7 +34,8 @@ class TaskViewSet(viewsets.ModelViewSet):
         return [IsManagerOrReadOnly()]
 
     def get_queryset(self):
-        qs = Task.objects.select_related("client", "created_by").prefetch_related(
+        qs = super().get_queryset()
+        qs = qs.select_related("client", "created_by").prefetch_related(
             "assignees", "tags"
         )
         if self.action == "list":

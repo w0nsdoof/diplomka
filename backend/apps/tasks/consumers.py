@@ -25,12 +25,17 @@ class KanbanConsumer(AsyncJsonWebsocketConsumer):
             return
 
         self.user = user
-        self.group_name = "kanban_board"
+        if user.organization_id:
+            self.group_name = f"kanban_board_{user.organization_id}"
+        else:
+            logger.warning("WebSocket connection rejected: user has no organization user=%s", user.id)
+            await self.close(code=4403)
+            return
         self.client_filter = None
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        logger.info("WebSocket connected user=%s role=%s", user.id, user.role)
+        logger.info("WebSocket connected user=%s role=%s org=%s", user.id, user.role, user.organization_id)
         await self.send_json({
             "type": "connection_established",
             "user_id": user.id,

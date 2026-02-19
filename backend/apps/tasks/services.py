@@ -115,9 +115,10 @@ def update_task_with_version(task, validated_data, actor):
 
 def _broadcast_task_event(event_type, task):
     channel_layer = get_channel_layer()
-    logger.debug("Broadcasting %s for task=%s", event_type, task.pk)
+    group_name = f"kanban_board_{task.organization_id}"
+    logger.debug("Broadcasting %s for task=%s to group=%s", event_type, task.pk, group_name)
     async_to_sync(channel_layer.group_send)(
-        "kanban_board",
+        group_name,
         {
             "type": "task_event",
             "event_type": event_type,

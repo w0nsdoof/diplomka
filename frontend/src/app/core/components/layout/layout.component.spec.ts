@@ -13,8 +13,8 @@ describe('LayoutComponent', () => {
   let authService: jasmine.SpyObj<AuthService> & { currentUser$: any };
   let notificationService: jasmine.SpyObj<NotificationService> & { unreadCount$: any };
 
-  function setupWithRole(role: 'manager' | 'engineer' | 'client') {
-    const user: UserInfo = { id: 1, email: `${role}@test.com`, first_name: 'Test', last_name: 'User', role };
+  function setupWithRole(role: 'superadmin' | 'manager' | 'engineer' | 'client') {
+    const user: UserInfo = { id: 1, email: `${role}@test.com`, first_name: 'Test', last_name: 'User', role, organization_id: role === 'superadmin' ? null : 1 };
     currentUserSubject.next(user);
     fixture.detectChanges();
   }
