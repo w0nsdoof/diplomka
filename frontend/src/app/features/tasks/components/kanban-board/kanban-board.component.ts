@@ -5,10 +5,15 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { TaskService, TaskListItem } from '../../../../core/services/task.service';
+import { TaskService, TaskListItem, TaskFilters } from '../../../../core/services/task.service';
 import { WebSocketService } from '../../../../core/services/websocket.service';
+import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/task-status';
+import { SearchBarComponent } from '../../../../shared/components/search-bar/search-bar.component';
+import { FilterPanelComponent, FilterState } from '../filter-panel/filter-panel.component';
 
 interface KanbanColumn {
   status: string;
@@ -19,9 +24,11 @@ interface KanbanColumn {
 @Component({
   selector: 'app-kanban-board',
   standalone: true,
-  imports: [CommonModule, DragDropModule, MatCardModule, MatChipsModule, MatIconModule, MatSnackBarModule, RouterModule],
+  imports: [CommonModule, DragDropModule, MatCardModule, MatChipsModule, MatIconModule, MatSnackBarModule, MatMenuModule, MatButtonModule, RouterModule, SearchBarComponent, FilterPanelComponent],
   template: `
     <h2>Kanban Board</h2>
+    <app-search-bar placeholder="Search tasks..." (search)="onSearch($event)"></app-search-bar>
+    <app-filter-panel [showStatus]="false" [showClient]="false" (filtersChange)="onFiltersChange($event)"></app-filter-panel>
     <div class="kanban-container">
       <div class="kanban-column" *ngFor="let col of columns"
            cdkDropList [cdkDropListData]="col.tasks"
@@ -34,6 +41,19 @@ interface KanbanColumn {
             <mat-card-title>
               <a [routerLink]="['/tasks', task.id]">{{ task.title }}</a>
             </mat-card-title>
+            <button mat-icon-button [matMenuTriggerFor]="cardStatusMenu"
+                    *ngIf="getNextStatuses(task.status).length"
+                    (click)="$event.stopPropagation()"
+                    class="card-menu-btn" cdkDragHandle>
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #cardStatusMenu="matMenu">
+              <div class="menu-header" mat-menu-item disabled>Move to</div>
+              <button mat-menu-item *ngFor="let s of getNextStatuses(task.status)"
+                      (click)="onMenuChangeStatus(task, col, s)">
+                {{ statusLabel(s) }}
+              </button>
+            </mat-menu>
           </mat-card-header>
           <mat-card-content>
             <mat-chip [class]="'priority-' + task.priority">{{ task.priority }}</mat-chip>
@@ -56,6 +76,10 @@ interface KanbanColumn {
     .column-header { text-align: center; margin-bottom: 12px; }
     .kanban-card { margin-bottom: 8px; cursor: grab; }
     .kanban-card a { text-decoration: none; color: inherit; }
+    .kanban-card mat-card-header { display: flex; align-items: center; }
+    .kanban-card mat-card-header mat-card-title { flex: 1; }
+    .card-menu-btn { flex-shrink: 0; margin: -8px -8px -8px 0; }
+    .menu-header { font-size: 12px; opacity: 0.6; }
     .assignees { font-size: 12px; margin-top: 8px; color: #616161; }
     .deadline { font-size: 12px; margin-top: 4px; color: #9e9e9e; }
     .cdk-drag-preview { box-shadow: 0 5px 5px -3px rgba(0,0,0,.2); }
@@ -72,6 +96,8 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   ];
 
   columnIds: string[] = [];
+  private searchTerm = '';
+  private activeFilters: FilterState = {};
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -102,12 +128,51 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     this.wsService.disconnect();
   }
 
+  onSearch(term: string): void {
+    this.searchTerm = term;
+    this.loadTasks();
+  }
+
+  onFiltersChange(filters: FilterState): void {
+    this.activeFilters = filters;
+    this.loadTasks();
+  }
+
   loadTasks(): void {
-    this.taskService.list({ page_size: 100 }).pipe(takeUntil(this.destroy$)).subscribe((res) => {
+    const filters: TaskFilters = { page_size: 100, ...this.activeFilters };
+    if (this.searchTerm) {
+      filters.search = this.searchTerm;
+    }
+    this.taskService.list(filters).pipe(takeUntil(this.destroy$)).subscribe((res) => {
       for (const col of this.columns) {
         col.tasks = res.results.filter((t) => t.status === col.status);
       }
       this.cdr.markForCheck();
+    });
+  }
+
+  statusLabel(status: string): string {
+    return STATUS_LABELS[status] || status;
+  }
+
+  getNextStatuses(currentStatus: string): string[] {
+    return VALID_TRANSITIONS[currentStatus] || [];
+  }
+
+  onMenuChangeStatus(task: TaskListItem, currentCol: KanbanColumn, newStatus: string): void {
+    this.taskService.changeStatus(task.id, newStatus).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        const idx = currentCol.tasks.indexOf(task);
+        if (idx >= 0) currentCol.tasks.splice(idx, 1);
+        task.status = newStatus;
+        const targetCol = this.columns.find((c) => c.status === newStatus);
+        targetCol?.tasks.push(task);
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        const msg = err.error?.detail || 'Invalid transition';
+        this.snackBar.open(msg, 'Close', { duration: 3000 });
+      },
     });
   }
 

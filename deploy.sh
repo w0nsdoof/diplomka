@@ -89,15 +89,9 @@ ssh "$REMOTE_HOST" bash -s -- "$COMPOSE_FILE" <<'DEPLOY'
   docker compose -f "$COMPOSE_FILE" ps
 DEPLOY
 
-# Step 4: Post-deploy health verification
+# Step 4: Post-deploy health verification (always via SSH since REMOTE_HOST may be an alias)
 echo "==> Verifying deployment..."
-HEALTH_URL="http://${DEPLOY_SSH_HOST:-$REMOTE_HOST}:8000/api/health/"
-if [ "${DEPLOY_SSH_HOST:-}" ]; then
-  # Running from CI — check health via SSH since we can't reach the server directly
-  HEALTH_OK=$(ssh "$REMOTE_HOST" "curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/api/health/ 2>/dev/null || echo 000")
-else
-  HEALTH_OK=$(curl -sf -o /dev/null -w '%{http_code}' "http://$REMOTE_HOST:8000/api/health/" 2>/dev/null || echo 000)
-fi
+HEALTH_OK=$(ssh "$REMOTE_HOST" "curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/api/health/ 2>/dev/null || echo 000")
 
 if [ "$HEALTH_OK" != "200" ]; then
   echo "==> FATAL: Health check failed (HTTP $HEALTH_OK)"

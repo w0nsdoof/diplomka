@@ -6,7 +6,7 @@ Full-stack task management application built with Django 5 and Angular 17. Featu
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Python 3.11+, Django 5, DRF, Django Channels, Celery, LiteLLM |
+| Backend | Python 3.11+, Django 5, DRF, Django Channels, Celery, LiteLLM, SimpleJWT |
 | Frontend | Angular 17, Angular Material, TypeScript 5.x |
 | Database | PostgreSQL 16 |
 | Cache/Broker | Redis 7 (Channels layer + Celery broker) |
@@ -20,6 +20,7 @@ backend/                 # Django REST API + WebSockets
   config/                #   Settings (base/dev/test/prod), URLs, ASGI, Celery
   apps/
     accounts/            #   Custom User model (email auth), JWT, RBAC
+    organizations/       #   Multi-tenant organization model + management commands
     tasks/               #   Task CRUD, status transitions, optimistic locking
     clients/             #   Client management + client portal
     comments/            #   Task comments with @mention parsing
@@ -29,12 +30,13 @@ backend/                 # Django REST API + WebSockets
     reports/             #   PDF/Excel report generation
     ai_summaries/        #   AI-generated report summaries via LiteLLM
     audit/               #   Immutable audit log
+    platform/            #   Super-admin API for managing organizations
   tests/                 #   pytest (unit + integration)
 
 frontend/                # Angular 17 SPA
   src/app/
     core/                #   Services, guards, interceptors, layout
-    features/            #   Tasks, Kanban, Clients, Calendar, Reports, Admin, Portal
+    features/            #   Tasks, Kanban, Clients, Calendar, Reports, Admin, Portal, Platform
 
 .github/workflows/       # CI/CD pipelines
 podman-compose.yml       # Docker Compose (production)
@@ -45,8 +47,9 @@ deploy.sh                # Deployment script
 
 | Role | Access |
 |------|--------|
-| **Manager** | Full access: tasks, users, clients, reports, audit history |
-| **Engineer** | Tasks (read) + Kanban board |
+| **Super Admin** | Platform-level: manage organizations, add managers |
+| **Manager** | Full access within org: tasks, users, clients, reports, audit history |
+| **Engineer** | Tasks (read) + Kanban board within org |
 | **Client** | Portal only: own tickets, public comments |
 
 ## Development
@@ -115,6 +118,15 @@ Key variables in `.env`:
 | `REDIS_URL` | Redis connection URL |
 | `LLM_MODEL`, `GROQ_API_KEY` | AI summary generation (LiteLLM) |
 | `SENTRY_DSN` | Error monitoring (optional) |
+
+## Team
+
+| Student ID | Name | Role |
+|------------|------|------|
+| 22B030361 | [Askar Zhumabayev](https://github.com/w0nsdoof) | Fullstack |
+| 22BXXXXX1 | Dariga Orazbai | PM / QA |
+| 22BXXXXX2 | Merey Kemelbay | UI/UX / BA |
+| 22BXXXXX3 | Madi Kuanyshbekov | Frontend |
 
 ## Issue Tracking
 

@@ -17,11 +17,13 @@ if _sentry_dsn:
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_SSL_REDIRECT = bool(os.getenv("SECURE_SSL_REDIRECT", False))
+_use_ssl = bool(os.getenv("SECURE_SSL_REDIRECT", ""))
+SESSION_COOKIE_SECURE = _use_ssl
+CSRF_COOKIE_SECURE = _use_ssl
+SECURE_SSL_REDIRECT = _use_ssl
 
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
+CORS_ALLOWED_ORIGINS = [o for o in _cors_origins.split(",") if o]
 CORS_ALLOW_CREDENTIALS = True
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

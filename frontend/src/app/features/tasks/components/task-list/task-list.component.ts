@@ -7,16 +7,21 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskListItem, PaginatedResponse, TaskFilters } from '../../../../core/services/task.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/task-status';
+import { SearchBarComponent } from '../../../../shared/components/search-bar/search-bar.component';
+import { FilterPanelComponent, FilterState } from '../filter-panel/filter-panel.component';
 
 @Component({
   selector: 'app-task-list',
   standalone: true,
   imports: [
     CommonModule, RouterModule, MatTableModule, MatButtonModule,
-    MatIconModule, MatChipsModule, MatPaginatorModule, MatMenuModule,
+    MatIconModule, MatChipsModule, MatPaginatorModule, MatMenuModule, MatSnackBarModule,
+    SearchBarComponent, FilterPanelComponent,
   ],
   template: `
     <div class="task-list-header">
@@ -25,6 +30,9 @@ import { AuthService } from '../../../../core/services/auth.service';
         <mat-icon>add</mat-icon> New Task
       </a>
     </div>
+
+    <app-search-bar placeholder="Search tasks..." (search)="onSearch($event)"></app-search-bar>
+    <app-filter-panel (filtersChange)="onFiltersChange($event)"></app-filter-panel>
 
     <table mat-table [dataSource]="tasks" class="full-width">
       <ng-container matColumnDef="title">
@@ -37,7 +45,17 @@ import { AuthService } from '../../../../core/services/auth.service';
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef>Status</th>
         <td mat-cell *matCellDef="let task">
-          <mat-chip [class]="'status-' + task.status">{{ task.status }}</mat-chip>
+          <mat-chip [class]="'status-' + task.status"
+                    [matMenuTriggerFor]="getNextStatuses(task.status).length ? statusMenu : null"
+                    [style.cursor]="getNextStatuses(task.status).length ? 'pointer' : 'default'">
+            {{ statusLabel(task.status) }}
+            <mat-icon *ngIf="getNextStatuses(task.status).length" iconPositionEnd style="font-size:16px;width:16px;height:16px">arrow_drop_down</mat-icon>
+          </mat-chip>
+          <mat-menu #statusMenu="matMenu">
+            <button mat-menu-item *ngFor="let s of getNextStatuses(task.status)" (click)="onChangeStatus(task, s)">
+              {{ statusLabel(s) }}
+            </button>
+          </mat-menu>
         </td>
       </ng-container>
 
@@ -93,11 +111,14 @@ export class TaskListComponent implements OnInit, OnDestroy {
   pageSize = 20;
   isManager = false;
   displayedColumns = ['title', 'status', 'priority', 'assignees', 'client', 'deadline'];
+  private searchTerm = '';
+  private activeFilters: FilterState = {};
   private destroy$ = new Subject<void>();
 
   constructor(
     private taskService: TaskService,
     private authService: AuthService,
+    private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
   ) {}
 
@@ -107,12 +128,56 @@ export class TaskListComponent implements OnInit, OnDestroy {
   }
 
   loadTasks(): void {
-    const filters: TaskFilters = { page: this.currentPage, page_size: this.pageSize };
+    const filters: TaskFilters = {
+      page: this.currentPage,
+      page_size: this.pageSize,
+      ...this.activeFilters,
+    };
+    if (this.searchTerm) {
+      filters.search = this.searchTerm;
+    }
     this.taskService.list(filters).pipe(takeUntil(this.destroy$)).subscribe((res) => {
       this.tasks = res.results;
       this.totalCount = res.count;
       this.cdr.markForCheck();
     });
+  }
+
+  statusLabel(status: string): string {
+    return STATUS_LABELS[status] || status;
+  }
+
+  getNextStatuses(currentStatus: string): string[] {
+    const transitions = VALID_TRANSITIONS[currentStatus] || [];
+    if (!this.isManager) {
+      return transitions.filter((s: string) => !(currentStatus === 'done' && s === 'archived'));
+    }
+    return transitions;
+  }
+
+  onChangeStatus(task: TaskListItem, newStatus: string): void {
+    this.taskService.changeStatus(task.id, newStatus).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        task.status = newStatus;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        const msg = err.error?.detail || 'Failed to change status';
+        this.snackBar.open(msg, 'Close', { duration: 3000 });
+      },
+    });
+  }
+
+  onSearch(term: string): void {
+    this.searchTerm = term;
+    this.currentPage = 1;
+    this.loadTasks();
+  }
+
+  onFiltersChange(filters: FilterState): void {
+    this.activeFilters = filters;
+    this.currentPage = 1;
+    this.loadTasks();
   }
 
   onPageChange(event: PageEvent): void {

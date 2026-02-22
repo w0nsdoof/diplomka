@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, OnInit, OnDestroy, Output } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnInit, OnDestroy, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
@@ -7,9 +7,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Subject, takeUntil } from 'rxjs';
-import { TagService, Tag } from '../../../../core/services/tag.service';
 import { ClientService, Client } from '../../../../core/services/client.service';
 
 export interface FilterState {
@@ -28,11 +26,11 @@ export interface FilterState {
   imports: [
     CommonModule, FormsModule, MatSelectModule, MatFormFieldModule,
     MatDatepickerModule, MatNativeDateModule, MatInputModule,
-    MatButtonModule, MatSlideToggleModule,
+    MatButtonModule,
   ],
   template: `
     <div class="filter-panel">
-      <mat-form-field appearance="outline">
+      <mat-form-field appearance="outline" *ngIf="showStatus">
         <mat-label>Status</mat-label>
         <mat-select [(ngModel)]="filters.status" (ngModelChange)="emitFilters()">
           <mat-option [value]="undefined">All</mat-option>
@@ -56,6 +54,20 @@ export interface FilterState {
       </mat-form-field>
 
       <mat-form-field appearance="outline">
+        <mat-label>Deadline from</mat-label>
+        <input matInput [matDatepicker]="fromPicker" [(ngModel)]="deadlineFrom" (dateChange)="onDeadlineChange()" />
+        <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+        <mat-datepicker #fromPicker></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Deadline to</mat-label>
+        <input matInput [matDatepicker]="toPicker" [(ngModel)]="deadlineTo" (dateChange)="onDeadlineChange()" />
+        <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+        <mat-datepicker #toPicker></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" *ngIf="showClient">
         <mat-label>Client</mat-label>
         <mat-select [(ngModel)]="filters.client" (ngModelChange)="emitFilters()">
           <mat-option [value]="undefined">All</mat-option>
@@ -73,27 +85,41 @@ export interface FilterState {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FilterPanelComponent implements OnInit, OnDestroy {
+  @Input() showStatus = true;
+  @Input() showClient = true;
   @Output() filtersChange = new EventEmitter<FilterState>();
   filters: FilterState = {};
-  tags: Tag[] = [];
+  deadlineFrom: Date | null = null;
+  deadlineTo: Date | null = null;
   clients: Client[] = [];
   private destroy$ = new Subject<void>();
 
   constructor(
-    private tagService: TagService,
     private clientService: ClientService,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
-    this.tagService.list().pipe(takeUntil(this.destroy$)).subscribe((res) => {
-      this.tags = res.results;
-      this.cdr.markForCheck();
-    });
-    this.clientService.list().pipe(takeUntil(this.destroy$)).subscribe((res) => {
-      this.clients = res.results;
-      this.cdr.markForCheck();
-    });
+    if (this.showClient) {
+      this.clientService.list().pipe(takeUntil(this.destroy$)).subscribe((res) => {
+        this.clients = res.results;
+        this.cdr.markForCheck();
+      });
+    }
+  }
+
+  onDeadlineChange(): void {
+    if (this.deadlineFrom) {
+      this.filters.deadline_from = this.formatDate(this.deadlineFrom);
+    } else {
+      delete this.filters.deadline_from;
+    }
+    if (this.deadlineTo) {
+      this.filters.deadline_to = this.formatDate(this.deadlineTo);
+    } else {
+      delete this.filters.deadline_to;
+    }
+    this.emitFilters();
   }
 
   emitFilters(): void {
@@ -106,11 +132,20 @@ export class FilterPanelComponent implements OnInit, OnDestroy {
 
   clearFilters(): void {
     this.filters = {};
+    this.deadlineFrom = null;
+    this.deadlineTo = null;
     this.filtersChange.emit({});
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private formatDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 }

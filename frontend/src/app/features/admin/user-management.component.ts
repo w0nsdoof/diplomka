@@ -12,7 +12,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
+import { HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 
 @Component({
   selector: 'app-user-management',
@@ -20,7 +22,7 @@ import { environment } from '../../../environments/environment';
   imports: [
     CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
     MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatCardModule, MatChipsModule,
+    MatCardModule, MatChipsModule, SearchBarComponent,
   ],
   template: `
     <div class="header">
@@ -53,6 +55,8 @@ import { environment } from '../../../environments/environment';
       </mat-card-content>
     </mat-card>
 
+    <app-search-bar placeholder="Search users..." (search)="onSearch($event)"></app-search-bar>
+
     <table mat-table [dataSource]="users" class="full-width">
       <ng-container matColumnDef="email"><th mat-header-cell *matHeaderCellDef>Email</th><td mat-cell *matCellDef="let u">{{ u.email }}</td></ng-container>
       <ng-container matColumnDef="name"><th mat-header-cell *matHeaderCellDef>Name</th><td mat-cell *matCellDef="let u">{{ u.first_name }} {{ u.last_name }}</td></ng-container>
@@ -81,6 +85,7 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   columns = ['email', 'name', 'role', 'is_active', 'actions'];
   showCreateForm = false;
   newUser = { email: '', first_name: '', last_name: '', role: 'engineer', password: '' };
+  private searchTerm = '';
   private destroy$ = new Subject<void>();
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
@@ -88,10 +93,19 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   ngOnInit(): void { this.loadUsers(); }
 
   loadUsers(): void {
-    this.http.get<any>(`${environment.apiUrl}/users/`).pipe(takeUntil(this.destroy$)).subscribe((res) => {
+    let params = new HttpParams();
+    if (this.searchTerm) {
+      params = params.set('search', this.searchTerm);
+    }
+    this.http.get<any>(`${environment.apiUrl}/users/`, { params }).pipe(takeUntil(this.destroy$)).subscribe((res) => {
       this.users = res.results;
       this.cdr.markForCheck();
     });
+  }
+
+  onSearch(term: string): void {
+    this.searchTerm = term;
+    this.loadUsers();
   }
 
   createUser(): void {

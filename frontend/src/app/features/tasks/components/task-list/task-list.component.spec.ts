@@ -5,12 +5,14 @@ import { of } from 'rxjs';
 import { TaskListComponent } from './task-list.component';
 import { TaskService, PaginatedResponse, TaskListItem } from '../../../../core/services/task.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ClientService } from '../../../../core/services/client.service';
 
 describe('TaskListComponent', () => {
   let component: TaskListComponent;
   let fixture: ComponentFixture<TaskListComponent>;
   let taskService: jasmine.SpyObj<TaskService>;
   let authService: jasmine.SpyObj<AuthService>;
+  let clientService: jasmine.SpyObj<ClientService>;
 
   const mockTask: TaskListItem = {
     id: 1, title: 'Test Task', status: 'created', priority: 'high',
@@ -24,9 +26,11 @@ describe('TaskListComponent', () => {
   };
 
   beforeEach(async () => {
-    taskService = jasmine.createSpyObj('TaskService', ['list']);
+    taskService = jasmine.createSpyObj('TaskService', ['list', 'changeStatus']);
     authService = jasmine.createSpyObj('AuthService', ['hasRole']);
+    clientService = jasmine.createSpyObj('ClientService', ['list']);
     taskService.list.and.returnValue(of(mockResponse));
+    clientService.list.and.returnValue(of({ count: 0, next: null, previous: null, results: [] }));
 
     await TestBed.configureTestingModule({
       imports: [TaskListComponent],
@@ -35,6 +39,7 @@ describe('TaskListComponent', () => {
         provideRouter([]),
         { provide: TaskService, useValue: taskService },
         { provide: AuthService, useValue: authService },
+        { provide: ClientService, useValue: clientService },
       ],
     }).compileComponents();
   });

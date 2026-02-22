@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -15,6 +16,14 @@ import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskCreatePayload } from '../../../../core/services/task.service';
 import { ClientService, Client } from '../../../../core/services/client.service';
 import { TagService, Tag } from '../../../../core/services/tag.service';
+import { environment } from '../../../../../environments/environment';
+
+interface UserOption {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
 
 @Component({
   selector: 'app-task-form',
@@ -61,6 +70,20 @@ import { TagService, Tag } from '../../../../core/services/tag.service';
           </div>
 
           <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Assignees</mat-label>
+            <mat-select formControlName="assignee_ids" multiple (openedChange)="onAssigneeDropdownToggle($event)">
+              <div class="select-search">
+                <input class="select-search-input" placeholder="Search engineers..."
+                       (keydown)="$event.stopPropagation()"
+                       (input)="filterEngineers($any($event.target).value)" />
+              </div>
+              <mat-option *ngFor="let u of filteredEngineers" [value]="u.id">
+                {{ u.first_name }} {{ u.last_name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
             <mat-label>Client</mat-label>
             <mat-select formControlName="client_id">
               <mat-option [value]="null">None</mat-option>
@@ -90,6 +113,16 @@ import { TagService, Tag } from '../../../../core/services/tag.service';
     .row { display: flex; gap: 16px; }
     .row mat-form-field { flex: 1; }
     .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    ::ng-deep .select-search {
+      position: sticky; top: 0; z-index: 1;
+      padding: 8px; background: white;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    ::ng-deep .select-search-input {
+      width: 100%; padding: 8px; border: 1px solid #ccc;
+      border-radius: 4px; font-size: 14px; outline: none; box-sizing: border-box;
+    }
+    ::ng-deep .select-search-input:focus { border-color: #3f51b5; }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -100,10 +133,13 @@ export class TaskFormComponent implements OnInit, OnDestroy {
   taskId: number | null = null;
   clients: Client[] = [];
   tags: Tag[] = [];
+  engineers: UserOption[] = [];
+  filteredEngineers: UserOption[] = [];
   private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
+    private http: HttpClient,
     private taskService: TaskService,
     private clientService: ClientService,
     private tagService: TagService,
@@ -118,10 +154,17 @@ export class TaskFormComponent implements OnInit, OnDestroy {
       description: ['', Validators.required],
       priority: ['medium', Validators.required],
       deadline: ['', Validators.required],
+      assignee_ids: [[]],
       client_id: [null],
       tag_ids: [[]],
     });
 
+    this.http.get<any>(`${environment.apiUrl}/users/`, { params: { role: 'engineer', is_active: 'true', page_size: '100' } })
+      .pipe(takeUntil(this.destroy$)).subscribe((res) => {
+        this.engineers = res.results;
+        this.filteredEngineers = res.results;
+        this.cdr.markForCheck();
+      });
     this.clientService.list({ page_size: 100 } as any).pipe(takeUntil(this.destroy$)).subscribe((res) => {
       this.clients = res.results;
       this.cdr.markForCheck();
@@ -141,6 +184,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
           description: task.description,
           priority: task.priority,
           deadline: new Date(task.deadline),
+          assignee_ids: task.assignees.map((a) => a.id),
           client_id: task.client?.id || null,
           tag_ids: task.tags.map((t) => t.id),
         });
@@ -158,12 +202,32 @@ export class TaskFormComponent implements OnInit, OnDestroy {
       deadline: new Date(val.deadline).toISOString(),
     };
 
-    this.router.navigate(['/tasks']);
-
     if (this.isEdit && this.taskId) {
-      this.taskService.update(this.taskId, payload).pipe(takeUntil(this.destroy$)).subscribe();
+      const assigneeIds: number[] = val.assignee_ids || [];
+      const { assignee_ids, ...updatePayload } = payload;
+      this.taskService.update(this.taskId, updatePayload).pipe(takeUntil(this.destroy$)).subscribe(() => {
+        this.taskService.assign(this.taskId!, assigneeIds).pipe(takeUntil(this.destroy$)).subscribe(() => {
+          this.router.navigate(['/tasks']);
+        });
+      });
     } else {
-      this.taskService.create(payload).pipe(takeUntil(this.destroy$)).subscribe();
+      this.taskService.create(payload).pipe(takeUntil(this.destroy$)).subscribe(() => {
+        this.router.navigate(['/tasks']);
+      });
+    }
+  }
+
+  filterEngineers(query: string): void {
+    const q = query.toLowerCase().trim();
+    this.filteredEngineers = q
+      ? this.engineers.filter((u) =>
+          `${u.first_name} ${u.last_name}`.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+      : [...this.engineers];
+  }
+
+  onAssigneeDropdownToggle(opened: boolean): void {
+    if (!opened) {
+      this.filteredEngineers = [...this.engineers];
     }
   }
 

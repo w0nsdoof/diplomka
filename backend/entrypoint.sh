@@ -2,6 +2,7 @@
 set -e
 
 echo "Collecting static files..."
+rm -rf /app/staticfiles
 python manage.py collectstatic --noinput
 
 # Only run migrations and seed users from the main backend process (CMD=daphne),

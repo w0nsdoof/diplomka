@@ -6,6 +6,7 @@ import { KanbanBoardComponent } from './kanban-board.component';
 import { TaskService, TaskListItem, PaginatedResponse } from '../../../../core/services/task.service';
 import { WebSocketService, WsMessage } from '../../../../core/services/websocket.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ClientService } from '../../../../core/services/client.service';
 
 describe('KanbanBoardComponent', () => {
   let component: KanbanBoardComponent;
@@ -31,6 +32,9 @@ describe('KanbanBoardComponent', () => {
     wsConnectSpy = jasmine.createSpy('connect');
     wsDisconnectSpy = jasmine.createSpy('disconnect');
 
+    const clientService = jasmine.createSpyObj('ClientService', ['list']);
+    clientService.list.and.returnValue(of({ count: 0, next: null, previous: null, results: [] }));
+
     const wsServiceMock = {
       connect: wsConnectSpy,
       disconnect: wsDisconnectSpy,
@@ -44,6 +48,7 @@ describe('KanbanBoardComponent', () => {
         provideRouter([]),
         { provide: TaskService, useValue: taskService },
         { provide: WebSocketService, useValue: wsServiceMock },
+        { provide: ClientService, useValue: clientService },
       ],
     }).compileComponents();
 
