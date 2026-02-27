@@ -67,6 +67,7 @@ interface NavItem {
         <header class="header-bar">
           <h1 class="header-title">{{ pageTitle }}</h1>
           <div class="header-actions">
+            <app-language-switcher></app-language-switcher>
             <button class="icon-btn" [matMenuTriggerFor]="notifMenu" (click)="loadNotifications()">
               <mat-icon [matBadge]="unreadCount > 0 ? unreadCount : null" matBadgeColor="warn" matBadgeSize="small">
                 notifications_none
@@ -101,10 +102,6 @@ interface NavItem {
               <div style="padding: 12px 16px;" *ngIf="currentUser">
                 <strong>{{ currentUser.first_name }} {{ currentUser.last_name }}</strong>
                 <br /><small style="color: #6b7280;">{{ currentUser.role }}</small>
-              </div>
-              <mat-divider></mat-divider>
-              <div style="padding: 8px 16px;">
-                <app-language-switcher></app-language-switcher>
               </div>
               <mat-divider></mat-divider>
               <button mat-menu-item (click)="logout()">
