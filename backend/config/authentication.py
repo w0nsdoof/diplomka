@@ -1,4 +1,3 @@
-from django.utils.translation import gettext_lazy as _
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -20,7 +19,7 @@ class OrganizationJWTAuthentication(JWTAuthentication):
 
         if not user.is_superadmin and user.organization_id:
             if not user.organization.is_active:
-                raise AuthenticationFailed(_("Organization is inactive."))
+                raise AuthenticationFailed("Organization is inactive.")
 
         return user, token
 

@@ -13,6 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { HttpParams } from '@angular/common/http';
+import { TranslateModule } from '@ngx-translate/core';
 import { environment } from '../../../environments/environment';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 
@@ -22,47 +23,47 @@ import { SearchBarComponent } from '../../shared/components/search-bar/search-ba
   imports: [
     CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
     MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatCardModule, MatChipsModule, SearchBarComponent,
+    MatCardModule, MatChipsModule, SearchBarComponent, TranslateModule,
   ],
   template: `
     <div class="header">
-      <h2>User Management</h2>
+      <h2>{{ 'admin.title' | translate }}</h2>
       <button mat-raised-button color="primary" (click)="showCreateForm = !showCreateForm">
-        <mat-icon>person_add</mat-icon> New User
+        <mat-icon>person_add</mat-icon> {{ 'admin.newUser' | translate }}
       </button>
     </div>
 
     <mat-card *ngIf="showCreateForm" class="create-form">
       <mat-card-content>
-        <h3>Create User</h3>
+        <h3>{{ 'admin.createUser' | translate }}</h3>
         <div class="form-row">
-          <mat-form-field appearance="outline"><mat-label>Email</mat-label><input matInput [(ngModel)]="newUser.email" /></mat-form-field>
-          <mat-form-field appearance="outline"><mat-label>First Name</mat-label><input matInput [(ngModel)]="newUser.first_name" /></mat-form-field>
-          <mat-form-field appearance="outline"><mat-label>Last Name</mat-label><input matInput [(ngModel)]="newUser.last_name" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>{{ 'common.email' | translate }}</mat-label><input matInput [(ngModel)]="newUser.email" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>{{ 'admin.firstName' | translate }}</mat-label><input matInput [(ngModel)]="newUser.first_name" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>{{ 'admin.lastName' | translate }}</mat-label><input matInput [(ngModel)]="newUser.last_name" /></mat-form-field>
         </div>
         <div class="form-row">
-          <mat-form-field appearance="outline"><mat-label>Role</mat-label>
+          <mat-form-field appearance="outline"><mat-label>{{ 'admin.role' | translate }}</mat-label>
             <mat-select [(ngModel)]="newUser.role">
-              <mat-option value="manager">Manager</mat-option>
-              <mat-option value="engineer">Engineer</mat-option>
-              <mat-option value="client">Client</mat-option>
+              <mat-option value="manager">{{ 'admin.manager' | translate }}</mat-option>
+              <mat-option value="engineer">{{ 'admin.engineer' | translate }}</mat-option>
+              <mat-option value="client">{{ 'admin.client' | translate }}</mat-option>
             </mat-select>
           </mat-form-field>
-          <mat-form-field appearance="outline"><mat-label>Password</mat-label><input matInput [(ngModel)]="newUser.password" type="password" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>{{ 'auth.password' | translate }}</mat-label><input matInput [(ngModel)]="newUser.password" type="password" /></mat-form-field>
         </div>
-        <button mat-raised-button color="primary" (click)="createUser()">Create</button>
-        <button mat-button (click)="showCreateForm = false">Cancel</button>
+        <button mat-raised-button color="primary" (click)="createUser()">{{ 'common.create' | translate }}</button>
+        <button mat-button (click)="showCreateForm = false">{{ 'common.cancel' | translate }}</button>
       </mat-card-content>
     </mat-card>
 
-    <app-search-bar placeholder="Search users..." (search)="onSearch($event)"></app-search-bar>
+    <app-search-bar [placeholder]="'admin.searchUsers' | translate" (search)="onSearch($event)"></app-search-bar>
 
     <table mat-table [dataSource]="users" class="full-width">
-      <ng-container matColumnDef="email"><th mat-header-cell *matHeaderCellDef>Email</th><td mat-cell *matCellDef="let u">{{ u.email }}</td></ng-container>
-      <ng-container matColumnDef="name"><th mat-header-cell *matHeaderCellDef>Name</th><td mat-cell *matCellDef="let u">{{ u.first_name }} {{ u.last_name }}</td></ng-container>
-      <ng-container matColumnDef="role"><th mat-header-cell *matHeaderCellDef>Role</th><td mat-cell *matCellDef="let u"><mat-chip>{{ u.role }}</mat-chip></td></ng-container>
-      <ng-container matColumnDef="is_active"><th mat-header-cell *matHeaderCellDef>Active</th><td mat-cell *matCellDef="let u">{{ u.is_active ? 'Yes' : 'No' }}</td></ng-container>
-      <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>Actions</th>
+      <ng-container matColumnDef="email"><th mat-header-cell *matHeaderCellDef>{{ 'common.email' | translate }}</th><td mat-cell *matCellDef="let u">{{ u.email }}</td></ng-container>
+      <ng-container matColumnDef="name"><th mat-header-cell *matHeaderCellDef>{{ 'common.name' | translate }}</th><td mat-cell *matCellDef="let u">{{ u.first_name }} {{ u.last_name }}</td></ng-container>
+      <ng-container matColumnDef="role"><th mat-header-cell *matHeaderCellDef>{{ 'admin.role' | translate }}</th><td mat-cell *matCellDef="let u"><mat-chip>{{ u.role }}</mat-chip></td></ng-container>
+      <ng-container matColumnDef="is_active"><th mat-header-cell *matHeaderCellDef>{{ 'common.active' | translate }}</th><td mat-cell *matCellDef="let u">{{ u.is_active ? ('common.yes' | translate) : ('common.no' | translate) }}</td></ng-container>
+      <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | translate }}</th>
         <td mat-cell *matCellDef="let u">
           <button mat-icon-button color="warn" (click)="deactivateUser(u.id)" *ngIf="u.is_active"><mat-icon>block</mat-icon></button>
         </td>

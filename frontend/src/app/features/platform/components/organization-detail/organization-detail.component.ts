@@ -12,6 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { Subject, takeUntil } from 'rxjs';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   ManagerBrief,
   OrganizationDetail,
@@ -33,6 +34,7 @@ import {
     MatInputModule,
     MatSnackBarModule,
     MatDividerModule,
+    TranslateModule,
   ],
   template: `
     <div *ngIf="org">
@@ -44,33 +46,33 @@ import {
         <mat-card-content>
           <div class="stats-grid">
             <div class="stat">
-              <span class="stat-label">Status</span>
+              <span class="stat-label">{{ 'common.status' | translate }}</span>
               <mat-chip [highlighted]="org.is_active" [color]="org.is_active ? 'primary' : 'warn'">
-                {{ org.is_active ? 'Active' : 'Inactive' }}
+                {{ org.is_active ? ('common.active' | translate) : ('common.inactive' | translate) }}
               </mat-chip>
             </div>
             <div class="stat">
-              <span class="stat-label">Total Users</span>
+              <span class="stat-label">{{ 'platform.totalUsers' | translate }}</span>
               <span class="stat-value">{{ org.user_count }}</span>
             </div>
             <div class="stat">
-              <span class="stat-label">Managers</span>
+              <span class="stat-label">{{ 'platform.managers' | translate }}</span>
               <span class="stat-value">{{ org.manager_count }}</span>
             </div>
             <div class="stat">
-              <span class="stat-label">Engineers</span>
+              <span class="stat-label">{{ 'platform.engineers' | translate }}</span>
               <span class="stat-value">{{ org.engineer_count }}</span>
             </div>
             <div class="stat">
-              <span class="stat-label">Client Users</span>
+              <span class="stat-label">{{ 'platform.clientUsers' | translate }}</span>
               <span class="stat-value">{{ org.client_user_count }}</span>
             </div>
             <div class="stat">
-              <span class="stat-label">Tasks</span>
+              <span class="stat-label">{{ 'platform.tasks' | translate }}</span>
               <span class="stat-value">{{ org.task_count }}</span>
             </div>
             <div class="stat">
-              <span class="stat-label">Clients</span>
+              <span class="stat-label">{{ 'platform.clientsCount' | translate }}</span>
               <span class="stat-value">{{ org.client_count }}</span>
             </div>
           </div>
@@ -78,7 +80,7 @@ import {
           <div class="actions">
             <button mat-raised-button [color]="org.is_active ? 'warn' : 'primary'" (click)="toggleActive()">
               <mat-icon>{{ org.is_active ? 'block' : 'check_circle' }}</mat-icon>
-              {{ org.is_active ? 'Deactivate' : 'Reactivate' }}
+              {{ org.is_active ? ('platform.deactivate' | translate) : ('platform.reactivate' | translate) }}
             </button>
           </div>
         </mat-card-content>
@@ -86,53 +88,53 @@ import {
 
       <mat-divider style="margin: 24px 0;"></mat-divider>
 
-      <h3>Managers</h3>
+      <h3>{{ 'platform.managers' | translate }}</h3>
 
       <table mat-table [dataSource]="managers" class="full-width" *ngIf="managers.length > 0">
         <ng-container matColumnDef="email">
-          <th mat-header-cell *matHeaderCellDef>Email</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'common.email' | translate }}</th>
           <td mat-cell *matCellDef="let m">{{ m.email }}</td>
         </ng-container>
         <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'common.name' | translate }}</th>
           <td mat-cell *matCellDef="let m">{{ m.first_name }} {{ m.last_name }}</td>
         </ng-container>
         <ng-container matColumnDef="is_active">
-          <th mat-header-cell *matHeaderCellDef>Active</th>
-          <td mat-cell *matCellDef="let m">{{ m.is_active ? 'Yes' : 'No' }}</td>
+          <th mat-header-cell *matHeaderCellDef>{{ 'common.active' | translate }}</th>
+          <td mat-cell *matCellDef="let m">{{ m.is_active ? ('common.yes' | translate) : ('common.no' | translate) }}</td>
         </ng-container>
         <ng-container matColumnDef="date_joined">
-          <th mat-header-cell *matHeaderCellDef>Joined</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'platform.joined' | translate }}</th>
           <td mat-cell *matCellDef="let m">{{ m.date_joined | date:'mediumDate' }}</td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="managerColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: managerColumns;"></tr>
       </table>
 
-      <p *ngIf="managers.length === 0">No managers yet.</p>
+      <p *ngIf="managers.length === 0">{{ 'platform.noManagers' | translate }}</p>
 
       <mat-divider style="margin: 24px 0;"></mat-divider>
 
-      <h3>Add Manager</h3>
+      <h3>{{ 'platform.addManager' | translate }}</h3>
       <form [formGroup]="managerForm" (ngSubmit)="createManager()" class="manager-form">
         <mat-form-field appearance="outline">
-          <mat-label>Email</mat-label>
+          <mat-label>{{ 'common.email' | translate }}</mat-label>
           <input matInput formControlName="email" type="email" />
         </mat-form-field>
         <mat-form-field appearance="outline">
-          <mat-label>First Name</mat-label>
+          <mat-label>{{ 'admin.firstName' | translate }}</mat-label>
           <input matInput formControlName="first_name" />
         </mat-form-field>
         <mat-form-field appearance="outline">
-          <mat-label>Last Name</mat-label>
+          <mat-label>{{ 'admin.lastName' | translate }}</mat-label>
           <input matInput formControlName="last_name" />
         </mat-form-field>
         <mat-form-field appearance="outline">
-          <mat-label>Password</mat-label>
+          <mat-label>{{ 'auth.password' | translate }}</mat-label>
           <input matInput formControlName="password" type="password" />
         </mat-form-field>
         <button mat-raised-button color="primary" type="submit" [disabled]="managerForm.invalid || creating">
-          Add Manager
+          {{ 'platform.addManager' | translate }}
         </button>
       </form>
       <div *ngIf="managerError" class="error-message">{{ managerError }}</div>
@@ -166,6 +168,7 @@ export class OrganizationDetailComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
+    private translate: TranslateService,
   ) {
     this.managerForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -205,8 +208,8 @@ export class OrganizationDetailComponent implements OnInit, OnDestroy {
     this.orgService.update(this.orgId, { is_active: !this.org.is_active }).pipe(takeUntil(this.destroy$)).subscribe((org) => {
       this.org = org;
       this.snackBar.open(
-        org.is_active ? 'Organization reactivated' : 'Organization deactivated',
-        'OK',
+        org.is_active ? this.translate.instant('platform.organizationReactivated') : this.translate.instant('platform.organizationDeactivated'),
+        this.translate.instant('common.ok'),
         { duration: 3000 },
       );
       this.cdr.markForCheck();
@@ -220,7 +223,7 @@ export class OrganizationDetailComponent implements OnInit, OnDestroy {
 
     this.orgService.createManager(this.orgId, this.managerForm.value).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.snackBar.open('Manager created', 'OK', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('platform.managerCreated'), this.translate.instant('common.ok'), { duration: 3000 });
         this.managerForm.reset();
         this.loadManagers();
         this.loadOrg();
@@ -229,7 +232,7 @@ export class OrganizationDetailComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.creating = false;
-        this.managerError = err.error?.email?.[0] || err.error?.detail || 'Failed to create manager.';
+        this.managerError = err.error?.email?.[0] || err.error?.detail || this.translate.instant('platform.failedCreateManager');
         this.cdr.markForCheck();
       },
     });

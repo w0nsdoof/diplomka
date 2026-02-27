@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 import { CommentService, Comment as TaskComment } from '../../../../core/services/comment.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -17,20 +18,21 @@ import { AuthService } from '../../../../core/services/auth.service';
   imports: [
     CommonModule, FormsModule, MatListModule, MatFormFieldModule,
     MatInputModule, MatButtonModule, MatSlideToggleModule, MatIconModule,
+    TranslateModule,
   ],
   template: `
     <div class="comment-section">
-      <h3>Comments</h3>
+      <h3>{{ 'comments.title' | translate }}</h3>
 
       <div *ngIf="canComment" class="comment-form">
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Add a comment (use &#64;Name to mention)</mat-label>
+          <mat-label>{{ 'comments.placeholder' | translate }}</mat-label>
           <textarea matInput [(ngModel)]="newComment" rows="3"></textarea>
         </mat-form-field>
         <div class="comment-actions">
-          <mat-slide-toggle *ngIf="isManager" [(ngModel)]="isPublic">Public</mat-slide-toggle>
+          <mat-slide-toggle *ngIf="isManager" [(ngModel)]="isPublic">{{ 'comments.public' | translate }}</mat-slide-toggle>
           <button mat-raised-button color="primary" (click)="submitComment()" [disabled]="!newComment.trim()">
-            <mat-icon>send</mat-icon> Post
+            <mat-icon>send</mat-icon> {{ 'comments.post' | translate }}
           </button>
         </div>
       </div>
@@ -40,12 +42,12 @@ import { AuthService } from '../../../../core/services/auth.service';
           <div class="comment-header">
             <strong>{{ comment.author.first_name }} {{ comment.author.last_name }}</strong>
             <span class="role-badge">{{ comment.author.role }}</span>
-            <span *ngIf="!comment.is_public" class="private-badge">Private</span>
+            <span *ngIf="!comment.is_public" class="private-badge">{{ 'comments.private' | translate }}</span>
             <span class="date">{{ comment.created_at | date:'medium' }}</span>
           </div>
           <p class="comment-content">{{ comment.content }}</p>
           <div *ngIf="comment.mentions.length" class="mentions">
-            Mentions: <span *ngFor="let m of comment.mentions; let last = last">
+            {{ 'comments.mentions' | translate }} <span *ngFor="let m of comment.mentions; let last = last">
               {{ m.first_name }} {{ m.last_name }}<span *ngIf="!last">, </span>
             </span>
           </div>

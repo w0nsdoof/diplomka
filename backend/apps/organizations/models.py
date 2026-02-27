@@ -1,19 +1,18 @@
 from django.db import models
 from django.utils.text import slugify
-from django.utils.translation import gettext_lazy as _
 
 
 class Organization(models.Model):
-    name = models.CharField(_("name"), max_length=255, unique=True)
-    slug = models.SlugField(_("slug"), max_length=255, unique=True)
-    is_active = models.BooleanField(_("active"), default=True, db_index=True)
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+    name = models.CharField("name", max_length=255, unique=True)
+    slug = models.SlugField("slug", max_length=255, unique=True)
+    is_active = models.BooleanField("active", default=True, db_index=True)
+    created_at = models.DateTimeField("created at", auto_now_add=True)
+    updated_at = models.DateTimeField("updated at", auto_now=True)
 
     class Meta:
         ordering = ["name"]
-        verbose_name = _("organization")
-        verbose_name_plural = _("organizations")
+        verbose_name = "organization"
+        verbose_name_plural = "organizations"
 
     def save(self, *args, **kwargs):
         if not self.slug:

@@ -9,7 +9,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../services/auth.service';
+import { LanguageSwitcherComponent } from '../../../shared/components/language-switcher/language-switcher.component';
 
 @Component({
   selector: 'app-login',
@@ -23,37 +25,42 @@ import { AuthService } from '../../services/auth.service';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    TranslateModule,
+    LanguageSwitcherComponent,
   ],
   template: `
     <div class="login-container">
       <mat-card class="login-card">
+        <div class="lang-switcher">
+          <app-language-switcher></app-language-switcher>
+        </div>
         <mat-card-header>
-          <mat-card-title>Task Management System</mat-card-title>
-          <mat-card-subtitle>Sign in to your account</mat-card-subtitle>
+          <mat-card-title>{{ 'auth.title' | translate }}</mat-card-title>
+          <mat-card-subtitle>{{ 'auth.subtitle' | translate }}</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Email</mat-label>
+              <mat-label>{{ 'auth.email' | translate }}</mat-label>
               <input matInput formControlName="email" type="email" />
-              <mat-error *ngIf="loginForm.get('email')?.hasError('required')">Email is required</mat-error>
-              <mat-error *ngIf="loginForm.get('email')?.hasError('email')">Invalid email</mat-error>
+              <mat-error *ngIf="loginForm.get('email')?.hasError('required')">{{ 'auth.emailRequired' | translate }}</mat-error>
+              <mat-error *ngIf="loginForm.get('email')?.hasError('email')">{{ 'auth.invalidEmail' | translate }}</mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Password</mat-label>
+              <mat-label>{{ 'auth.password' | translate }}</mat-label>
               <input matInput formControlName="password" [type]="hidePassword ? 'password' : 'text'" />
               <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword">
                 <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
-              <mat-error *ngIf="loginForm.get('password')?.hasError('required')">Password is required</mat-error>
+              <mat-error *ngIf="loginForm.get('password')?.hasError('required')">{{ 'auth.passwordRequired' | translate }}</mat-error>
             </mat-form-field>
 
             <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
 
             <button mat-raised-button color="primary" type="submit" class="full-width" [disabled]="loading">
               <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
-              <span *ngIf="!loading">Sign In</span>
+              <span *ngIf="!loading">{{ 'auth.signIn' | translate }}</span>
             </button>
           </form>
         </mat-card-content>
@@ -72,6 +79,12 @@ import { AuthService } from '../../services/auth.service';
       .login-card {
         width: 400px;
         padding: 24px;
+        position: relative;
+      }
+      .lang-switcher {
+        position: absolute;
+        top: 8px;
+        right: 8px;
       }
       .full-width {
         width: 100%;
@@ -100,6 +113,7 @@ export class LoginComponent implements OnDestroy {
     private authService: AuthService,
     private router: Router,
     private cdr: ChangeDetectorRef,
+    private translate: TranslateService,
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -126,7 +140,9 @@ export class LoginComponent implements OnDestroy {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.detail || 'Login failed. Please try again.';
+        const detail = err.error?.detail;
+        const translated = detail ? this.translate.instant(`backendErrors.${detail}`) : null;
+        this.errorMessage = (translated && translated !== `backendErrors.${detail}`) ? translated : (detail || this.translate.instant('auth.loginFailed'));
         this.cdr.markForCheck();
       },
     });

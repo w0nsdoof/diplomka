@@ -15,6 +15,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { environment } from '../../../environments/environment';
 import { SummaryService, SummaryListItem } from '../../core/services/summary.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -26,17 +27,17 @@ import { AuthService } from '../../core/services/auth.service';
     CommonModule, FormsModule, RouterModule, MatCardModule, MatFormFieldModule,
     MatInputModule, MatDatepickerModule, MatNativeDateModule,
     MatButtonModule, MatIconModule, MatTableModule, MatChipsModule,
-    MatProgressSpinnerModule, MatSnackBarModule,
+    MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
   ],
   template: `
-    <h2>Reports</h2>
+    <h2>{{ 'reports.title' | translate }}</h2>
 
     <!-- AI Summary Section -->
     <div class="ai-summary-section">
       <div class="section-header">
-        <h3>AI Summaries</h3>
+        <h3>{{ 'reports.aiSummaries' | translate }}</h3>
         <a mat-button color="primary" routerLink="/reports/summaries">
-          <mat-icon>history</mat-icon> View All Summaries
+          <mat-icon>history</mat-icon> {{ 'reports.viewAllSummaries' | translate }}
         </a>
       </div>
 
@@ -48,58 +49,58 @@ import { AuthService } from '../../core/services/auth.service';
         <mat-card *ngIf="dailySummary" class="summary-card clickable-card"
                   [routerLink]="['/reports/summaries', dailySummary.id]">
           <mat-card-header>
-            <mat-card-title>Daily Summary</mat-card-title>
+            <mat-card-title>{{ 'reports.dailySummary' | translate }}</mat-card-title>
             <mat-card-subtitle>
               {{ dailySummary.period_start }}
               <span class="method-badge" [class.ai]="dailySummary.generation_method === 'ai'" [class.fallback]="dailySummary.generation_method === 'fallback'">
-                {{ dailySummary.generation_method === 'ai' ? 'AI' : 'Fallback' }}
+                {{ dailySummary.generation_method === 'ai' ? ('reports.ai' | translate) : ('reports.fallback' | translate) }}
               </span>
             </mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
             <p class="summary-preview">{{ dailySummary.summary_text | slice:0:200 }}{{ dailySummary.summary_text.length > 200 ? '...' : '' }}</p>
-            <small class="generated-at">Generated: {{ dailySummary.generated_at | date:'medium' }}</small>
+            <small class="generated-at">{{ 'reports.generated' | translate }} {{ dailySummary.generated_at | date:'medium' }}</small>
           </mat-card-content>
         </mat-card>
 
         <mat-card *ngIf="weeklySummary" class="summary-card clickable-card"
                   [routerLink]="['/reports/summaries', weeklySummary.id]">
           <mat-card-header>
-            <mat-card-title>Weekly Summary</mat-card-title>
+            <mat-card-title>{{ 'reports.weeklySummary' | translate }}</mat-card-title>
             <mat-card-subtitle>
               {{ weeklySummary.period_start }} — {{ weeklySummary.period_end }}
               <span class="method-badge" [class.ai]="weeklySummary.generation_method === 'ai'" [class.fallback]="weeklySummary.generation_method === 'fallback'">
-                {{ weeklySummary.generation_method === 'ai' ? 'AI' : 'Fallback' }}
+                {{ weeklySummary.generation_method === 'ai' ? ('reports.ai' | translate) : ('reports.fallback' | translate) }}
               </span>
             </mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
             <p class="summary-preview">{{ weeklySummary.summary_text | slice:0:200 }}{{ weeklySummary.summary_text.length > 200 ? '...' : '' }}</p>
-            <small class="generated-at">Generated: {{ weeklySummary.generated_at | date:'medium' }}</small>
+            <small class="generated-at">{{ 'reports.generated' | translate }} {{ weeklySummary.generated_at | date:'medium' }}</small>
           </mat-card-content>
         </mat-card>
       </div>
 
       <p *ngIf="!summaryLoading && !dailySummary && !weeklySummary" class="no-summaries">
-        No scheduled summaries yet. Generate one on demand below, or wait for the next automatic daily/weekly run.
+        {{ 'reports.noSummaries' | translate }}
       </p>
     </div>
 
     <!-- On-demand AI Summary Generation -->
     <mat-card *ngIf="isManager" class="on-demand-card">
       <mat-card-header>
-        <mat-card-title>Generate AI Summary</mat-card-title>
+        <mat-card-title>{{ 'reports.generateAiSummary' | translate }}</mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <div class="filter-row">
           <mat-form-field appearance="outline">
-            <mat-label>Start Date</mat-label>
+            <mat-label>{{ 'reports.startDate' | translate }}</mat-label>
             <input matInput [matDatepicker]="aiFromPicker" [(ngModel)]="aiDateFrom" />
             <mat-datepicker-toggle matIconSuffix [for]="aiFromPicker"></mat-datepicker-toggle>
             <mat-datepicker #aiFromPicker></mat-datepicker>
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>End Date</mat-label>
+            <mat-label>{{ 'reports.endDate' | translate }}</mat-label>
             <input matInput [matDatepicker]="aiToPicker" [(ngModel)]="aiDateTo" />
             <mat-datepicker-toggle matIconSuffix [for]="aiToPicker"></mat-datepicker-toggle>
             <mat-datepicker #aiToPicker></mat-datepicker>
@@ -108,7 +109,7 @@ import { AuthService } from '../../core/services/auth.service';
                   (click)="generateAISummary()"
                   [disabled]="!aiDateFrom || !aiDateTo || generating">
             <mat-icon>auto_awesome</mat-icon>
-            {{ generating ? 'Generating...' : 'Generate AI Summary' }}
+            {{ generating ? ('reports.generating' | translate) : ('reports.generateAiSummary' | translate) }}
           </button>
         </div>
       </mat-card-content>
@@ -119,30 +120,30 @@ import { AuthService } from '../../core/services/auth.service';
       <mat-card-content>
         <div class="filter-row">
           <mat-form-field appearance="outline">
-            <mat-label>Date From</mat-label>
+            <mat-label>{{ 'reports.dateFrom' | translate }}</mat-label>
             <input matInput [matDatepicker]="fromPicker" [(ngModel)]="dateFrom" />
             <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
             <mat-datepicker #fromPicker></mat-datepicker>
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Date To</mat-label>
+            <mat-label>{{ 'reports.dateTo' | translate }}</mat-label>
             <input matInput [matDatepicker]="toPicker" [(ngModel)]="dateTo" />
             <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
             <mat-datepicker #toPicker></mat-datepicker>
           </mat-form-field>
-          <button mat-raised-button color="primary" (click)="loadReport()">Generate</button>
-          <button mat-button *ngIf="isManager" (click)="exportPDF()"><mat-icon>picture_as_pdf</mat-icon> PDF</button>
-          <button mat-button *ngIf="isManager" (click)="exportExcel()"><mat-icon>table_chart</mat-icon> Excel</button>
+          <button mat-raised-button color="primary" (click)="loadReport()">{{ 'reports.generate' | translate }}</button>
+          <button mat-button *ngIf="isManager" (click)="exportPDF()"><mat-icon>picture_as_pdf</mat-icon> {{ 'reports.pdf' | translate }}</button>
+          <button mat-button *ngIf="isManager" (click)="exportExcel()"><mat-icon>table_chart</mat-icon> {{ 'reports.excel' | translate }}</button>
         </div>
       </mat-card-content>
     </mat-card>
 
     <div *ngIf="reportData" class="report-content">
       <div class="summary-grid">
-        <mat-card><mat-card-content><div class="stat">{{ reportData.tasks.total }}</div><div>Total</div></mat-card-content></mat-card>
-        <mat-card><mat-card-content><div class="stat">{{ reportData.tasks.created_in_period }}</div><div>Created</div></mat-card-content></mat-card>
-        <mat-card><mat-card-content><div class="stat">{{ reportData.tasks.closed_in_period }}</div><div>Closed</div></mat-card-content></mat-card>
-        <mat-card><mat-card-content><div class="stat">{{ reportData.tasks.overdue }}</div><div>Overdue</div></mat-card-content></mat-card>
+        <mat-card><mat-card-content><div class="stat">{{ reportData.tasks.total }}</div><div>{{ 'reports.total' | translate }}</div></mat-card-content></mat-card>
+        <mat-card><mat-card-content><div class="stat">{{ reportData.tasks.created_in_period }}</div><div>{{ 'reports.created' | translate }}</div></mat-card-content></mat-card>
+        <mat-card><mat-card-content><div class="stat">{{ reportData.tasks.closed_in_period }}</div><div>{{ 'reports.closed' | translate }}</div></mat-card-content></mat-card>
+        <mat-card><mat-card-content><div class="stat">{{ reportData.tasks.overdue }}</div><div>{{ 'reports.overdue' | translate }}</div></mat-card-content></mat-card>
       </div>
     </div>
   `,
@@ -196,6 +197,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private snackBar: MatSnackBar,
     private router: Router,
+    public translate: TranslateService,
   ) {}
 
   ngOnInit(): void {
@@ -229,14 +231,14 @@ export class ReportsComponent implements OnInit, OnDestroy {
     this.summaryService.generate(start, end).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
         this.generating = false;
-        this.snackBar.open('Summary generation started', 'View', { duration: 5000 }).onAction().subscribe(() => {
+        this.snackBar.open(this.translate.instant('reports.summaryStarted'), this.translate.instant('common.view'), { duration: 5000 }).onAction().subscribe(() => {
           this.router.navigate(['/reports/summaries', result.id]);
         });
         this.cdr.markForCheck();
       },
       error: () => {
         this.generating = false;
-        this.snackBar.open('Failed to start generation', 'Dismiss', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('reports.failedGeneration'), this.translate.instant('common.dismiss'), { duration: 3000 });
         this.cdr.markForCheck();
       },
     });

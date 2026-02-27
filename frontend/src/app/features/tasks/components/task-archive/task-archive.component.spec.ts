@@ -3,6 +3,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { TaskArchiveComponent } from './task-archive.component';
 import { TaskService, PaginatedResponse, TaskListItem } from '../../../../core/services/task.service';
@@ -34,6 +35,7 @@ describe('TaskArchiveComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
+        provideTranslateService(),
         { provide: TaskService, useValue: taskService },
       ],
     }).compileComponents();

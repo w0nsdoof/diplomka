@@ -10,6 +10,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SummaryService, SummaryDetail, SummaryVersion } from '../../../core/services/summary.service';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -19,12 +20,12 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [
     CommonModule, RouterModule, MatCardModule, MatButtonModule,
     MatIconModule, MatChipsModule, MatListModule, MatDividerModule,
-    MatProgressSpinnerModule, MatSnackBarModule,
+    MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
   ],
   template: `
     <div class="header-row">
-      <h2>Summary Detail</h2>
-      <a mat-button routerLink="/reports/summaries"><mat-icon>arrow_back</mat-icon> Back to History</a>
+      <h2>{{ 'summaries.detailTitle' | translate }}</h2>
+      <a mat-button routerLink="/reports/summaries"><mat-icon>arrow_back</mat-icon> {{ 'summaries.backToHistory' | translate }}</a>
     </div>
 
     <div *ngIf="loading" style="text-align: center; padding: 48px;">
@@ -41,9 +42,9 @@ import { AuthService } from '../../../core/services/auth.service';
           <mat-card-subtitle>
             <span class="status-badge" [ngClass]="summary.status">{{ summary.status }}</span>
             <span *ngIf="summary.generation_method" class="method-badge" [ngClass]="summary.generation_method">
-              {{ summary.generation_method === 'ai' ? 'AI' : 'Fallback' }}
+              {{ summary.generation_method === 'ai' ? ('reports.ai' | translate) : ('reports.fallback' | translate) }}
             </span>
-            <span class="meta-info">Generated: {{ summary.generated_at | date:'medium' }}</span>
+            <span class="meta-info">{{ 'reports.generated' | translate }} {{ summary.generated_at | date:'medium' }}</span>
           </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
@@ -52,24 +53,24 @@ import { AuthService } from '../../../core/services/auth.service';
           <mat-divider></mat-divider>
 
           <div class="metadata">
-            <h4>Generation Details</h4>
+            <h4>{{ 'summaries.generationDetails' | translate }}</h4>
             <div class="meta-grid">
-              <div *ngIf="summary.llm_model"><strong>Model:</strong> {{ summary.llm_model }}</div>
-              <div *ngIf="summary.prompt_tokens != null"><strong>Prompt tokens:</strong> {{ summary.prompt_tokens }}</div>
-              <div *ngIf="summary.completion_tokens != null"><strong>Completion tokens:</strong> {{ summary.completion_tokens }}</div>
-              <div *ngIf="summary.generation_time_ms != null"><strong>Generation time:</strong> {{ summary.generation_time_ms }}ms</div>
-              <div *ngIf="summary.requested_by"><strong>Requested by:</strong> {{ summary.requested_by.first_name }} {{ summary.requested_by.last_name }}</div>
-              <div><strong>Versions:</strong> {{ summary.version_count }}</div>
+              <div *ngIf="summary.llm_model"><strong>{{ 'summaries.model' | translate }}</strong> {{ summary.llm_model }}</div>
+              <div *ngIf="summary.prompt_tokens != null"><strong>{{ 'summaries.promptTokens' | translate }}</strong> {{ summary.prompt_tokens }}</div>
+              <div *ngIf="summary.completion_tokens != null"><strong>{{ 'summaries.completionTokens' | translate }}</strong> {{ summary.completion_tokens }}</div>
+              <div *ngIf="summary.generation_time_ms != null"><strong>{{ 'summaries.generationTime' | translate }}</strong> {{ summary.generation_time_ms }}ms</div>
+              <div *ngIf="summary.requested_by"><strong>{{ 'summaries.requestedBy' | translate }}</strong> {{ summary.requested_by.first_name }} {{ summary.requested_by.last_name }}</div>
+              <div><strong>{{ 'summaries.versions' | translate }}</strong> {{ summary.version_count }}</div>
             </div>
             <div *ngIf="summary.error_message" class="error-msg">
-              <strong>Error:</strong> {{ summary.error_message }}
+              <strong>{{ 'summaries.error' | translate }}</strong> {{ summary.error_message }}
             </div>
           </div>
         </mat-card-content>
         <mat-card-actions *ngIf="isManager">
           <button mat-raised-button color="primary" (click)="regenerate()" [disabled]="regenerating">
             <mat-icon>refresh</mat-icon>
-            {{ regenerating ? 'Regenerating...' : 'Regenerate' }}
+            {{ regenerating ? ('summaries.regenerating' | translate) : ('summaries.regenerate' | translate) }}
           </button>
         </mat-card-actions>
       </mat-card>
@@ -77,7 +78,7 @@ import { AuthService } from '../../../core/services/auth.service';
       <!-- Version History -->
       <mat-card *ngIf="versions.length > 1" class="versions-card">
         <mat-card-header>
-          <mat-card-title>Version History ({{ versions.length }})</mat-card-title>
+          <mat-card-title>{{ 'summaries.versionHistory' | translate }} ({{ versions.length }})</mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <mat-list>
@@ -85,7 +86,7 @@ import { AuthService } from '../../../core/services/auth.service';
                            [class.active-version]="v.id === summary.id">
               <div matListItemTitle>
                 <span class="method-badge" [ngClass]="v.generation_method">
-                  {{ v.generation_method === 'ai' ? 'AI' : 'Fallback' }}
+                  {{ v.generation_method === 'ai' ? ('reports.ai' | translate) : ('reports.fallback' | translate) }}
                 </span>
                 {{ v.generated_at | date:'medium' }}
                 <span *ngIf="v.requested_by"> by {{ v.requested_by.first_name }} {{ v.requested_by.last_name }}</span>
@@ -148,6 +149,7 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
+    public translate: TranslateService,
   ) {}
 
   ngOnInit(): void {
@@ -192,7 +194,7 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
     this.summaryService.regenerate(this.summary.id).pipe(takeUntil(this.destroy$)).subscribe({
       next: (newSummary) => {
         this.regenerating = false;
-        this.snackBar.open('Regeneration started', 'View', { duration: 5000 }).onAction().subscribe(() => {
+        this.snackBar.open(this.translate.instant('summaries.regenerationStarted'), this.translate.instant('common.view'), { duration: 5000 }).onAction().subscribe(() => {
           this.router.navigate(['/reports/summaries', newSummary.id]);
         });
         this.cdr.markForCheck();
@@ -201,7 +203,7 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.regenerating = false;
-        this.snackBar.open('Regeneration failed', 'Dismiss', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('summaries.regenerationFailed'), this.translate.instant('common.dismiss'), { duration: 3000 });
         this.cdr.markForCheck();
       },
     });

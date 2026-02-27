@@ -8,10 +8,11 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskListItem, TaskFilters } from '../../../../core/services/task.service';
 import { WebSocketService } from '../../../../core/services/websocket.service';
-import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/task-status';
+import { STATUS_TRANSLATION_KEYS, VALID_TRANSITIONS } from '../../../../core/constants/task-status';
 import { SearchBarComponent } from '../../../../shared/components/search-bar/search-bar.component';
 import { FilterPanelComponent, FilterState } from '../filter-panel/filter-panel.component';
 
@@ -24,10 +25,10 @@ interface KanbanColumn {
 @Component({
   selector: 'app-kanban-board',
   standalone: true,
-  imports: [CommonModule, DragDropModule, MatCardModule, MatChipsModule, MatIconModule, MatSnackBarModule, MatMenuModule, MatButtonModule, RouterModule, SearchBarComponent, FilterPanelComponent],
+  imports: [CommonModule, DragDropModule, MatCardModule, MatChipsModule, MatIconModule, MatSnackBarModule, MatMenuModule, MatButtonModule, RouterModule, SearchBarComponent, FilterPanelComponent, TranslateModule],
   template: `
-    <h2>Kanban Board</h2>
-    <app-search-bar placeholder="Search tasks..." (search)="onSearch($event)"></app-search-bar>
+    <h2>{{ 'kanban.title' | translate }}</h2>
+    <app-search-bar [placeholder]="'tasks.searchTasks' | translate" (search)="onSearch($event)"></app-search-bar>
     <app-filter-panel [showStatus]="false" [showClient]="false" (filtersChange)="onFiltersChange($event)"></app-filter-panel>
     <div class="kanban-container">
       <div class="kanban-column" *ngFor="let col of columns"
@@ -35,7 +36,7 @@ interface KanbanColumn {
            [id]="col.status"
            [cdkDropListConnectedTo]="columnIds"
            (cdkDropListDropped)="onDrop($event, col)">
-        <h3 class="column-header">{{ col.label }} ({{ col.tasks.length }})</h3>
+        <h3 class="column-header">{{ translate.instant(col.label) }} ({{ col.tasks.length }})</h3>
         <mat-card *ngFor="let task of col.tasks" cdkDrag class="kanban-card" [class]="'priority-' + task.priority">
           <mat-card-header>
             <mat-card-title>
@@ -48,7 +49,7 @@ interface KanbanColumn {
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #cardStatusMenu="matMenu">
-              <div class="menu-header" mat-menu-item disabled>Move to</div>
+              <div class="menu-header" mat-menu-item disabled>{{ 'kanban.moveTo' | translate }}</div>
               <button mat-menu-item *ngFor="let s of getNextStatuses(task.status)"
                       (click)="onMenuChangeStatus(task, col, s)">
                 {{ statusLabel(s) }}
@@ -56,7 +57,7 @@ interface KanbanColumn {
             </mat-menu>
           </mat-card-header>
           <mat-card-content>
-            <mat-chip [class]="'priority-' + task.priority">{{ task.priority }}</mat-chip>
+            <mat-chip [class]="'priority-' + task.priority">{{ 'priorities.' + task.priority | translate }}</mat-chip>
             <div class="card-tags" *ngIf="task.tags.length">
               <span *ngFor="let t of task.tags" class="card-tag"
                     [style.background-color]="t.color"
@@ -98,10 +99,10 @@ interface KanbanColumn {
 })
 export class KanbanBoardComponent implements OnInit, OnDestroy {
   columns: KanbanColumn[] = [
-    { status: 'created', label: 'Created', tasks: [] },
-    { status: 'in_progress', label: 'In Progress', tasks: [] },
-    { status: 'waiting', label: 'Waiting', tasks: [] },
-    { status: 'done', label: 'Done', tasks: [] },
+    { status: 'created', label: 'statuses.created', tasks: [] },
+    { status: 'in_progress', label: 'statuses.in_progress', tasks: [] },
+    { status: 'waiting', label: 'statuses.waiting', tasks: [] },
+    { status: 'done', label: 'statuses.done', tasks: [] },
   ];
 
   columnIds: string[] = [];
@@ -114,6 +115,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
     private wsService: WebSocketService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
+    public translate: TranslateService,
   ) {
     this.columnIds = this.columns.map((c) => c.status);
   }
@@ -161,7 +163,7 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
   }
 
   statusLabel(status: string): string {
-    return STATUS_LABELS[status] || status;
+    return this.translate.instant(STATUS_TRANSLATION_KEYS[status] || status);
   }
 
   getNextStatuses(currentStatus: string): string[] {
@@ -187,8 +189,8 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: (err) => {
-        const msg = err.error?.detail || 'Invalid transition';
-        this.snackBar.open(msg, 'Close', { duration: 3000 });
+        const msg = err.error?.detail || this.translate.instant('kanban.invalidTransition');
+        this.snackBar.open(msg, this.translate.instant('common.close'), { duration: 3000 });
       },
     });
   }
@@ -204,8 +206,8 @@ export class KanbanBoardComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: (err) => {
-        const msg = err.error?.detail || 'Invalid transition';
-        this.snackBar.open(msg, 'Close', { duration: 3000 });
+        const msg = err.error?.detail || this.translate.instant('kanban.invalidTransition');
+        this.snackBar.open(msg, this.translate.instant('common.close'), { duration: 3000 });
         this.cdr.markForCheck();
       },
     });

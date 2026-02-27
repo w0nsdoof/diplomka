@@ -11,10 +11,11 @@ import { MatTabsModule, MatTabChangeEvent } from '@angular/material/tabs';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskDetail } from '../../../../core/services/task.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/task-status';
+import { STATUS_TRANSLATION_KEYS, VALID_TRANSITIONS } from '../../../../core/constants/task-status';
 
 @Component({
   selector: 'app-task-detail',
@@ -23,6 +24,7 @@ import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/tas
     CommonModule, RouterModule, MatCardModule, MatChipsModule,
     MatButtonModule, MatIconModule, MatListModule, MatDividerModule,
     MatTabsModule, MatProgressBarModule, MatMenuModule, MatSnackBarModule,
+    TranslateModule,
   ],
   template: `
     <div *ngIf="task">
@@ -30,7 +32,7 @@ import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/tas
         <h2>{{ task.title }}</h2>
         <div class="actions">
           <a mat-button [routerLink]="['/tasks', task.id, 'edit']" *ngIf="canEdit">
-            <mat-icon>edit</mat-icon> Edit
+            <mat-icon>edit</mat-icon> {{ 'common.edit' | translate }}
           </a>
         </div>
       </div>
@@ -47,9 +49,9 @@ import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/tas
             {{ statusLabel(s) }}
           </button>
         </mat-menu>
-        <mat-chip [class]="'priority-' + task.priority">{{ task.priority }}</mat-chip>
-        <span>Deadline: {{ task.deadline | date:'mediumDate' }}</span>
-        <span *ngIf="task.client">Client: {{ task.client.name }}</span>
+        <mat-chip [class]="'priority-' + task.priority">{{ 'priorities.' + task.priority | translate }}</mat-chip>
+        <span>{{ 'tasks.deadlineLabel' | translate }} {{ task.deadline | date:'mediumDate' }}</span>
+        <span *ngIf="task.client">{{ 'tasks.clientLabel' | translate }} {{ task.client.name }}</span>
       </div>
 
       <mat-card class="description-card">
@@ -60,31 +62,31 @@ import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/tas
 
       <div class="info-grid">
         <div>
-          <h4>Assignees</h4>
+          <h4>{{ 'tasks.assignees' | translate }}</h4>
           <div *ngFor="let a of task.assignees">{{ a.first_name }} {{ a.last_name }}</div>
-          <div *ngIf="!task.assignees.length">No assignees</div>
+          <div *ngIf="!task.assignees.length">{{ 'tasks.noAssignees' | translate }}</div>
         </div>
         <div>
-          <h4>Tags</h4>
+          <h4>{{ 'tasks.tags' | translate }}</h4>
           <mat-chip-set>
             <mat-chip *ngFor="let t of task.tags">{{ t.name }}</mat-chip>
           </mat-chip-set>
-          <div *ngIf="!task.tags.length">No tags</div>
+          <div *ngIf="!task.tags.length">{{ 'tasks.noTags' | translate }}</div>
         </div>
         <div>
-          <h4>Created by</h4>
+          <h4>{{ 'tasks.createdBy' | translate }}</h4>
           <span>{{ task.created_by?.first_name }} {{ task.created_by?.last_name }}</span>
           <br /><small>{{ task.created_at | date:'medium' }}</small>
         </div>
       </div>
 
       <mat-tab-group (selectedTabChange)="onTabChange($event)">
-        <mat-tab label="Attachments ({{ attachments.length }})">
+        <mat-tab [label]="translate.instant('tasks.attachments') + ' (' + attachments.length + ')'">
           <div class="tab-content">
             <div class="upload-row">
               <input type="file" #fileInput (change)="onFileSelected($event)" hidden />
               <button mat-raised-button color="primary" (click)="fileInput.click()" [disabled]="uploading">
-                <mat-icon>upload</mat-icon> Upload File
+                <mat-icon>upload</mat-icon> {{ 'tasks.uploadFile' | translate }}
               </button>
             </div>
             <mat-progress-bar *ngIf="uploading" mode="indeterminate"></mat-progress-bar>
@@ -103,11 +105,11 @@ import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/tas
               </mat-list-item>
             </mat-list>
             <ng-template #noAttachments>
-              <p class="empty-message">No attachments</p>
+              <p class="empty-message">{{ 'tasks.noAttachments' | translate }}</p>
             </ng-template>
           </div>
         </mat-tab>
-        <mat-tab label="History" *ngIf="canViewHistory">
+        <mat-tab [label]="translate.instant('tasks.history')" *ngIf="canViewHistory">
           <div class="tab-content">
             <mat-progress-bar *ngIf="historyLoading" mode="indeterminate"></mat-progress-bar>
             <mat-list *ngIf="history.length; else noHistory">
@@ -117,14 +119,14 @@ import { STATUS_LABELS, VALID_TRANSITIONS } from '../../../../core/constants/tas
                   {{ h.action | titlecase }}{{ h.field_name ? ': ' + h.field_name : '' }}
                 </span>
                 <span matListItemLine>
-                  <span *ngIf="h.old_value || h.new_value">{{ h.old_value || '(empty)' }} &rarr; {{ h.new_value || '(empty)' }}</span>
+                  <span *ngIf="h.old_value || h.new_value">{{ h.old_value || translate.instant('tasks.empty') }} &rarr; {{ h.new_value || translate.instant('tasks.empty') }}</span>
                   &middot; {{ h.changed_by?.first_name }} {{ h.changed_by?.last_name }}
                   &middot; {{ h.timestamp | date:'medium' }}
                 </span>
               </mat-list-item>
             </mat-list>
             <ng-template #noHistory>
-              <p *ngIf="historyLoaded" class="empty-message">No history</p>
+              <p *ngIf="historyLoaded" class="empty-message">{{ 'tasks.noHistory' | translate }}</p>
             </ng-template>
           </div>
         </mat-tab>
@@ -164,6 +166,7 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
+    public translate: TranslateService,
   ) {}
 
   ngOnInit(): void {
@@ -237,7 +240,7 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
   }
 
   statusLabel(status: string): string {
-    return STATUS_LABELS[status] || status;
+    return this.translate.instant(STATUS_TRANSLATION_KEYS[status] || status);
   }
 
   getNextStatuses(currentStatus: string): string[] {
@@ -256,8 +259,8 @@ export class TaskDetailComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: (err) => {
-        const msg = err.error?.detail || 'Failed to change status';
-        this.snackBar.open(msg, 'Close', { duration: 3000 });
+        const msg = err.error?.detail || this.translate.instant('tasks.failedChangeStatus');
+        this.snackBar.open(msg, this.translate.instant('common.close'), { duration: 3000 });
       },
     });
   }

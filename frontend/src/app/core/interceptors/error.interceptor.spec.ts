@@ -3,6 +3,7 @@ import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { errorInterceptor } from './error.interceptor';
 
 describe('errorInterceptor', () => {
@@ -18,9 +19,27 @@ describe('errorInterceptor', () => {
         provideHttpClient(withInterceptors([errorInterceptor])),
         provideHttpClientTesting(),
         provideNoopAnimations(),
+        provideTranslateService(),
         { provide: MatSnackBar, useValue: snackBar },
       ],
     });
+
+    // Load English translations so that translate.instant returns the real strings
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', {
+      common: { close: 'Close' },
+      errors: {
+        unexpected: 'An unexpected error occurred',
+        connectionFailed: 'Unable to connect to the server',
+        accessDenied: 'Access denied',
+        notFound: 'Resource not found',
+        serverError: 'Server error. Please try again later.',
+      },
+      backendErrors: {
+        'Client not found.': 'Client not found.',
+      },
+    });
+    translate.use('en');
 
     httpClient = TestBed.inject(HttpClient);
     httpMock = TestBed.inject(HttpTestingController);

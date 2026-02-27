@@ -1,10 +1,12 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslateService } from '@ngx-translate/core';
 import { catchError, throwError } from 'rxjs';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const snackBar = inject(MatSnackBar);
+  const translate = inject(TranslateService);
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -13,9 +15,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
-      let message = 'An unexpected error occurred';
+      let message = translate.instant('errors.unexpected');
       if (error.error?.detail) {
-        message = error.error.detail;
+        const backendKey = `backendErrors.${error.error.detail}`;
+        const translated = translate.instant(backendKey);
+        message = translated !== backendKey ? translated : error.error.detail;
       } else if (error.error?.errors && typeof error.error.errors === 'object') {
         const msgs: string[] = [];
         for (const [, val] of Object.entries(error.error.errors)) {
@@ -29,16 +33,16 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           message = msgs.join(' ');
         }
       } else if (error.status === 0) {
-        message = 'Unable to connect to the server';
+        message = translate.instant('errors.connectionFailed');
       } else if (error.status === 403) {
-        message = 'Access denied';
+        message = translate.instant('errors.accessDenied');
       } else if (error.status === 404) {
-        message = 'Resource not found';
+        message = translate.instant('errors.notFound');
       } else if (error.status >= 500) {
-        message = 'Server error. Please try again later.';
+        message = translate.instant('errors.serverError');
       }
 
-      snackBar.open(message, 'Close', { duration: 5000, panelClass: 'error-snackbar' });
+      snackBar.open(message, translate.instant('common.close'), { duration: 5000, panelClass: 'error-snackbar' });
 
       return throwError(() => error);
     }),

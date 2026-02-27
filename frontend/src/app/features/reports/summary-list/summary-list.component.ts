@@ -10,6 +10,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { TranslateModule } from '@ngx-translate/core';
 import { SummaryService, SummaryListItem } from '../../../core/services/summary.service';
 
 @Component({
@@ -18,63 +19,63 @@ import { SummaryService, SummaryListItem } from '../../../core/services/summary.
   imports: [
     CommonModule, RouterModule, FormsModule, MatCardModule, MatTableModule,
     MatButtonModule, MatButtonToggleModule, MatIconModule, MatChipsModule,
-    MatPaginatorModule,
+    MatPaginatorModule, TranslateModule,
   ],
   template: `
     <div class="header-row">
-      <h2>Summary History</h2>
-      <a mat-button routerLink="/reports"><mat-icon>arrow_back</mat-icon> Back to Reports</a>
+      <h2>{{ 'summaries.title' | translate }}</h2>
+      <a mat-button routerLink="/reports"><mat-icon>arrow_back</mat-icon> {{ 'summaries.backToReports' | translate }}</a>
     </div>
 
     <mat-card>
       <mat-card-content>
         <div class="filter-row">
           <mat-button-toggle-group [(ngModel)]="selectedPeriod" (change)="loadSummaries()">
-            <mat-button-toggle value="">All</mat-button-toggle>
-            <mat-button-toggle value="daily">Daily</mat-button-toggle>
-            <mat-button-toggle value="weekly">Weekly</mat-button-toggle>
-            <mat-button-toggle value="on_demand">On-demand</mat-button-toggle>
+            <mat-button-toggle value="">{{ 'common.all' | translate }}</mat-button-toggle>
+            <mat-button-toggle value="daily">{{ 'summaries.daily' | translate }}</mat-button-toggle>
+            <mat-button-toggle value="weekly">{{ 'summaries.weekly' | translate }}</mat-button-toggle>
+            <mat-button-toggle value="on_demand">{{ 'summaries.onDemand' | translate }}</mat-button-toggle>
           </mat-button-toggle-group>
         </div>
 
         <table mat-table [dataSource]="summaries" class="full-width">
           <ng-container matColumnDef="period">
-            <th mat-header-cell *matHeaderCellDef>Period</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'summaries.period' | translate }}</th>
             <td mat-cell *matCellDef="let s">{{ s.period_start }} — {{ s.period_end }}</td>
           </ng-container>
 
           <ng-container matColumnDef="period_type">
-            <th mat-header-cell *matHeaderCellDef>Type</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'summaries.type' | translate }}</th>
             <td mat-cell *matCellDef="let s">
               <span class="type-chip" [ngClass]="s.period_type">{{ s.period_type }}</span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'common.status' | translate }}</th>
             <td mat-cell *matCellDef="let s">
               <span class="status-badge" [ngClass]="s.status">{{ s.status }}</span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="method">
-            <th mat-header-cell *matHeaderCellDef>Method</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'summaries.method' | translate }}</th>
             <td mat-cell *matCellDef="let s">
               <span *ngIf="s.generation_method" class="method-badge" [ngClass]="s.generation_method">
-                {{ s.generation_method === 'ai' ? 'AI' : 'Fallback' }}
+                {{ s.generation_method === 'ai' ? ('reports.ai' | translate) : ('reports.fallback' | translate) }}
               </span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="preview">
-            <th mat-header-cell *matHeaderCellDef>Preview</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'summaries.preview' | translate }}</th>
             <td mat-cell *matCellDef="let s" class="preview-cell">
               {{ s.summary_text | slice:0:100 }}{{ s.summary_text.length > 100 ? '...' : '' }}
             </td>
           </ng-container>
 
           <ng-container matColumnDef="generated_at">
-            <th mat-header-cell *matHeaderCellDef>Generated</th>
+            <th mat-header-cell *matHeaderCellDef>{{ 'reports.generated' | translate }}</th>
             <td mat-cell *matCellDef="let s">{{ s.generated_at | date:'short' }}</td>
           </ng-container>
 

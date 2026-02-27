@@ -6,19 +6,20 @@ import { Subject, takeUntil } from 'rxjs';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { TranslateModule } from '@ngx-translate/core';
 import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-ticket-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatTableModule, MatChipsModule, MatPaginatorModule],
+  imports: [CommonModule, RouterModule, MatTableModule, MatChipsModule, MatPaginatorModule, TranslateModule],
   template: `
-    <h2>My Tickets</h2>
+    <h2>{{ 'portal.title' | translate }}</h2>
     <table mat-table [dataSource]="tickets" class="full-width">
-      <ng-container matColumnDef="title"><th mat-header-cell *matHeaderCellDef>Title</th><td mat-cell *matCellDef="let t"><a [routerLink]="[t.id]">{{ t.title }}</a></td></ng-container>
-      <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Status</th><td mat-cell *matCellDef="let t"><mat-chip>{{ t.status }}</mat-chip></td></ng-container>
-      <ng-container matColumnDef="priority"><th mat-header-cell *matHeaderCellDef>Priority</th><td mat-cell *matCellDef="let t">{{ t.priority }}</td></ng-container>
-      <ng-container matColumnDef="deadline"><th mat-header-cell *matHeaderCellDef>Deadline</th><td mat-cell *matCellDef="let t">{{ t.deadline | date:'mediumDate' }}</td></ng-container>
+      <ng-container matColumnDef="title"><th mat-header-cell *matHeaderCellDef>{{ 'tasks.taskTitle' | translate }}</th><td mat-cell *matCellDef="let t"><a [routerLink]="[t.id]">{{ t.title }}</a></td></ng-container>
+      <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>{{ 'common.status' | translate }}</th><td mat-cell *matCellDef="let t"><mat-chip>{{ 'statuses.' + t.status | translate }}</mat-chip></td></ng-container>
+      <ng-container matColumnDef="priority"><th mat-header-cell *matHeaderCellDef>{{ 'tasks.priority' | translate }}</th><td mat-cell *matCellDef="let t">{{ 'priorities.' + t.priority | translate }}</td></ng-container>
+      <ng-container matColumnDef="deadline"><th mat-header-cell *matHeaderCellDef>{{ 'tasks.deadline' | translate }}</th><td mat-cell *matCellDef="let t">{{ t.deadline | date:'mediumDate' }}</td></ng-container>
       <tr mat-header-row *matHeaderRowDef="columns"></tr>
       <tr mat-row *matRowDef="let row; columns: columns"></tr>
     </table>

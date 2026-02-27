@@ -4,15 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-search-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatIconModule, TranslateModule],
   template: `
     <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Search</mat-label>
+      <mat-label>{{ 'common.search' | translate }}</mat-label>
       <input matInput [(ngModel)]="searchTerm" (ngModelChange)="onSearch($event)" [placeholder]="placeholder" />
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>

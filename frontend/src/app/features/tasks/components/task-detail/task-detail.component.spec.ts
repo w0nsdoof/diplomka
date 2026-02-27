@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { provideRouter } from '@angular/router';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { TaskDetailComponent } from './task-detail.component';
 import { TaskService } from '../../../../core/services/task.service';
@@ -53,6 +54,7 @@ describe('TaskDetailComponent', () => {
       providers: [
         provideRouter([]),
         provideNoopAnimations(),
+        provideTranslateService(),
         { provide: TaskService, useValue: taskServiceSpy },
         { provide: AuthService, useValue: authServiceSpy },
         { provide: ActivatedRoute, useValue: { snapshot: { params: { id: '1' } } } },

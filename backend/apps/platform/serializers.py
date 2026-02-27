@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db.models import Count, Q
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.organizations.models import Organization
@@ -76,7 +75,7 @@ class ManagerCreateSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError(_("A user with this email already exists."))
+            raise serializers.ValidationError("A user with this email already exists.")
         return value
 
     def create(self, validated_data):

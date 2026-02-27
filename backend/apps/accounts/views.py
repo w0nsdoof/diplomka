@@ -2,7 +2,6 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.db.models import Count
-from django.utils.translation import gettext as _
 from rest_framework import status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -31,7 +30,7 @@ class UserViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.user.is_superadmin:
-            raise PermissionDenied(_("Superadmins must use the platform API for user management."))
+            raise PermissionDenied("Superadmins must use the platform API for user management.")
         qs = super().get_queryset()
         qs = qs.exclude(role="superadmin")
         if self.action == "retrieve":
@@ -57,7 +56,7 @@ class UserViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
             ).count()
             if active_managers <= 1:
                 return Response(
-                    {"detail": _("Cannot deactivate the last active manager in this organization.")},
+                    {"detail": "Cannot deactivate the last active manager in this organization."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         user.is_active = False

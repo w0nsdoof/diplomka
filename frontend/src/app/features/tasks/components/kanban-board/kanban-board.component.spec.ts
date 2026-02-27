@@ -3,6 +3,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of, Subject } from 'rxjs';
 import { KanbanBoardComponent } from './kanban-board.component';
 import { TaskService, TaskListItem, PaginatedResponse } from '../../../../core/services/task.service';
@@ -50,6 +51,7 @@ describe('KanbanBoardComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
+        provideTranslateService(),
         { provide: TaskService, useValue: taskService },
         { provide: WebSocketService, useValue: wsServiceMock },
         { provide: ClientService, useValue: clientService },

@@ -1,9 +1,9 @@
-export const STATUS_LABELS: Record<string, string> = {
-  created: 'Created',
-  in_progress: 'In Progress',
-  waiting: 'Waiting',
-  done: 'Done',
-  archived: 'Archived',
+export const STATUS_TRANSLATION_KEYS: Record<string, string> = {
+  created: 'statuses.created',
+  in_progress: 'statuses.in_progress',
+  waiting: 'statuses.waiting',
+  done: 'statuses.done',
+  archived: 'statuses.archived',
 };
 
 export const VALID_TRANSITIONS: Record<string, string[]> = {

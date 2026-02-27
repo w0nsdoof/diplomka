@@ -3,6 +3,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { Router, ActivatedRoute } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { TaskFormComponent } from './task-form.component';
 import { TaskService } from '../../../../core/services/task.service';
@@ -31,6 +32,7 @@ describe('TaskFormComponent', () => {
         provideNoopAnimations(),
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideTranslateService(),
         { provide: TaskService, useValue: taskService },
         { provide: ClientService, useValue: clientService },
         { provide: TagService, useValue: tagService },

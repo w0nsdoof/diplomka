@@ -9,12 +9,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 import { AuthService, UserInfo } from '../../services/auth.service';
 import { NotificationService, Notification } from '../../services/notification.service';
+import { LanguageSwitcherComponent } from '../../../shared/components/language-switcher/language-switcher.component';
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   icon: string;
   route: string;
   roles: string[];
@@ -34,17 +36,19 @@ interface NavItem {
     MatBadgeModule,
     MatMenuModule,
     MatDividerModule,
+    TranslateModule,
+    LanguageSwitcherComponent,
   ],
   template: `
     <mat-sidenav-container class="app-container">
       <mat-sidenav mode="side" opened class="app-sidenav">
         <div class="sidenav-header">
-          <h3>Task Manager</h3>
+          <h3>{{ 'nav.taskManager' | translate }}</h3>
         </div>
         <mat-nav-list>
           <a mat-list-item *ngFor="let item of filteredNavItems" [routerLink]="item.route" routerLinkActive="active">
             <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
+            <span matListItemTitle>{{ item.labelKey | translate }}</span>
           </a>
         </mat-nav-list>
       </mat-sidenav>
@@ -52,6 +56,7 @@ interface NavItem {
       <mat-sidenav-content>
         <mat-toolbar color="primary">
           <span class="spacer"></span>
+          <app-language-switcher></app-language-switcher>
           <button mat-icon-button [matMenuTriggerFor]="notifMenu" (click)="loadNotifications()">
             <mat-icon [matBadge]="unreadCount > 0 ? unreadCount : null" matBadgeColor="warn">
               notifications
@@ -59,14 +64,14 @@ interface NavItem {
           </button>
           <mat-menu #notifMenu="matMenu" class="notif-menu">
             <div class="notif-header" style="padding: 8px 16px; display: flex; justify-content: space-between; align-items: center;">
-              <strong>Notifications</strong>
+              <strong>{{ 'nav.notifications' | translate }}</strong>
               <button mat-button *ngIf="unreadCount > 0" (click)="markAllRead($event)" style="font-size: 12px;">
-                Mark all read
+                {{ 'nav.markAllRead' | translate }}
               </button>
             </div>
             <mat-divider></mat-divider>
             <div *ngIf="notifications.length === 0" style="padding: 16px; color: #888; text-align: center;">
-              No notifications
+              {{ 'nav.noNotifications' | translate }}
             </div>
             <button mat-menu-item *ngFor="let notif of notifications"
                     (click)="onNotificationClick(notif)"
@@ -86,7 +91,7 @@ interface NavItem {
             </div>
             <button mat-menu-item (click)="logout()">
               <mat-icon>logout</mat-icon>
-              <span>Logout</span>
+              <span>{{ 'nav.logout' | translate }}</span>
             </button>
           </mat-menu>
         </mat-toolbar>
@@ -129,16 +134,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   private navItems: NavItem[] = [
-    { label: 'Organizations', icon: 'corporate_fare', route: '/platform/organizations', roles: ['superadmin'] },
-    { label: 'Tasks', icon: 'assignment', route: '/tasks', roles: ['manager', 'engineer'] },
-    { label: 'Archive', icon: 'archive', route: '/tasks/archive', roles: ['manager', 'engineer'] },
-    { label: 'Kanban', icon: 'view_kanban', route: '/kanban', roles: ['manager', 'engineer'] },
-    { label: 'Clients', icon: 'business', route: '/clients', roles: ['manager'] },
-    { label: 'Calendar', icon: 'calendar_today', route: '/calendar', roles: ['manager'] },
-    { label: 'Reports', icon: 'assessment', route: '/reports', roles: ['manager', 'engineer'] },
-    { label: 'Users', icon: 'people', route: '/admin/users', roles: ['manager'] },
-    { label: 'Tags', icon: 'label', route: '/admin/tags', roles: ['manager'] },
-    { label: 'My Tickets', icon: 'confirmation_number', route: '/portal', roles: ['client'] },
+    { labelKey: 'nav.organizations', icon: 'corporate_fare', route: '/platform/organizations', roles: ['superadmin'] },
+    { labelKey: 'nav.tasks', icon: 'assignment', route: '/tasks', roles: ['manager', 'engineer'] },
+    { labelKey: 'nav.archive', icon: 'archive', route: '/tasks/archive', roles: ['manager', 'engineer'] },
+    { labelKey: 'nav.kanban', icon: 'view_kanban', route: '/kanban', roles: ['manager', 'engineer'] },
+    { labelKey: 'nav.clients', icon: 'business', route: '/clients', roles: ['manager'] },
+    { labelKey: 'nav.calendar', icon: 'calendar_today', route: '/calendar', roles: ['manager'] },
+    { labelKey: 'nav.reports', icon: 'assessment', route: '/reports', roles: ['manager', 'engineer'] },
+    { labelKey: 'nav.users', icon: 'people', route: '/admin/users', roles: ['manager'] },
+    { labelKey: 'nav.tags', icon: 'label', route: '/admin/tags', roles: ['manager'] },
+    { labelKey: 'nav.myTickets', icon: 'confirmation_number', route: '/portal', roles: ['client'] },
   ];
 
   constructor(

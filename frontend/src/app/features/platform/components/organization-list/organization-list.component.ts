@@ -8,6 +8,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Subject, takeUntil } from 'rxjs';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Organization, OrganizationService } from '../../../../core/services/organization.service';
 import { OrganizationFormComponent } from '../organization-form/organization-form.component';
 
@@ -22,47 +23,48 @@ import { OrganizationFormComponent } from '../organization-form/organization-for
     MatChipsModule,
     MatDialogModule,
     MatSnackBarModule,
+    TranslateModule,
   ],
   template: `
     <div class="header">
-      <h2>Organizations</h2>
+      <h2>{{ 'platform.organizations' | translate }}</h2>
       <button mat-raised-button color="primary" (click)="openCreateDialog()">
-        <mat-icon>add</mat-icon> New Organization
+        <mat-icon>add</mat-icon> {{ 'platform.newOrganization' | translate }}
       </button>
     </div>
 
     <table mat-table [dataSource]="organizations" class="full-width">
       <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'common.name' | translate }}</th>
         <td mat-cell *matCellDef="let org">{{ org.name }}</td>
       </ng-container>
 
       <ng-container matColumnDef="slug">
-        <th mat-header-cell *matHeaderCellDef>Slug</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'common.slug' | translate }}</th>
         <td mat-cell *matCellDef="let org">{{ org.slug }}</td>
       </ng-container>
 
       <ng-container matColumnDef="is_active">
-        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'common.status' | translate }}</th>
         <td mat-cell *matCellDef="let org">
           <mat-chip [highlighted]="org.is_active" [color]="org.is_active ? 'primary' : 'warn'">
-            {{ org.is_active ? 'Active' : 'Inactive' }}
+            {{ org.is_active ? ('common.active' | translate) : ('common.inactive' | translate) }}
           </mat-chip>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="user_count">
-        <th mat-header-cell *matHeaderCellDef>Users</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'platform.users' | translate }}</th>
         <td mat-cell *matCellDef="let org">{{ org.user_count }}</td>
       </ng-container>
 
       <ng-container matColumnDef="task_count">
-        <th mat-header-cell *matHeaderCellDef>Tasks</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'platform.tasks' | translate }}</th>
         <td mat-cell *matCellDef="let org">{{ org.task_count }}</td>
       </ng-container>
 
       <ng-container matColumnDef="created_at">
-        <th mat-header-cell *matHeaderCellDef>Created</th>
+        <th mat-header-cell *matHeaderCellDef>{{ 'platform.joined' | translate }}</th>
         <td mat-cell *matCellDef="let org">{{ org.created_at | date:'mediumDate' }}</td>
       </ng-container>
 
@@ -89,6 +91,7 @@ export class OrganizationListComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
+    private translate: TranslateService,
   ) {}
 
   ngOnInit(): void {
@@ -117,7 +120,7 @@ export class OrganizationListComponent implements OnInit, OnDestroy {
     });
     dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
       if (result) {
-        this.snackBar.open('Organization created', 'OK', { duration: 3000 });
+        this.snackBar.open(this.translate.instant('platform.organizationCreated'), this.translate.instant('common.ok'), { duration: 3000 });
         this.loadOrganizations();
       }
     });

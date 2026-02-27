@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
@@ -23,10 +22,10 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        SUPERADMIN = "superadmin", _("Superadmin")
-        MANAGER = "manager", _("Manager")
-        ENGINEER = "engineer", _("Engineer")
-        CLIENT = "client", _("Client")
+        SUPERADMIN = "superadmin", "Superadmin"
+        MANAGER = "manager", "Manager"
+        ENGINEER = "engineer", "Engineer"
+        CLIENT = "client", "Client"
 
     username = None
     email = models.EmailField(max_length=254, unique=True)
@@ -65,9 +64,9 @@ class User(AbstractUser):
     def clean(self):
         super().clean()
         if self.role == self.Role.SUPERADMIN and self.organization_id is not None:
-            raise ValidationError(_("Superadmin users must not have an organization."))
+            raise ValidationError("Superadmin users must not have an organization.")
         if self.role and self.role != self.Role.SUPERADMIN and not self.organization_id:
-            raise ValidationError(_("Non-superadmin users must have an organization."))
+            raise ValidationError("Non-superadmin users must have an organization.")
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"

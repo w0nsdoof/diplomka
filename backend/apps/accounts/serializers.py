@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -52,19 +51,19 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     def validate_role(self, value):
         if value not in self.ALLOWED_ROLES:
-            raise serializers.ValidationError(_("Role must be one of: %(roles)s.") % {"roles": ", ".join(sorted(self.ALLOWED_ROLES))})
+            raise serializers.ValidationError(f"Role must be one of: {', '.join(sorted(self.ALLOWED_ROLES))}.")
         return value
 
     def validate(self, attrs):
         client_id = attrs.pop("client_id", None)
         if attrs.get("role") == "client" and not client_id:
-            raise serializers.ValidationError({"client_id": _("Required for client role.")})
+            raise serializers.ValidationError({"client_id": "Required for client role."})
         if client_id:
             from apps.clients.models import Client
             try:
                 attrs["client"] = Client.objects.get(pk=client_id)
             except Client.DoesNotExist:
-                raise serializers.ValidationError({"client_id": _("Client not found.")})
+                raise serializers.ValidationError({"client_id": "Client not found."})
         return attrs
 
     def create(self, validated_data):
@@ -87,7 +86,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     def validate_role(self, value):
         if value not in self.ALLOWED_ROLES:
-            raise serializers.ValidationError(_("Role must be one of: %(roles)s.") % {"roles": ", ".join(sorted(self.ALLOWED_ROLES))})
+            raise serializers.ValidationError(f"Role must be one of: {', '.join(sorted(self.ALLOWED_ROLES))}.")
         return value
 
     def validate(self, attrs):
@@ -97,7 +96,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             try:
                 attrs["client"] = Client.objects.get(pk=client_id)
             except Client.DoesNotExist:
-                raise serializers.ValidationError({"client_id": _("Client not found.")})
+                raise serializers.ValidationError({"client_id": "Client not found."})
         return attrs
 
     def update(self, instance, validated_data):

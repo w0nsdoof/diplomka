@@ -1,4 +1,3 @@
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.clients.models import Client
@@ -47,5 +46,5 @@ class ClientCreateUpdateSerializer(serializers.ModelSerializer):
             if self.instance:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
-                raise serializers.ValidationError(_("A client with this name already exists in your organization."))
+                raise serializers.ValidationError("A client with this name already exists in your organization.")
         return value

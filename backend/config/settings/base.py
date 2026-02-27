@@ -49,7 +49,6 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -207,17 +206,9 @@ LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", 0.3))
 
 # Internationalization
 
-LANGUAGE_CODE = "ru"
+LANGUAGE_CODE = "en-us"
 
-LANGUAGES = [
-    ("ru", "Russian"),
-    ("en", "English"),
-]
-
-USE_I18N = True
-USE_L10N = True
-
-LOCALE_PATHS = [BASE_DIR / "locale"]
+USE_I18N = False
 
 TIME_ZONE = "UTC"
 USE_TZ = True

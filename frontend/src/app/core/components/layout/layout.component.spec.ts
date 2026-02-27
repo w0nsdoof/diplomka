@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
 import { BehaviorSubject, of } from 'rxjs';
 import { LayoutComponent } from './layout.component';
 import { AuthService, UserInfo } from '../../services/auth.service';
@@ -38,6 +39,7 @@ describe('LayoutComponent', () => {
       providers: [
         provideNoopAnimations(),
         provideRouter([]),
+        provideTranslateService(),
         { provide: AuthService, useValue: authService },
         { provide: NotificationService, useValue: notificationService },
       ],
@@ -56,29 +58,29 @@ describe('LayoutComponent', () => {
     it('should show Tasks, Kanban, Clients, Calendar, Reports, Users for manager', () => {
       setupWithRole('manager');
 
-      const labels = component.filteredNavItems.map((i) => i.label);
-      expect(labels).toContain('Tasks');
-      expect(labels).toContain('Archive');
-      expect(labels).toContain('Kanban');
-      expect(labels).toContain('Clients');
-      expect(labels).toContain('Calendar');
-      expect(labels).toContain('Reports');
-      expect(labels).toContain('Users');
-      expect(labels).not.toContain('My Tickets');
+      const keys = component.filteredNavItems.map((i) => i.labelKey);
+      expect(keys).toContain('nav.tasks');
+      expect(keys).toContain('nav.archive');
+      expect(keys).toContain('nav.kanban');
+      expect(keys).toContain('nav.clients');
+      expect(keys).toContain('nav.calendar');
+      expect(keys).toContain('nav.reports');
+      expect(keys).toContain('nav.users');
+      expect(keys).not.toContain('nav.myTickets');
     });
 
     it('should show Tasks, Kanban, Reports for engineer', () => {
       setupWithRole('engineer');
 
-      const labels = component.filteredNavItems.map((i) => i.label);
-      expect(labels).toEqual(['Tasks', 'Archive', 'Kanban', 'Reports']);
+      const keys = component.filteredNavItems.map((i) => i.labelKey);
+      expect(keys).toEqual(['nav.tasks', 'nav.archive', 'nav.kanban', 'nav.reports']);
     });
 
     it('should show only My Tickets for client', () => {
       setupWithRole('client');
 
-      const labels = component.filteredNavItems.map((i) => i.label);
-      expect(labels).toEqual(['My Tickets']);
+      const keys = component.filteredNavItems.map((i) => i.labelKey);
+      expect(keys).toEqual(['nav.myTickets']);
     });
 
     it('should show no nav items when user is null', () => {

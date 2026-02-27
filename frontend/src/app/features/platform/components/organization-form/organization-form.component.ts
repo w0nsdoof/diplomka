@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { Subject, takeUntil } from 'rxjs';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { OrganizationService } from '../../../../core/services/organization.service';
 
 @Component({
@@ -18,22 +19,23 @@ import { OrganizationService } from '../../../../core/services/organization.serv
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    TranslateModule,
   ],
   template: `
-    <h2 mat-dialog-title>Create Organization</h2>
+    <h2 mat-dialog-title>{{ 'platform.createOrganization' | translate }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form">
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Organization Name</mat-label>
+          <mat-label>{{ 'platform.organizationName' | translate }}</mat-label>
           <input matInput formControlName="name" />
-          <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+          <mat-error *ngIf="form.get('name')?.hasError('required')">{{ 'platform.nameRequired' | translate }}</mat-error>
         </mat-form-field>
         <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Cancel</button>
-      <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="loading">Create</button>
+      <button mat-button mat-dialog-close>{{ 'common.cancel' | translate }}</button>
+      <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="loading">{{ 'common.create' | translate }}</button>
     </mat-dialog-actions>
   `,
   styles: [`
@@ -53,6 +55,7 @@ export class OrganizationFormComponent implements OnDestroy {
     private orgService: OrganizationService,
     private dialogRef: MatDialogRef<OrganizationFormComponent>,
     private cdr: ChangeDetectorRef,
+    private translate: TranslateService,
   ) {
     this.form = this.fb.group({
       name: ['', Validators.required],
@@ -70,7 +73,7 @@ export class OrganizationFormComponent implements OnDestroy {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.name?.[0] || err.error?.detail || 'Failed to create organization.';
+        this.errorMessage = err.error?.name?.[0] || err.error?.detail || this.translate.instant('platform.failedCreateOrganization');
         this.cdr.markForCheck();
       },
     });

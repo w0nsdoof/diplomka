@@ -7,6 +7,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { TranslateModule } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 import { ClientService, Client } from '../../../../core/services/client.service';
 import { TagService, Tag } from '../../../../core/services/tag.service';
@@ -27,63 +28,63 @@ export interface FilterState {
   imports: [
     CommonModule, FormsModule, MatSelectModule, MatFormFieldModule,
     MatDatepickerModule, MatNativeDateModule, MatInputModule,
-    MatButtonModule,
+    MatButtonModule, TranslateModule,
   ],
   template: `
     <div class="filter-panel">
       <mat-form-field appearance="outline" *ngIf="showStatus">
-        <mat-label>Status</mat-label>
+        <mat-label>{{ 'filters.status' | translate }}</mat-label>
         <mat-select [(ngModel)]="filters.status" (ngModelChange)="emitFilters()">
-          <mat-option [value]="undefined">All</mat-option>
-          <mat-option value="created">Created</mat-option>
-          <mat-option value="in_progress">In Progress</mat-option>
-          <mat-option value="waiting">Waiting</mat-option>
-          <mat-option value="done">Done</mat-option>
-          <mat-option value="archived">Archived</mat-option>
+          <mat-option [value]="undefined">{{ 'common.all' | translate }}</mat-option>
+          <mat-option value="created">{{ 'statuses.created' | translate }}</mat-option>
+          <mat-option value="in_progress">{{ 'statuses.in_progress' | translate }}</mat-option>
+          <mat-option value="waiting">{{ 'statuses.waiting' | translate }}</mat-option>
+          <mat-option value="done">{{ 'statuses.done' | translate }}</mat-option>
+          <mat-option value="archived">{{ 'statuses.archived' | translate }}</mat-option>
         </mat-select>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Priority</mat-label>
+        <mat-label>{{ 'filters.priority' | translate }}</mat-label>
         <mat-select [(ngModel)]="filters.priority" (ngModelChange)="emitFilters()">
-          <mat-option [value]="undefined">All</mat-option>
-          <mat-option value="low">Low</mat-option>
-          <mat-option value="medium">Medium</mat-option>
-          <mat-option value="high">High</mat-option>
-          <mat-option value="critical">Critical</mat-option>
+          <mat-option [value]="undefined">{{ 'common.all' | translate }}</mat-option>
+          <mat-option value="low">{{ 'priorities.low' | translate }}</mat-option>
+          <mat-option value="medium">{{ 'priorities.medium' | translate }}</mat-option>
+          <mat-option value="high">{{ 'priorities.high' | translate }}</mat-option>
+          <mat-option value="critical">{{ 'priorities.critical' | translate }}</mat-option>
         </mat-select>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Deadline from</mat-label>
+        <mat-label>{{ 'filters.deadlineFrom' | translate }}</mat-label>
         <input matInput [matDatepicker]="fromPicker" [(ngModel)]="deadlineFrom" (dateChange)="onDeadlineChange()" />
         <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
         <mat-datepicker #fromPicker></mat-datepicker>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Deadline to</mat-label>
+        <mat-label>{{ 'filters.deadlineTo' | translate }}</mat-label>
         <input matInput [matDatepicker]="toPicker" [(ngModel)]="deadlineTo" (dateChange)="onDeadlineChange()" />
         <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
         <mat-datepicker #toPicker></mat-datepicker>
       </mat-form-field>
 
       <mat-form-field appearance="outline" *ngIf="showClient">
-        <mat-label>Client</mat-label>
+        <mat-label>{{ 'filters.client' | translate }}</mat-label>
         <mat-select [(ngModel)]="filters.client" (ngModelChange)="emitFilters()">
-          <mat-option [value]="undefined">All</mat-option>
+          <mat-option [value]="undefined">{{ 'common.all' | translate }}</mat-option>
           <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
         </mat-select>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <mat-label>Tags</mat-label>
+        <mat-label>{{ 'filters.tags' | translate }}</mat-label>
         <mat-select [(ngModel)]="selectedTagSlugs" (ngModelChange)="onTagsChange()" multiple>
           <mat-option *ngFor="let t of tags" [value]="t.slug">{{ t.name }}</mat-option>
         </mat-select>
       </mat-form-field>
 
-      <button mat-button (click)="clearFilters()">Clear Filters</button>
+      <button mat-button (click)="clearFilters()">{{ 'filters.clearFilters' | translate }}</button>
     </div>
   `,
   styles: [`

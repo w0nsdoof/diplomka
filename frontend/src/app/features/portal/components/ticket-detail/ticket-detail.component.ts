@@ -7,24 +7,25 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-ticket-detail',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatChipsModule, MatListModule, MatIconModule],
+  imports: [CommonModule, MatCardModule, MatChipsModule, MatListModule, MatIconModule, TranslateModule],
   template: `
     <div *ngIf="ticket">
       <h2>{{ ticket.title }}</h2>
       <div class="meta">
-        <mat-chip>{{ ticket.status }}</mat-chip>
-        <mat-chip>{{ ticket.priority }}</mat-chip>
-        <span>Deadline: {{ ticket.deadline | date:'mediumDate' }}</span>
+        <mat-chip>{{ 'statuses.' + ticket.status | translate }}</mat-chip>
+        <mat-chip>{{ 'priorities.' + ticket.priority | translate }}</mat-chip>
+        <span>{{ 'tasks.deadlineLabel' | translate }} {{ ticket.deadline | date:'mediumDate' }}</span>
       </div>
       <mat-card>
         <mat-card-content><p>{{ ticket.description }}</p></mat-card-content>
       </mat-card>
-      <h3>Comments</h3>
+      <h3>{{ 'portal.comments' | translate }}</h3>
       <mat-list>
         <mat-list-item *ngFor="let c of ticket.comments">
           <div>
@@ -34,7 +35,7 @@ import { environment } from '../../../../../environments/environment';
           <p>{{ c.content }}</p>
         </mat-list-item>
       </mat-list>
-      <h3>Attachments</h3>
+      <h3>{{ 'portal.attachments' | translate }}</h3>
       <mat-list>
         <mat-list-item *ngFor="let a of ticket.attachments">
           <mat-icon matListItemIcon>attach_file</mat-icon>

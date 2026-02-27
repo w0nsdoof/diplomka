@@ -5,33 +5,34 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 import { ClientService, Client } from '../../../../core/services/client.service';
 
 @Component({
   selector: 'app-client-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatTableModule],
+  imports: [CommonModule, RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatTableModule, TranslateModule],
   template: `
     <div *ngIf="client">
       <div class="header">
         <h2>{{ client.name }}</h2>
-        <a mat-button [routerLink]="['/clients', client.id, 'edit']"><mat-icon>edit</mat-icon> Edit</a>
+        <a mat-button [routerLink]="['/clients', client.id, 'edit']"><mat-icon>edit</mat-icon> {{ 'common.edit' | translate }}</a>
       </div>
       <mat-card>
         <mat-card-content>
-          <p><strong>Type:</strong> {{ client.client_type }}</p>
-          <p><strong>Email:</strong> {{ client.email || '-' }}</p>
-          <p><strong>Phone:</strong> {{ client.phone || '-' }}</p>
-          <p><strong>Contact Person:</strong> {{ client.contact_person || '-' }}</p>
+          <p><strong>{{ 'clients.type' | translate }}:</strong> {{ client.client_type }}</p>
+          <p><strong>{{ 'common.email' | translate }}:</strong> {{ client.email || '-' }}</p>
+          <p><strong>{{ 'common.phone' | translate }}:</strong> {{ client.phone || '-' }}</p>
+          <p><strong>{{ 'clients.contactPerson' | translate }}:</strong> {{ client.contact_person || '-' }}</p>
         </mat-card-content>
       </mat-card>
-      <h3 *ngIf="client.task_summary">Task Summary</h3>
+      <h3 *ngIf="client.task_summary">{{ 'clients.taskSummary' | translate }}</h3>
       <div *ngIf="client.task_summary" class="summary-grid">
         <mat-card *ngFor="let item of summaryItems">
           <mat-card-content>
             <div class="stat-value">{{ item.value }}</div>
-            <div class="stat-label">{{ item.label }}</div>
+            <div class="stat-label">{{ item.labelKey | translate }}</div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -47,7 +48,7 @@ import { ClientService, Client } from '../../../../core/services/client.service'
 })
 export class ClientDetailComponent implements OnInit, OnDestroy {
   client: Client | null = null;
-  summaryItems: { label: string; value: number }[] = [];
+  summaryItems: { labelKey: string; value: number }[] = [];
   private destroy$ = new Subject<void>();
 
   constructor(private route: ActivatedRoute, private clientService: ClientService, private cdr: ChangeDetectorRef) {}
@@ -58,12 +59,12 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
       this.client = client;
       if (client.task_summary) {
         this.summaryItems = [
-          { label: 'Total', value: client.task_summary.total },
-          { label: 'Created', value: client.task_summary.created },
-          { label: 'In Progress', value: client.task_summary.in_progress },
-          { label: 'Waiting', value: client.task_summary.waiting },
-          { label: 'Done', value: client.task_summary.done },
-          { label: 'Archived', value: client.task_summary.archived },
+          { labelKey: 'clients.total', value: client.task_summary.total },
+          { labelKey: 'statuses.created', value: client.task_summary.created },
+          { labelKey: 'statuses.in_progress', value: client.task_summary.in_progress },
+          { labelKey: 'statuses.waiting', value: client.task_summary.waiting },
+          { labelKey: 'statuses.done', value: client.task_summary.done },
+          { labelKey: 'statuses.archived', value: client.task_summary.archived },
         ];
       }
       this.cdr.markForCheck();

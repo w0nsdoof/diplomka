@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Count
-from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -91,7 +90,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
         if not organization.is_active:
             return Response(
-                {"detail": _("Cannot create manager for inactive organization.")},
+                {"detail": "Cannot create manager for inactive organization."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

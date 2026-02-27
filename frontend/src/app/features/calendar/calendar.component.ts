@@ -5,15 +5,16 @@ import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskListItem } from '../../core/services/task.service';
 
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatCardModule, MatListModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, RouterModule, MatCardModule, MatListModule, MatButtonModule, MatIconModule, TranslateModule],
   template: `
-    <h2>Calendar View</h2>
+    <h2>{{ 'calendar.title' | translate }}</h2>
     <div class="calendar-controls">
       <button mat-icon-button (click)="prevMonth()"><mat-icon>chevron_left</mat-icon></button>
       <h3>{{ currentMonth | date:'MMMM yyyy' }}</h3>

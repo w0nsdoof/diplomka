@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../services/auth.service';
@@ -19,6 +20,7 @@ describe('LoginComponent', () => {
       imports: [LoginComponent],
       providers: [
         provideNoopAnimations(),
+        provideTranslateService(),
         { provide: AuthService, useValue: authService },
         { provide: Router, useValue: router },
       ],
@@ -131,7 +133,8 @@ describe('LoginComponent', () => {
       component.loginForm.patchValue({ email: 'bad@test.com', password: 'wrong' });
       component.onSubmit();
 
-      expect(component.errorMessage).toBe('Login failed. Please try again.');
+      // With translate, the key 'auth.loginFailed' is returned as-is since no translations are loaded
+      expect(component.errorMessage).toBe('auth.loginFailed');
     });
   });
 
