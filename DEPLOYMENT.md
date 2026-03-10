@@ -110,13 +110,13 @@ EOF
 
 ### Access After Deployment
 
-Replace `<server-ip>` with your VPS IP address:
-
 | Service | URL |
 |---------|-----|
-| Frontend | http://\<server-ip\>:4200 |
-| Backend API | http://\<server-ip\>:8000/api/ |
-| Swagger UI | http://\<server-ip\>:8000/api/schema/swagger/ |
+| Frontend | https://taskmanager.w0nsdoof.com/ |
+| Backend API | https://taskmanager.w0nsdoof.com/api/ |
+| Swagger UI | https://taskmanager.w0nsdoof.com/api/schema/swagger/ |
+| ReDoc | https://taskmanager.w0nsdoof.com/api/schema/redoc/ |
+| WebSocket | wss://taskmanager.w0nsdoof.com/ws/ |
 
 ### Podman Registry Configuration
 
@@ -323,34 +323,29 @@ The superuser is created automatically on startup from `DJANGO_SUPERUSER_EMAIL` 
 podman-compose exec backend python manage.py compilemessages
 ```
 
-## Reverse Proxy Setup (Recommended)
+## Reverse Proxy (Caddy)
 
-In production, place an external reverse proxy (Nginx, Caddy, Traefik) in front of the
-frontend container for TLS termination.
+Caddy runs as a Docker service (see `podman-compose.yml`) and handles TLS termination
+with auto-provisioned Let's Encrypt certificates. Configuration is in `Caddyfile`.
 
-### Example: Nginx Site Config
+Traffic flow:
+```
+Browser → Cloudflare (CDN/DDoS) → Caddy (:443, auto-TLS) → frontend nginx (:80)
+                                                              ├── /api/*   → backend:8000
+                                                              ├── /ws/*    → backend:8000
+                                                              ├── /admin/* → backend:8000
+                                                              └── /*       → Angular SPA
+```
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com;
+Required `.env` variables for HTTPS:
+```
+DJANGO_ALLOWED_HOSTS=taskmanager.w0nsdoof.com,localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=https://taskmanager.w0nsdoof.com
+CSRF_TRUSTED_ORIGINS=https://taskmanager.w0nsdoof.com
+SECURE_SSL_REDIRECT=1
+```
 
-    ssl_certificate /etc/ssl/certs/yourdomain.crt;
-    ssl_certificate_key /etc/ssl/private/yourdomain.key;
-
-    client_max_body_size 25M;
-
-    location / {
-        proxy_pass http://127.0.0.1:4200;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # WebSocket connections are proxied through the frontend Nginx
-    # container to the backend automatically via /ws/ location block
-}
+Cloudflare SSL/TLS mode must be set to **Full (Strict)**.
 
 server {
     listen 80;
