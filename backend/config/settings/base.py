@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "apps.reports",
     "apps.audit",
     "apps.ai_summaries",
+    "apps.telegram",
 ]
 
 MIDDLEWARE = [
@@ -188,6 +189,7 @@ SPECTACULAR_SETTINGS = {
         {"name": "Reports", "description": "Report data, PDF and Excel exports"},
         {"name": "Summaries", "description": "AI-generated report summaries"},
         {"name": "Platform", "description": "Superadmin organization management"},
+        {"name": "Telegram", "description": "Telegram bot linking and notification preferences"},
     ],
     "ENUM_NAME_OVERRIDES": {
         "TaskStatusEnum": "apps.tasks.models.Task.Status",
@@ -239,9 +241,18 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.tasks.tasks.auto_archive_done_tasks",
         "schedule": crontab(minute=0, hour="*/1"),
     },
+    "cleanup-expired-telegram-codes": {
+        "task": "apps.telegram.tasks.cleanup_expired_verification_codes",
+        "schedule": crontab(minute=0, hour="*/1"),
+    },
 }
 
 # LLM (AI Summaries)
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "")
+TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
 
 LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-4o-mini")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")

@@ -62,7 +62,8 @@
     "logout": "Logout",
     "notifications": "Notifications",
     "markAllRead": "Mark all read",
-    "noNotifications": "No notifications"
+    "noNotifications": "No notifications",
+    "settings": "Settings"
   },
   "tasks": {
     "title": "Tasks",
@@ -291,6 +292,32 @@
     "client": "Client",
     "tags": "Tags",
     "clearFilters": "Clear Filters"
+  },
+  "settings": {
+    "title": "Settings",
+    "telegram": "Telegram",
+    "telegramIntegration": "Telegram Integration",
+    "linkTelegram": "Link Telegram",
+    "unlinkTelegram": "Unlink",
+    "linked": "Connected",
+    "notLinked": "Not connected",
+    "username": "Username",
+    "linkedAt": "Linked at",
+    "notifications": "Telegram Notifications",
+    "notificationsEnabled": "Notifications enabled",
+    "notificationsDisabled": "Notifications disabled",
+    "linkInstructions": "Click the button below to link your Telegram account. You will be redirected to Telegram to confirm.",
+    "openInTelegram": "Open in Telegram",
+    "codeExpires": "Code expires at",
+    "linkSuccess": "Telegram account linked successfully",
+    "unlinkSuccess": "Telegram account unlinked",
+    "unlinkConfirm": "Are you sure you want to unlink your Telegram account?",
+    "alreadyLinked": "Telegram account is already linked",
+    "botBlocked": "Bot was blocked. Please unlink and re-link to restore notifications.",
+    "linkFirst": "Link your Telegram account first to enable notifications",
+    "notificationsToggled": "Telegram notifications updated",
+    "codeFallbackHint": "If the link didn't open automatically, copy this code and paste it to the bot:",
+    "codeCopied": "Code copied to clipboard"
   },
   "language": {
     "en": "English",

@@ -56,6 +56,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/tag-management.component').then(m => m.TagManagementComponent),
       },
       {
+        path: 'settings',
+        canActivate: [managerOrEngineerGuard],
+        loadChildren: () => import('./features/settings/settings.routes').then(m => m.SETTINGS_ROUTES),
+      },
+      {
         path: 'portal',
         canActivate: [clientGuard],
         loadChildren: () => import('./features/portal/portal.routes').then(m => m.PORTAL_ROUTES),

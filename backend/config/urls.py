@@ -27,6 +27,7 @@ urlpatterns = [
     path("api/reports/", include("apps.reports.urls")),
     path("api/summaries/", include("apps.ai_summaries.urls")),
     path("api/portal/", include("apps.clients.urls_portal")),
+    path("api/telegram/", include("apps.telegram.urls")),
     # OpenAPI schema
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/schema/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

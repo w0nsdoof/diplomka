@@ -53,6 +53,8 @@ Known bugs and issues are tracked in [ISSUES.md](ISSUES.md). When fixing an issu
 ## Active Technologies
 - Python 3.11+ (Django 4.2+ / DRF), Angular 17+ (TypeScript) + Django REST Framework, djangorestframework-simplejwt, LiteLLM, Django Channels, Angular Material, factory-boy (003-multi-tenancy)
 - PostgreSQL 16 (shared database, organization FK discriminator), Redis 7 (Celery broker, cache, channel layer) (003-multi-tenancy)
+- Python 3.11 (Django 4.2+ / DRF), TypeScript (Angular 17+) + Django REST Framework, httpx (Telegram Bot API), Celery + Redis, Angular Material (006-telegram-notifications)
+- PostgreSQL 16 (new models: TelegramLink, TelegramVerificationCode) (006-telegram-notifications)
 
 ## Recent Changes
 - 003-multi-tenancy: Added Python 3.11+ (Django 4.2+ / DRF), Angular 17+ (TypeScript) + Django REST Framework, djangorestframework-simplejwt, LiteLLM, Django Channels, Angular Material, factory-boy

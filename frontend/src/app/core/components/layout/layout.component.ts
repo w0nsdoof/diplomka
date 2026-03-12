@@ -104,6 +104,11 @@ interface NavItem {
                 <br /><small style="color: #6b7280;">{{ currentUser.role }}</small>
               </div>
               <mat-divider></mat-divider>
+              <button mat-menu-item routerLink="/settings"
+                      *ngIf="currentUser && (currentUser.role === 'manager' || currentUser.role === 'engineer')">
+                <mat-icon>settings</mat-icon>
+                <span>{{ 'nav.settings' | translate }}</span>
+              </button>
               <button mat-menu-item (click)="logout()">
                 <mat-icon>logout</mat-icon>
                 <span>{{ 'nav.logout' | translate }}</span>
@@ -341,6 +346,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     '/admin/tags': 'nav.tags',
     '/portal': 'nav.myTickets',
     '/platform/organizations': 'nav.organizations',
+    '/settings': 'nav.settings',
   };
 
   constructor(

@@ -1,0 +1,194 @@
+openapi: 3.0.3
+info:
+  title: Telegram Notifications API
+  version: 1.0.0
+  description: API endpoints for Telegram account linking and notification preferences.
+
+paths:
+  /api/telegram/link/:
+    post:
+      operationId: telegram_link_create
+      summary: Generate Telegram linking code
+      description: |
+        Generates a unique verification code and returns a Telegram deep link.
+        Only managers and engineers can link (FR-013).
+        Previous unused codes for this user are invalidated.
+      tags: [Telegram]
+      security:
+        - bearerAuth: []
+      responses:
+        "201":
+          description: Verification code generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    description: Verification code (for display/debugging, not needed by user directly)
+                    example: "aB3dE5fG7hJ9kL1m"
+                  deep_link:
+                    type: string
+                    description: Telegram deep link URL for the user to click
+                    example: "https://t.me/TaskManagerBot?start=aB3dE5fG7hJ9kL1m"
+                  expires_at:
+                    type: string
+                    format: date-time
+                    description: Code expiration timestamp
+                    example: "2026-03-12T10:10:00Z"
+                  bot_username:
+                    type: string
+                    description: Bot username for display
+                    example: "TaskManagerBot"
+                required: [code, deep_link, expires_at, bot_username]
+        "400":
+          description: User already has an active Telegram link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: User role not allowed (client/superadmin)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/telegram/status/:
+    get:
+      operationId: telegram_status
+      summary: Get current Telegram link status
+      description: Returns the user's Telegram link status and notification preference.
+      tags: [Telegram]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Telegram link status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is_linked:
+                    type: boolean
+                    description: Whether user has an active Telegram link
+                  username:
+                    type: string
+                    nullable: true
+                    description: Linked Telegram username (null if not linked)
+                    example: "johndoe"
+                  is_active:
+                    type: boolean
+                    description: Whether the link is active (false if bot was blocked)
+                  telegram_notifications_enabled:
+                    type: boolean
+                    description: Whether Telegram notifications are enabled
+                  linked_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: When the link was established
+                required: [is_linked, telegram_notifications_enabled]
+
+  /api/telegram/unlink/:
+    post:
+      operationId: telegram_unlink
+      summary: Unlink Telegram account
+      description: Removes the Telegram link. Notifications stop immediately (FR-004).
+      tags: [Telegram]
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Telegram account unlinked successfully
+        "400":
+          description: No Telegram link exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/telegram/notifications/:
+    patch:
+      operationId: telegram_notifications_toggle
+      summary: Toggle Telegram notifications
+      description: Enable or disable Telegram notifications without unlinking (FR-005).
+      tags: [Telegram]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: Whether to enable Telegram notifications
+              required: [enabled]
+      responses:
+        "200":
+          description: Notification preference updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  telegram_notifications_enabled:
+                    type: boolean
+                required: [telegram_notifications_enabled]
+        "400":
+          description: No Telegram link exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/telegram/webhook/:
+    post:
+      operationId: telegram_webhook
+      summary: Telegram Bot webhook endpoint
+      description: |
+        Receives updates from Telegram Bot API. Secured via secret_token header.
+        NOT authenticated via JWT — uses Telegram's X-Telegram-Bot-Api-Secret-Token header.
+        Handles /start commands for account linking verification.
+      tags: [Telegram]
+      security: []
+      parameters:
+        - name: X-Telegram-Bot-Api-Secret-Token
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Webhook secret token for verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: Telegram Update object (see Telegram Bot API docs)
+              type: object
+      responses:
+        "200":
+          description: Webhook processed successfully
+        "403":
+          description: Invalid or missing secret token
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+          example: "Telegram account is already linked."
+      required: [detail]

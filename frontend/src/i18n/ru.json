@@ -62,7 +62,8 @@
     "logout": "Выход",
     "notifications": "Уведомления",
     "markAllRead": "Прочитать все",
-    "noNotifications": "Нет уведомлений"
+    "noNotifications": "Нет уведомлений",
+    "settings": "Настройки"
   },
   "tasks": {
     "title": "Задачи",
@@ -291,6 +292,32 @@
     "client": "Клиент",
     "tags": "Теги",
     "clearFilters": "Очистить фильтры"
+  },
+  "settings": {
+    "title": "Настройки",
+    "telegram": "Telegram",
+    "telegramIntegration": "Интеграция с Telegram",
+    "linkTelegram": "Привязать Telegram",
+    "unlinkTelegram": "Отвязать",
+    "linked": "Подключён",
+    "notLinked": "Не подключён",
+    "username": "Имя пользователя",
+    "linkedAt": "Привязан",
+    "notifications": "Уведомления в Telegram",
+    "notificationsEnabled": "Уведомления включены",
+    "notificationsDisabled": "Уведомления отключены",
+    "linkInstructions": "Нажмите кнопку ниже, чтобы привязать аккаунт Telegram. Вы будете перенаправлены в Telegram для подтверждения.",
+    "openInTelegram": "Открыть в Telegram",
+    "codeExpires": "Код действителен до",
+    "linkSuccess": "Аккаунт Telegram успешно привязан",
+    "unlinkSuccess": "Аккаунт Telegram отвязан",
+    "unlinkConfirm": "Вы уверены, что хотите отвязать аккаунт Telegram?",
+    "alreadyLinked": "Аккаунт Telegram уже привязан",
+    "botBlocked": "Бот заблокирован. Отвяжите и привяжите заново для восстановления уведомлений.",
+    "linkFirst": "Сначала привяжите аккаунт Telegram, чтобы включить уведомления",
+    "notificationsToggled": "Уведомления в Telegram обновлены",
+    "codeFallbackHint": "Если ссылка не сработала автоматически, скопируйте этот код и отправьте его боту:",
+    "codeCopied": "Код скопирован"
   },
   "language": {
     "en": "English",
