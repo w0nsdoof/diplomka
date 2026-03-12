@@ -36,7 +36,7 @@ from apps.tasks.models import Task
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
-    ordering = ["created_at"]
+    ordering = ["-created_at"]
     http_method_names = ["get", "post", "head", "options"]
     queryset = Comment.objects.none()
 

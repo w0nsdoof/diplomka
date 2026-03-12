@@ -102,7 +102,7 @@ export class CommentSectionComponent implements OnInit, OnDestroy {
   submitComment(): void {
     if (!this.newComment.trim()) return;
     this.commentService.create(this.taskId, this.newComment, this.isPublic).pipe(takeUntil(this.destroy$)).subscribe((comment) => {
-      this.comments.push(comment);
+      this.comments.unshift(comment);
       this.newComment = '';
       this.cdr.markForCheck();
     });
