@@ -1,14 +1,15 @@
 #!/bin/sh
 set -e
 
-echo "Collecting static files..."
-rm -rf /app/staticfiles
-python manage.py collectstatic --noinput
-
-# Only run migrations and seed users from the main backend process (CMD=daphne),
-# not from celery-worker or celery-beat which share this entrypoint.
+# Only run collectstatic, migrations and seed users from the main backend
+# process (CMD=daphne), not from celery-worker or celery-beat which share
+# this entrypoint.
 case "$1" in
   daphne*)
+    echo "Collecting static files..."
+    rm -rf /app/staticfiles
+    python manage.py collectstatic --noinput
+
     echo "Running migrations..."
     python manage.py migrate --noinput
 
