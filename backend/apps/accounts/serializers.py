@@ -18,6 +18,44 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
 
+class MeSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True, required=False, validators=[validate_password],
+        help_text="New password. Omit to keep current.",
+    )
+    avatar = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id", "email", "first_name", "last_name", "role",
+            "avatar", "job_title", "skills", "bio",
+            "date_joined", "password",
+        ]
+        read_only_fields = ["id", "email", "role", "date_joined"]
+
+    def validate_avatar(self, value):
+        if value and value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Avatar must be under 5 MB.")
+        return value
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        new_avatar = validated_data.get("avatar")
+        # Delete old file when replacing or clearing avatar
+        if "avatar" in validated_data and instance.avatar:
+            instance.avatar.delete(save=False)
+        # Handle explicit null (remove avatar)
+        if new_avatar is None and "avatar" in validated_data:
+            validated_data["avatar"] = ""
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

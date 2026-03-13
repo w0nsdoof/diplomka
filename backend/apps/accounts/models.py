@@ -46,6 +46,10 @@ class User(AbstractUser):
         blank=True,
         related_name="users",
     )
+    avatar = models.ImageField(upload_to="avatars/", blank=True, default="")
+    job_title = models.CharField(max_length=150, blank=True, default="")
+    skills = models.TextField(blank=True, default="")
+    bio = models.TextField(blank=True, default="")
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["first_name", "last_name"]

@@ -3,12 +3,14 @@ import logging
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework import status, viewsets
+from rest_framework import generics, status, viewsets
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsManager
 from apps.accounts.serializers import (
+    MeSerializer,
     UserCreateSerializer,
     UserDetailSerializer,
     UserListSerializer,
@@ -19,6 +21,15 @@ from apps.organizations.mixins import OrganizationQuerySetMixin
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+
+@extend_schema(tags=["Profile"], summary="Get or update your own profile")
+class MeView(generics.RetrieveUpdateAPIView):
+    serializer_class = MeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
 
 
 @extend_schema_view(
