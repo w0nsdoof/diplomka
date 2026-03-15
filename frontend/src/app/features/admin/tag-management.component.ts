@@ -14,14 +14,13 @@ import { TagService, Tag } from '../../core/services/tag.service';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 
 @Component({
-  selector: 'app-tag-management',
-  standalone: true,
-  imports: [
-    CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatCardModule, MatSnackBarModule,
-    SearchBarComponent, TranslateModule,
-  ],
-  template: `
+    selector: 'app-tag-management',
+    imports: [
+        CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
+        MatFormFieldModule, MatInputModule, MatCardModule, MatSnackBarModule,
+        SearchBarComponent, TranslateModule,
+    ],
+    template: `
     <div class="header">
       <h2>{{ 'tagAdmin.title' | translate }}</h2>
       <button mat-raised-button color="primary" (click)="showCreateForm = !showCreateForm">
@@ -84,7 +83,7 @@ import { SearchBarComponent } from '../../shared/components/search-bar/search-ba
 
     <div *ngIf="tags.length === 0" class="empty-state">{{ 'tagAdmin.noTags' | translate }}</div>
   `,
-  styles: [`
+    styles: [`
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .full-width { width: 100%; }
     .create-form { margin-bottom: 24px; }
@@ -94,7 +93,7 @@ import { SearchBarComponent } from '../../shared/components/search-bar/search-ba
     .color-swatch { display: inline-block; width: 16px; height: 16px; border-radius: 3px; vertical-align: middle; margin-right: 8px; border: 1px solid #ccc; }
     .empty-state { text-align: center; padding: 32px; color: #888; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TagManagementComponent implements OnInit, OnDestroy {
   tags: Tag[] = [];

@@ -1,7 +1,9 @@
+from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.clients.models import Client
+from apps.tasks.models import Task
 
 
 class ClientListSerializer(serializers.ModelSerializer):
@@ -17,6 +19,10 @@ class ClientListSerializer(serializers.ModelSerializer):
 
 class ClientDetailSerializer(serializers.ModelSerializer):
     task_summary = serializers.SerializerMethodField()
+    _status_annotations = {
+        s: Count("tasks", filter=Q(tasks__status=s))
+        for s in Task.Status.values
+    }
 
     class Meta:
         model = Client
@@ -27,12 +33,8 @@ class ClientDetailSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.DictField(child=serializers.IntegerField(), help_text="Task count breakdown by status: {total, created, in_progress, waiting, done, archived}."))
     def get_task_summary(self, obj):
-        from apps.tasks.models import Task
-        tasks = obj.tasks.all()
-        total = tasks.count()
-        by_status = {}
-        for s in Task.Status.values:
-            by_status[s] = tasks.filter(status=s).count()
+        total = sum(getattr(obj, f"tasks_{s}", 0) for s in Task.Status.values)
+        by_status = {s: getattr(obj, f"tasks_{s}", 0) for s in Task.Status.values}
         return {"total": total, **by_status}
 
 

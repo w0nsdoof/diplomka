@@ -11,13 +11,12 @@ import { TaskService, TaskListItem, TaskFilters } from '../../../../core/service
 import { SearchBarComponent } from '../../../../shared/components/search-bar/search-bar.component';
 
 @Component({
-  selector: 'app-task-archive',
-  standalone: true,
-  imports: [
-    CommonModule, RouterModule, MatTableModule, MatChipsModule,
-    MatPaginatorModule, MatIconModule, SearchBarComponent, TranslateModule,
-  ],
-  template: `
+    selector: 'app-task-archive',
+    imports: [
+        CommonModule, RouterModule, MatTableModule, MatChipsModule,
+        MatPaginatorModule, MatIconModule, SearchBarComponent, TranslateModule,
+    ],
+    template: `
     <div class="archive-header">
       <h2>{{ 'nav.archive' | translate }}</h2>
     </div>
@@ -83,14 +82,14 @@ import { SearchBarComponent } from '../../../../shared/components/search-bar/sea
       (page)="onPageChange($event)">
     </mat-paginator>
   `,
-  styles: [`
+    styles: [`
     .archive-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .full-width { width: 100%; }
     table { margin-bottom: 16px; }
     a { text-decoration: none; color: #1976d2; }
     .tag-chip { font-size: 11px; min-height: 24px; padding: 2px 8px; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskArchiveComponent implements OnInit, OnDestroy {
   tasks: TaskListItem[] = [];

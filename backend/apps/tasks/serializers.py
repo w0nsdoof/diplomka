@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from rest_framework import serializers
 
 from apps.clients.models import Client
@@ -94,6 +95,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("One or more tags are invalid.")
         return value
 
+    @transaction.atomic
     def create(self, validated_data):
         assignee_ids = validated_data.pop("assignee_ids", [])
         tag_ids = validated_data.pop("tag_ids", [])
@@ -110,10 +112,10 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         if assignee_ids:
             task.assignees.set(assignee_ids)
             from apps.notifications.services import create_notification
-            for uid in assignee_ids:
-                user = User.objects.get(pk=uid)
+            assignees = User.objects.filter(pk__in=assignee_ids)
+            for assignee in assignees:
                 create_notification(
-                    recipient=user,
+                    recipient=assignee,
                     event_type="task_assigned",
                     task=task,
                     message=f"You have been assigned to task '{task.title}'",
@@ -187,6 +189,7 @@ class TaskCreateEngineerSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("One or more tags are invalid.")
         return value
 
+    @transaction.atomic
     def create(self, validated_data):
         tag_ids = validated_data.pop("tag_ids", [])
         user = self.context["request"].user

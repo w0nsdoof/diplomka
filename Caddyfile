@@ -1,3 +1,0 @@
-taskmanager.w0nsdoof.com {
-	reverse_proxy frontend:80
-}

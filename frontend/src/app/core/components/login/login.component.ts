@@ -10,17 +10,16 @@ import { AuthService } from '../../services/auth.service';
 import { LanguageSwitcherComponent } from '../../../shared/components/language-switcher/language-switcher.component';
 
 @Component({
-  selector: 'app-login',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    TranslateModule,
-    LanguageSwitcherComponent,
-  ],
-  template: `
+    selector: 'app-login',
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        TranslateModule,
+        LanguageSwitcherComponent,
+    ],
+    template: `
     <div class="login-container">
       <div class="login-card">
         <div class="lang-switcher">
@@ -68,8 +67,8 @@ import { LanguageSwitcherComponent } from '../../../shared/components/language-s
       </div>
     </div>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .login-container {
         display: flex;
         justify-content: center;
@@ -173,8 +172,8 @@ import { LanguageSwitcherComponent } from '../../../shared/components/language-s
         font-size: 16px;
       }
     `,
-  ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    ],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoginComponent implements OnDestroy {
   loginForm: FormGroup;

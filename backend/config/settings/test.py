@@ -15,6 +15,13 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
 
+# In-memory cache (no Redis needed)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
 # In-memory channel layer (no Redis needed)
 CHANNEL_LAYERS = {
     "default": {
@@ -30,6 +37,10 @@ CELERY_TASK_EAGER_PROPAGATES = True
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Disable throttling in tests (keep auth rate so view-level throttle_classes don't error)
+REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []  # noqa: F405
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {"auth": "10000/minute"}  # noqa: F405
 
 # Suppress logging during tests to keep output clean
 LOGGING = {  # noqa: F405

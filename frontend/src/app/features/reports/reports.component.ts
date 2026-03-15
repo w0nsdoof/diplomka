@@ -21,15 +21,14 @@ import { SummaryService, SummaryListItem } from '../../core/services/summary.ser
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
-  selector: 'app-reports',
-  standalone: true,
-  imports: [
-    CommonModule, FormsModule, RouterModule, MatCardModule, MatFormFieldModule,
-    MatInputModule, MatDatepickerModule, MatNativeDateModule,
-    MatButtonModule, MatIconModule, MatTableModule, MatChipsModule,
-    MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
-  ],
-  template: `
+    selector: 'app-reports',
+    imports: [
+        CommonModule, FormsModule, RouterModule, MatCardModule, MatFormFieldModule,
+        MatInputModule, MatDatepickerModule, MatNativeDateModule,
+        MatButtonModule, MatIconModule, MatTableModule, MatChipsModule,
+        MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
+    ],
+    template: `
     <div class="page-header">
       <h2>{{ 'nav.analytics' | translate }}</h2>
       <a mat-button routerLink="/reports/summaries" class="flat-btn-outline">
@@ -156,7 +155,7 @@ import { AuthService } from '../../core/services/auth.service';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .page-header {
       display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 24px;
@@ -211,7 +210,7 @@ import { AuthService } from '../../core/services/auth.service';
     }
     .report-content { margin-top: 0; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ReportsComponent implements OnInit, OnDestroy {
   isManager = false;

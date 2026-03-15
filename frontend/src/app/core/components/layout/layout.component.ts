@@ -24,23 +24,22 @@ interface NavItem {
 }
 
 @Component({
-  selector: 'app-layout',
-  standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatSidenavModule,
-    MatToolbarModule,
-    MatListModule,
-    MatIconModule,
-    MatButtonModule,
-    MatBadgeModule,
-    MatMenuModule,
-    MatDividerModule,
-    TranslateModule,
-    LanguageSwitcherComponent,
-  ],
-  template: `
+    selector: 'app-layout',
+    imports: [
+        CommonModule,
+        RouterModule,
+        MatSidenavModule,
+        MatToolbarModule,
+        MatListModule,
+        MatIconModule,
+        MatButtonModule,
+        MatBadgeModule,
+        MatMenuModule,
+        MatDividerModule,
+        TranslateModule,
+        LanguageSwitcherComponent,
+    ],
+    template: `
     <div class="layout-wrapper">
       <!-- Sidebar -->
       <aside class="sidebar" [class.collapsed]="sidebarCollapsed">
@@ -126,8 +125,8 @@ interface NavItem {
       </div>
     </div>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .layout-wrapper {
         display: flex;
         height: 100vh;
@@ -318,8 +317,8 @@ interface NavItem {
         overflow-y: auto;
       }
     `,
-  ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    ],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LayoutComponent implements OnInit, OnDestroy {
   currentUser: UserInfo | null = null;

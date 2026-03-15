@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets
 
@@ -10,6 +10,7 @@ from apps.clients.serializers import (
     ClientListSerializer,
 )
 from apps.organizations.mixins import OrganizationQuerySetMixin
+from apps.tasks.models import Task
 
 
 @extend_schema_view(
@@ -46,6 +47,11 @@ class ClientViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
             qs = qs.filter(pk=user.client_id)
         if self.action == "list":
             qs = qs.annotate(tasks_count=Count("tasks"))
+        elif self.action == "retrieve":
+            qs = qs.annotate(**{
+                f"tasks_{s}": Count("tasks", filter=Q(tasks__status=s))
+                for s in Task.Status.values
+            })
         return qs
 
     def get_serializer_class(self):

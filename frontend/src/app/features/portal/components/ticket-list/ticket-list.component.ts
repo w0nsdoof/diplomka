@@ -10,10 +10,9 @@ import { TranslateModule } from '@ngx-translate/core';
 import { environment } from '../../../../../environments/environment';
 
 @Component({
-  selector: 'app-ticket-list',
-  standalone: true,
-  imports: [CommonModule, RouterModule, MatTableModule, MatChipsModule, MatPaginatorModule, TranslateModule],
-  template: `
+    selector: 'app-ticket-list',
+    imports: [CommonModule, RouterModule, MatTableModule, MatChipsModule, MatPaginatorModule, TranslateModule],
+    template: `
     <h2>{{ 'portal.title' | translate }}</h2>
     <table mat-table [dataSource]="tickets" class="full-width">
       <ng-container matColumnDef="title"><th mat-header-cell *matHeaderCellDef>{{ 'tasks.taskTitle' | translate }}</th><td mat-cell *matCellDef="let t"><a [routerLink]="[t.id]">{{ t.title }}</a></td></ng-container>
@@ -25,8 +24,8 @@ import { environment } from '../../../../../environments/environment';
     </table>
     <mat-paginator [length]="total" [pageSize]="20" (page)="onPage($event)"></mat-paginator>
   `,
-  styles: [`.full-width { width: 100%; } a { text-decoration: none; color: #1976d2; }`],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    styles: [`.full-width { width: 100%; } a { text-decoration: none; color: #1976d2; }`],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TicketListComponent implements OnInit, OnDestroy {
   tickets: any[] = [];

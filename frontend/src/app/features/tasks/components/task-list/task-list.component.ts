@@ -17,14 +17,13 @@ import { SearchBarComponent } from '../../../../shared/components/search-bar/sea
 import { FilterPanelComponent, FilterState } from '../filter-panel/filter-panel.component';
 
 @Component({
-  selector: 'app-task-list',
-  standalone: true,
-  imports: [
-    CommonModule, RouterModule, MatTableModule, MatButtonModule,
-    MatIconModule, MatChipsModule, MatPaginatorModule, MatMenuModule, MatSnackBarModule,
-    SearchBarComponent, FilterPanelComponent, TranslateModule,
-  ],
-  template: `
+    selector: 'app-task-list',
+    imports: [
+        CommonModule, RouterModule, MatTableModule, MatButtonModule,
+        MatIconModule, MatChipsModule, MatPaginatorModule, MatMenuModule, MatSnackBarModule,
+        SearchBarComponent, FilterPanelComponent, TranslateModule,
+    ],
+    template: `
     <div class="page-header">
       <h2>{{ 'tasks.title' | translate }}</h2>
       <div class="header-right">
@@ -151,7 +150,7 @@ import { FilterPanelComponent, FilterState } from '../filter-panel/filter-panel.
       (page)="onPageChange($event)">
     </mat-paginator>
   `,
-  styles: [`
+    styles: [`
     .page-header {
       display: flex;
       justify-content: space-between;
@@ -183,7 +182,7 @@ import { FilterPanelComponent, FilterState } from '../filter-panel/filter-panel.
       font-size: 11px; font-weight: 600; flex-shrink: 0;
     }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskListComponent implements OnInit, OnDestroy {
   tasks: TaskListItem[] = [];

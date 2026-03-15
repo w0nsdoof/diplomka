@@ -20,23 +20,22 @@ import {
 } from '../../../../core/services/organization.service';
 
 @Component({
-  selector: 'app-organization-detail',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatChipsModule,
-    MatTableModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSnackBarModule,
-    MatDividerModule,
-    TranslateModule,
-  ],
-  template: `
+    selector: 'app-organization-detail',
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatButtonModule,
+        MatIconModule,
+        MatChipsModule,
+        MatTableModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatSnackBarModule,
+        MatDividerModule,
+        TranslateModule,
+    ],
+    template: `
     <div *ngIf="org">
       <mat-card>
         <mat-card-header>
@@ -140,7 +139,7 @@ import {
       <div *ngIf="managerError" class="error-message">{{ managerError }}</div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; margin: 16px 0; }
     .stat { display: flex; flex-direction: column; }
     .stat-label { font-size: 12px; color: #666; }
@@ -150,7 +149,7 @@ import {
     .manager-form { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; }
     .error-message { color: #f44336; margin-top: 8px; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OrganizationDetailComponent implements OnInit, OnDestroy {
   org: OrganizationDetail | null = null;

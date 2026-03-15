@@ -10,10 +10,9 @@ import { Subject, takeUntil } from 'rxjs';
 import { TaskService, TaskListItem } from '../../core/services/task.service';
 
 @Component({
-  selector: 'app-calendar',
-  standalone: true,
-  imports: [CommonModule, RouterModule, MatCardModule, MatListModule, MatButtonModule, MatIconModule, TranslateModule],
-  template: `
+    selector: 'app-calendar',
+    imports: [CommonModule, RouterModule, MatCardModule, MatListModule, MatButtonModule, MatIconModule, TranslateModule],
+    template: `
     <div class="page-header">
       <h2>{{ 'calendar.title' | translate }}</h2>
     </div>
@@ -38,7 +37,7 @@ import { TaskService, TaskListItem } from '../../core/services/task.service';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .page-header {
       display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 24px;
@@ -91,7 +90,7 @@ import { TaskService, TaskListItem } from '../../core/services/task.service';
     .priority-border-medium { border-left: 3px solid #2196f3; }
     .priority-border-low { border-left: 3px solid #4caf50; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CalendarComponent implements OnInit, OnDestroy {
   currentMonth = new Date();

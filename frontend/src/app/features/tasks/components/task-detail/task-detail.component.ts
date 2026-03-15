@@ -19,15 +19,14 @@ import { STATUS_TRANSLATION_KEYS, VALID_TRANSITIONS } from '../../../../core/con
 import { CommentSectionComponent } from '../comment-section/comment-section.component';
 
 @Component({
-  selector: 'app-task-detail',
-  standalone: true,
-  imports: [
-    CommonModule, RouterModule, MatCardModule, MatChipsModule,
-    MatButtonModule, MatIconModule, MatListModule, MatDividerModule,
-    MatTabsModule, MatProgressBarModule, MatMenuModule, MatSnackBarModule,
-    TranslateModule, CommentSectionComponent,
-  ],
-  template: `
+    selector: 'app-task-detail',
+    imports: [
+        CommonModule, RouterModule, MatCardModule, MatChipsModule,
+        MatButtonModule, MatIconModule, MatListModule, MatDividerModule,
+        MatTabsModule, MatProgressBarModule, MatMenuModule, MatSnackBarModule,
+        TranslateModule, CommentSectionComponent,
+    ],
+    template: `
     <div *ngIf="task" class="task-detail">
       <div class="detail-header">
         <div class="header-left">
@@ -179,7 +178,7 @@ import { CommentSectionComponent } from '../comment-section/comment-section.comp
       </mat-tab-group>
     </div>
   `,
-  styles: [`
+    styles: [`
     .task-detail { max-width: 960px; }
 
     .detail-header {
@@ -259,7 +258,7 @@ import { CommentSectionComponent } from '../comment-section/comment-section.comp
     }
     .delete-btn:hover { background: #fef2f2; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskDetailComponent implements OnInit, OnDestroy {
   task: TaskDetail | null = null;

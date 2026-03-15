@@ -1,0 +1,10 @@
+services:
+  backend:
+    volumes:
+      - ./backend:/app
+  celery-worker:
+    volumes:
+      - ./backend:/app
+  celery-beat:
+    volumes:
+      - ./backend:/app

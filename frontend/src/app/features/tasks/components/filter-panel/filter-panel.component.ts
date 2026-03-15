@@ -24,14 +24,13 @@ export interface FilterState {
 }
 
 @Component({
-  selector: 'app-filter-panel',
-  standalone: true,
-  imports: [
-    CommonModule, FormsModule, MatSelectModule, MatFormFieldModule,
-    MatDatepickerModule, MatNativeDateModule, MatInputModule,
-    MatButtonModule, MatIconModule, TranslateModule,
-  ],
-  template: `
+    selector: 'app-filter-panel',
+    imports: [
+        CommonModule, FormsModule, MatSelectModule, MatFormFieldModule,
+        MatDatepickerModule, MatNativeDateModule, MatInputModule,
+        MatButtonModule, MatIconModule, TranslateModule,
+    ],
+    template: `
     <div class="filter-panel">
       <mat-form-field appearance="outline" class="compact-field" *ngIf="showStatus">
         <mat-label>{{ 'filters.status' | translate }}</mat-label>
@@ -91,7 +90,7 @@ export interface FilterState {
       </button>
     </div>
   `,
-  styles: [`
+    styles: [`
     .filter-panel {
       display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
       margin-bottom: 16px;
@@ -110,7 +109,7 @@ export interface FilterState {
     .clear-btn:hover { background: #f9fafb; color: var(--text-primary, #1a1a1a); }
     .clear-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FilterPanelComponent implements OnInit, OnDestroy {
   @Input() showStatus = true;

@@ -10,18 +10,17 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { OrganizationService } from '../../../../core/services/organization.service';
 
 @Component({
-  selector: 'app-organization-form',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    TranslateModule,
-  ],
-  template: `
+    selector: 'app-organization-form',
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatDialogModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        TranslateModule,
+    ],
+    template: `
     <h2 mat-dialog-title>{{ 'platform.createOrganization' | translate }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form">
@@ -38,11 +37,11 @@ import { OrganizationService } from '../../../../core/services/organization.serv
       <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="loading">{{ 'common.create' | translate }}</button>
     </mat-dialog-actions>
   `,
-  styles: [`
+    styles: [`
     .full-width { width: 100%; }
     .error-message { color: #f44336; margin-bottom: 8px; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OrganizationFormComponent implements OnDestroy {
   form: FormGroup;

@@ -16,23 +16,22 @@ import { TelegramService, TelegramStatus, TelegramLinkResponse } from '../../cor
 import { ProfileService, UserProfile } from '../../core/services/profile.service';
 
 @Component({
-  selector: 'app-settings',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSlideToggleModule,
-    MatSnackBarModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
-    MatFormFieldModule,
-    MatInputModule,
-    TranslateModule,
-  ],
-  template: `
+    selector: 'app-settings',
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatButtonModule,
+        MatIconModule,
+        MatSlideToggleModule,
+        MatSnackBarModule,
+        MatDividerModule,
+        MatProgressSpinnerModule,
+        MatFormFieldModule,
+        MatInputModule,
+        TranslateModule,
+    ],
+    template: `
     <div class="settings-page">
       <!-- Profile card -->
       <mat-card class="profile-card">
@@ -208,7 +207,7 @@ import { ProfileService, UserProfile } from '../../core/services/profile.service
       </mat-card>
     </div>
   `,
-  styles: [`
+    styles: [`
     .settings-page {
       max-width: 600px;
     }
@@ -481,7 +480,7 @@ import { ProfileService, UserProfile } from '../../core/services/profile.service
       margin: 12px 0;
     }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SettingsComponent implements OnInit, OnDestroy {
   profile: UserProfile | null = null;

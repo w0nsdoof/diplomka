@@ -24,10 +24,9 @@ interface KanbanColumn {
 }
 
 @Component({
-  selector: 'app-kanban-board',
-  standalone: true,
-  imports: [CommonModule, DragDropModule, MatCardModule, MatChipsModule, MatIconModule, MatSnackBarModule, MatMenuModule, MatButtonModule, RouterModule, SearchBarComponent, FilterPanelComponent, TranslateModule],
-  template: `
+    selector: 'app-kanban-board',
+    imports: [CommonModule, DragDropModule, MatCardModule, MatChipsModule, MatIconModule, MatSnackBarModule, MatMenuModule, MatButtonModule, RouterModule, SearchBarComponent, FilterPanelComponent, TranslateModule],
+    template: `
     <div class="page-header">
       <h2>{{ 'kanban.title' | translate }}</h2>
       <div class="view-toggle">
@@ -96,7 +95,7 @@ interface KanbanColumn {
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .page-header {
       display: flex;
       justify-content: space-between;
@@ -174,7 +173,7 @@ interface KanbanColumn {
     .cdk-drag-preview { box-shadow: 0 5px 20px rgba(0,0,0,.15); border-radius: 10px; }
     .cdk-drag-placeholder { opacity: 0; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class KanbanBoardComponent implements OnInit, OnDestroy {
   columns: KanbanColumn[] = [

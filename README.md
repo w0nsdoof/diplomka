@@ -39,7 +39,7 @@ frontend/                # Angular 17 SPA
     features/            #   Tasks, Kanban, Clients, Calendar, Reports, Admin, Portal, Platform
 
 .github/workflows/       # CI/CD pipelines
-podman-compose.yml       # Docker Compose (production)
+docker-compose.yml       # Docker Compose (production)
 deploy.sh                # Deployment script
 ```
 
@@ -101,7 +101,7 @@ The script SSHes into the server, pulls the latest code, rebuilds Docker images,
 
 ### Production Setup
 
-- Compose file: `podman-compose.yml` (project name: `taskmanager`)
+- Compose file: `docker-compose.yml` (project name: `taskmanager`)
 - Services: db, redis, backend (Daphne), frontend (Nginx), celery-worker, celery-beat
 - Environment: `.env` file managed separately on the server (not in git)
 - Health check: `GET /api/health/` returns `{"status": "ok"}`

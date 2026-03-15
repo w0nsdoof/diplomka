@@ -13,19 +13,18 @@ import { Organization, OrganizationService } from '../../../../core/services/org
 import { OrganizationFormComponent } from '../organization-form/organization-form.component';
 
 @Component({
-  selector: 'app-organization-list',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatTableModule,
-    MatButtonModule,
-    MatIconModule,
-    MatChipsModule,
-    MatDialogModule,
-    MatSnackBarModule,
-    TranslateModule,
-  ],
-  template: `
+    selector: 'app-organization-list',
+    imports: [
+        CommonModule,
+        MatTableModule,
+        MatButtonModule,
+        MatIconModule,
+        MatChipsModule,
+        MatDialogModule,
+        MatSnackBarModule,
+        TranslateModule,
+    ],
+    template: `
     <div class="header">
       <h2>{{ 'platform.organizations' | translate }}</h2>
       <button mat-raised-button color="primary" (click)="openCreateDialog()">
@@ -72,13 +71,13 @@ import { OrganizationFormComponent } from '../organization-form/organization-for
       <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="goToDetail(row)" class="clickable-row"></tr>
     </table>
   `,
-  styles: [`
+    styles: [`
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .full-width { width: 100%; }
     .clickable-row { cursor: pointer; }
     .clickable-row:hover { background-color: rgba(0, 0, 0, 0.04); }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OrganizationListComponent implements OnInit, OnDestroy {
   organizations: Organization[] = [];

@@ -43,18 +43,18 @@ cd frontend && npm run test:ci # headless tests
 ## Deployment
 
 - Script: `deploy.sh` — git-pull based, SSHes to server (`ssh yandex` for manual, `deploy` user for CI)
-- Compose file: `podman-compose.yml` with `name: taskmanager`
+- Compose file: `docker-compose.yml` with `name: taskmanager`
 - Remote `.env` is managed separately on the server (NOT synced from local)
+- HTTPS/reverse-proxy is handled by a standalone Caddy instance at `~/reverse-proxy/` on the server (not part of this repo). Domain routing for all services is managed there.
 
 ## Issue Tracking
 
 Known bugs and issues are tracked in [ISSUES.md](ISSUES.md). When fixing an issue, remove its row from the table in the same commit as the fix.
 
 ## Active Technologies
-- Python 3.11+ (Django 4.2+ / DRF), Angular 17+ (TypeScript) + Django REST Framework, djangorestframework-simplejwt, LiteLLM, Django Channels, Angular Material, factory-boy (003-multi-tenancy)
-- PostgreSQL 16 (shared database, organization FK discriminator), Redis 7 (Celery broker, cache, channel layer) (003-multi-tenancy)
-- Python 3.11 (Django 4.2+ / DRF), TypeScript (Angular 17+) + Django REST Framework, httpx (Telegram Bot API), Celery + Redis, Angular Material (006-telegram-notifications)
-- PostgreSQL 16 (new models: TelegramLink, TelegramVerificationCode) (006-telegram-notifications)
+- Python 3.13 (Django 6.0 / DRF 3.16), Angular 19 (TypeScript 5.8) + Django REST Framework, djangorestframework-simplejwt, LiteLLM, Django Channels, Angular Material 19, factory-boy
+- PostgreSQL 16 (shared database, organization FK discriminator), Redis 7 (Celery broker, cache, channel layer)
 
 ## Recent Changes
+- 006-telegram-notifications: Updated full stack — Python 3.13, Django 6.0, DRF 3.16, Angular 19, Node 22, Material 19
 - 003-multi-tenancy: Added Python 3.11+ (Django 4.2+ / DRF), Angular 17+ (TypeScript) + Django REST Framework, djangorestframework-simplejwt, LiteLLM, Django Channels, Angular Material, factory-boy

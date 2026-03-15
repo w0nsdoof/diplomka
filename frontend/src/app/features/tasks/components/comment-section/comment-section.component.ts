@@ -13,14 +13,13 @@ import { CommentService, Comment as TaskComment } from '../../../../core/service
 import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
-  selector: 'app-comment-section',
-  standalone: true,
-  imports: [
-    CommonModule, FormsModule, MatListModule, MatFormFieldModule,
-    MatInputModule, MatButtonModule, MatSlideToggleModule, MatIconModule,
-    TranslateModule,
-  ],
-  template: `
+    selector: 'app-comment-section',
+    imports: [
+        CommonModule, FormsModule, MatListModule, MatFormFieldModule,
+        MatInputModule, MatButtonModule, MatSlideToggleModule, MatIconModule,
+        TranslateModule,
+    ],
+    template: `
     <div class="comment-section">
       <h3>{{ 'comments.title' | translate }}</h3>
 
@@ -55,7 +54,7 @@ import { AuthService } from '../../../../core/services/auth.service';
       </mat-list>
     </div>
   `,
-  styles: [`
+    styles: [`
     .comment-section { margin-top: 24px; }
     .comment-form { margin-bottom: 16px; }
     .full-width { width: 100%; }
@@ -68,7 +67,7 @@ import { AuthService } from '../../../../core/services/auth.service';
     .mentions { font-size: 12px; color: #1976d2; }
     .comment-item { height: auto !important; margin-bottom: 12px; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CommentSectionComponent implements OnInit, OnDestroy {
   @Input() taskId!: number;

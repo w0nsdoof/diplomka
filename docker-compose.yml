@@ -69,7 +69,6 @@ services:
     expose:
       - "8000"
     volumes:
-      - ./backend:/app
       - media_data:/app/media
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')\""]
@@ -82,22 +81,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-  caddy:
-    image: docker.io/library/caddy:2-alpine
-    container_name: taskmanager-caddy
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      frontend:
-        condition: service_started
-    restart: unless-stopped
 
   frontend:
     build:
@@ -137,10 +120,8 @@ services:
       - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET:-}
       - SENTRY_DSN=${SENTRY_DSN:-}
       - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.2}
-    volumes:
-      - ./backend:/app
     depends_on:
-      db:
+      backend:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -170,10 +151,8 @@ services:
       - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET:-}
       - SENTRY_DSN=${SENTRY_DSN:-}
       - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.2}
-    volumes:
-      - ./backend:/app
     depends_on:
-      db:
+      backend:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -181,5 +160,3 @@ services:
 volumes:
   postgres_data:
   media_data:
-  caddy_data:
-  caddy_config:

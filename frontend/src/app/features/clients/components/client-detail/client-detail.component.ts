@@ -10,10 +10,9 @@ import { Subject, takeUntil } from 'rxjs';
 import { ClientService, Client } from '../../../../core/services/client.service';
 
 @Component({
-  selector: 'app-client-detail',
-  standalone: true,
-  imports: [CommonModule, RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatTableModule, TranslateModule],
-  template: `
+    selector: 'app-client-detail',
+    imports: [CommonModule, RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatTableModule, TranslateModule],
+    template: `
     <div *ngIf="client" class="client-detail">
       <div class="page-header">
         <h2>{{ client.name }}</h2>
@@ -54,7 +53,7 @@ import { ClientService, Client } from '../../../../core/services/client.service'
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .client-detail { max-width: 960px; }
 
     .page-header {
@@ -85,7 +84,7 @@ import { ClientService, Client } from '../../../../core/services/client.service'
       gap: 12px;
     }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ClientDetailComponent implements OnInit, OnDestroy {
   client: Client | null = null;

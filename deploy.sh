@@ -4,7 +4,7 @@ set -euo pipefail
 # Configuration
 REMOTE_HOST="${DEPLOY_SSH_HOST:-yandex}"
 REPO_URL="https://github.com/w0nsdoof/diplomka.git"
-COMPOSE_FILE="podman-compose.yml"
+COMPOSE_FILE="docker-compose.yml"
 
 # Determine branch: use argument or current local branch
 BRANCH="${1:-$(git branch --show-current)}"

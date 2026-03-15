@@ -6,10 +6,9 @@ import { TranslateModule } from '@ngx-translate/core';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 @Component({
-  selector: 'app-search-bar',
-  standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
-  template: `
+    selector: 'app-search-bar',
+    imports: [CommonModule, FormsModule, MatIconModule, TranslateModule],
+    template: `
     <div class="search-wrap">
       <mat-icon class="search-icon">search</mat-icon>
       <input class="search-input"
@@ -18,7 +17,7 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
              [placeholder]="placeholder" />
     </div>
   `,
-  styles: [`
+    styles: [`
     .search-wrap {
       position: relative;
       margin-bottom: 16px;
@@ -56,7 +55,7 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
       }
     }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SearchBarComponent implements OnDestroy {
   @Input() placeholder = 'Search...';

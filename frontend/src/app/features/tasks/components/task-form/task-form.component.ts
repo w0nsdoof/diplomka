@@ -28,14 +28,13 @@ interface UserOption {
 }
 
 @Component({
-  selector: 'app-task-form',
-  standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule,
-    MatSelectModule, MatDatepickerModule, MatNativeDateModule,
-    MatButtonModule, MatChipsModule, MatIconModule, MatCardModule, TranslateModule,
-  ],
-  template: `
+    selector: 'app-task-form',
+    imports: [
+        CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule,
+        MatSelectModule, MatDatepickerModule, MatNativeDateModule,
+        MatButtonModule, MatChipsModule, MatIconModule, MatCardModule, TranslateModule,
+    ],
+    template: `
     <div class="form-page">
       <div class="page-header">
         <h2>{{ (isEdit ? 'tasks.editTask' : 'tasks.createTask') | translate }}</h2>
@@ -120,7 +119,7 @@ interface UserOption {
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .form-page { max-width: 720px; }
     .page-header { margin-bottom: 24px; }
     .page-header h2 { font-size: 22px; font-weight: 700; margin: 0; }
@@ -142,7 +141,7 @@ interface UserOption {
     }
     ::ng-deep .select-search-input:focus { border-color: var(--primary-blue, #1a7cf4); }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskFormComponent implements OnInit, OnDestroy {
   taskForm!: FormGroup;

@@ -15,14 +15,13 @@ import { SummaryService, SummaryDetail, SummaryVersion } from '../../../core/ser
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
-  selector: 'app-summary-detail',
-  standalone: true,
-  imports: [
-    CommonModule, RouterModule, MatCardModule, MatButtonModule,
-    MatIconModule, MatChipsModule, MatListModule, MatDividerModule,
-    MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
-  ],
-  template: `
+    selector: 'app-summary-detail',
+    imports: [
+        CommonModule, RouterModule, MatCardModule, MatButtonModule,
+        MatIconModule, MatChipsModule, MatListModule, MatDividerModule,
+        MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
+    ],
+    template: `
     <div class="header-row">
       <h2>{{ 'summaries.detailTitle' | translate }}</h2>
       <a mat-button routerLink="/reports/summaries"><mat-icon>arrow_back</mat-icon> {{ 'summaries.backToHistory' | translate }}</a>
@@ -100,7 +99,7 @@ import { AuthService } from '../../../core/services/auth.service';
       </mat-card>
     </div>
   `,
-  styles: [`
+    styles: [`
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .detail-card { margin-bottom: 24px; }
     .summary-text { white-space: pre-line; line-height: 1.6; font-size: 15px; margin: 16px 0; }
@@ -132,7 +131,7 @@ import { AuthService } from '../../../core/services/auth.service';
     .active-version { background: rgba(25, 118, 210, 0.08); }
     .version-preview { color: #666; font-size: 13px; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SummaryDetailComponent implements OnInit, OnDestroy {
   summary: SummaryDetail | null = null;

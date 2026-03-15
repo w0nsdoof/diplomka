@@ -5,10 +5,9 @@ import { MatMenuModule } from '@angular/material/menu';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
-  selector: 'app-language-switcher',
-  standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatMenuModule, TranslateModule],
-  template: `
+    selector: 'app-language-switcher',
+    imports: [MatButtonModule, MatIconModule, MatMenuModule, TranslateModule],
+    template: `
     <button mat-icon-button [matMenuTriggerFor]="langMenu">
       <mat-icon>language</mat-icon>
     </button>
@@ -21,7 +20,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
       </button>
     </mat-menu>
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LanguageSwitcherComponent {
   constructor(private translate: TranslateService) {}

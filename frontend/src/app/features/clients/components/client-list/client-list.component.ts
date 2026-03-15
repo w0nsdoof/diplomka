@@ -11,10 +11,9 @@ import { ClientService, Client } from '../../../../core/services/client.service'
 import { SearchBarComponent } from '../../../../shared/components/search-bar/search-bar.component';
 
 @Component({
-  selector: 'app-client-list',
-  standalone: true,
-  imports: [CommonModule, RouterModule, MatTableModule, MatButtonModule, MatIconModule, MatPaginatorModule, SearchBarComponent, TranslateModule],
-  template: `
+    selector: 'app-client-list',
+    imports: [CommonModule, RouterModule, MatTableModule, MatButtonModule, MatIconModule, MatPaginatorModule, SearchBarComponent, TranslateModule],
+    template: `
     <div class="page-header">
       <div>
         <h2>{{ 'companies.allCompanies' | translate }}</h2>
@@ -63,7 +62,7 @@ import { SearchBarComponent } from '../../../../shared/components/search-bar/sea
     </table>
     <mat-paginator [length]="totalCount" [pageSize]="20" (page)="onPage($event)"></mat-paginator>
   `,
-  styles: [`
+    styles: [`
     .page-header {
       display: flex; justify-content: space-between; align-items: flex-start;
       margin-bottom: 24px;
@@ -88,7 +87,7 @@ import { SearchBarComponent } from '../../../../shared/components/search-bar/sea
     }
     .action-icon:hover { color: var(--primary-blue, #1a7cf4); }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ClientListComponent implements OnInit, OnDestroy {
   clients: Client[] = [];

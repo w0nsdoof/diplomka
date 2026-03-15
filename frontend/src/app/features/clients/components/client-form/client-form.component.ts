@@ -12,10 +12,9 @@ import { Subject, takeUntil } from 'rxjs';
 import { ClientService } from '../../../../core/services/client.service';
 
 @Component({
-  selector: 'app-client-form',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatCardModule, TranslateModule],
-  template: `
+    selector: 'app-client-form',
+    imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatCardModule, TranslateModule],
+    template: `
     <div class="form-page">
       <div class="page-header">
         <h2>{{ (isEdit ? 'clients.editClient' : 'clients.newClient') | translate }}</h2>
@@ -57,7 +56,7 @@ import { ClientService } from '../../../../core/services/client.service';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .form-page { max-width: 600px; }
     .page-header { margin-bottom: 24px; }
     .page-header h2 { font-size: 22px; font-weight: 700; margin: 0; }
@@ -66,7 +65,7 @@ import { ClientService } from '../../../../core/services/client.service';
     .form-group { margin-bottom: 20px; }
     .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ClientFormComponent implements OnInit, OnDestroy {
   form!: FormGroup;

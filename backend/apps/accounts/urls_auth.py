@@ -4,12 +4,17 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_seriali
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenVerifyView
 
 from apps.accounts.serializers import CustomTokenObtainPairSerializer
+
+
+class AuthRateThrottle(AnonRateThrottle):
+    scope = "auth"
 
 REFRESH_COOKIE = "refresh_token"
 REFRESH_COOKIE_MAX_AGE = int(
@@ -38,6 +43,7 @@ def _delete_refresh_cookie(response):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = [AuthRateThrottle]
 
     @extend_schema(
         tags=["Auth"],
@@ -70,6 +76,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 class CookieTokenRefreshView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [AuthRateThrottle]
 
     @extend_schema(
         tags=["Auth"],

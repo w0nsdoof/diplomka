@@ -11,10 +11,9 @@ import { TranslateModule } from '@ngx-translate/core';
 import { environment } from '../../../../../environments/environment';
 
 @Component({
-  selector: 'app-ticket-detail',
-  standalone: true,
-  imports: [CommonModule, MatCardModule, MatChipsModule, MatListModule, MatIconModule, TranslateModule],
-  template: `
+    selector: 'app-ticket-detail',
+    imports: [CommonModule, MatCardModule, MatChipsModule, MatListModule, MatIconModule, TranslateModule],
+    template: `
     <div *ngIf="ticket">
       <h2>{{ ticket.title }}</h2>
       <div class="meta">
@@ -44,11 +43,11 @@ import { environment } from '../../../../../environments/environment';
       </mat-list>
     </div>
   `,
-  styles: [`
+    styles: [`
     .meta { display: flex; gap: 12px; align-items: center; margin: 12px 0; }
     .date { color: #757575; font-size: 12px; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TicketDetailComponent implements OnInit, OnDestroy {
   ticket: any = null;

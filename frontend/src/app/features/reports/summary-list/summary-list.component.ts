@@ -14,14 +14,13 @@ import { TranslateModule } from '@ngx-translate/core';
 import { SummaryService, SummaryListItem } from '../../../core/services/summary.service';
 
 @Component({
-  selector: 'app-summary-list',
-  standalone: true,
-  imports: [
-    CommonModule, RouterModule, FormsModule, MatCardModule, MatTableModule,
-    MatButtonModule, MatButtonToggleModule, MatIconModule, MatChipsModule,
-    MatPaginatorModule, TranslateModule,
-  ],
-  template: `
+    selector: 'app-summary-list',
+    imports: [
+        CommonModule, RouterModule, FormsModule, MatCardModule, MatTableModule,
+        MatButtonModule, MatButtonToggleModule, MatIconModule, MatChipsModule,
+        MatPaginatorModule, TranslateModule,
+    ],
+    template: `
     <div class="header-row">
       <h2>{{ 'summaries.title' | translate }}</h2>
       <a mat-button routerLink="/reports"><mat-icon>arrow_back</mat-icon> {{ 'summaries.backToReports' | translate }}</a>
@@ -94,7 +93,7 @@ import { SummaryService, SummaryListItem } from '../../../core/services/summary.
       </mat-card-content>
     </mat-card>
   `,
-  styles: [`
+    styles: [`
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .filter-row { margin-bottom: 16px; }
     .full-width { width: 100%; }
@@ -120,7 +119,7 @@ import { SummaryService, SummaryListItem } from '../../../core/services/summary.
     .method-badge.ai { background: #e8f5e9; color: #2e7d32; }
     .method-badge.fallback { background: #fff3e0; color: #e65100; }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SummaryListComponent implements OnInit, OnDestroy {
   summaries: SummaryListItem[] = [];

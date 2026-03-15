@@ -19,14 +19,13 @@ import { environment } from '../../../environments/environment';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 
 @Component({
-  selector: 'app-user-management',
-  standalone: true,
-  imports: [
-    CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
-    MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatCardModule, MatChipsModule, MatSlideToggleModule, SearchBarComponent, TranslateModule,
-  ],
-  template: `
+    selector: 'app-user-management',
+    imports: [
+        CommonModule, FormsModule, MatTableModule, MatButtonModule, MatIconModule,
+        MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule,
+        MatCardModule, MatChipsModule, MatSlideToggleModule, SearchBarComponent, TranslateModule,
+    ],
+    template: `
     <div class="page-header">
       <div>
         <h2>{{ 'users.allUsers' | translate }}</h2>
@@ -131,7 +130,7 @@ import { SearchBarComponent } from '../../shared/components/search-bar/search-ba
       {{ 'common.showing' | translate }} 1-{{ users.length }} {{ 'common.of' | translate }} {{ users.length }}
     </div>
   `,
-  styles: [`
+    styles: [`
     .page-header {
       display: flex; justify-content: space-between; align-items: flex-start;
       margin-bottom: 24px;
@@ -184,7 +183,7 @@ import { SearchBarComponent } from '../../shared/components/search-bar/search-ba
       padding: 12px 0; font-size: 13px; color: var(--text-secondary, #6b7280);
     }
   `],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserManagementComponent implements OnInit, OnDestroy {
   users: any[] = [];

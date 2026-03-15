@@ -199,10 +199,10 @@ cp .env.example .env
 # Edit .env with your values
 
 # 2. Build all images
-podman-compose build
+docker compose build
 
 # 3. Start infrastructure services first
-podman-compose up -d db redis
+docker compose up -d db redis
 
 # 4. Wait for health checks to pass (~10 seconds)
 sleep 10
@@ -221,9 +221,9 @@ podman run --rm \
   diplomka_backend python manage.py makemigrations
 
 # 6. Start remaining services
-podman-compose up -d backend celery-worker celery-beat
+docker compose up -d backend celery-worker celery-beat
 sleep 5
-podman-compose up -d frontend
+docker compose up -d frontend
 ```
 
 ### Initial Users
@@ -238,7 +238,7 @@ Users are only created if the env vars are set and the email doesn't already exi
 For manual creation, the custom User model requires `--first_name` and `--last_name`:
 
 ```bash
-podman-compose exec backend python manage.py createsuperuser \
+docker compose exec backend python manage.py createsuperuser \
     --noinput \
     --email admin@example.com \
     --first_name Admin \
@@ -261,18 +261,18 @@ podman-compose exec backend python manage.py createsuperuser \
 After initial setup, starting is simpler:
 
 ```bash
-podman-compose up -d
+docker compose up -d
 ```
 
-If the frontend fails to start due to dependency graph issues (a known podman-compose
+If the frontend fails to start due to dependency graph issues (a known docker compose
 limitation), start services in stages:
 
 ```bash
-podman-compose up -d db redis
+docker compose up -d db redis
 sleep 10
-podman-compose up -d backend celery-worker celery-beat
+docker compose up -d backend celery-worker celery-beat
 sleep 5
-podman-compose up -d frontend
+docker compose up -d frontend
 ```
 
 ## Production Deployment
@@ -291,12 +291,12 @@ cp .env.example .env
 ### 2. Build and Start
 
 ```bash
-podman-compose build
-podman-compose up -d db redis
+docker compose build
+docker compose up -d db redis
 sleep 10
-podman-compose up -d backend celery-worker celery-beat
+docker compose up -d backend celery-worker celery-beat
 sleep 5
-podman-compose up -d frontend
+docker compose up -d frontend
 ```
 
 ### 3. Run Migrations
@@ -305,7 +305,7 @@ Migrations run automatically on backend container start via the entrypoint comma
 (`python manage.py migrate`). For manual execution:
 
 ```bash
-podman-compose exec backend python manage.py migrate
+docker compose exec backend python manage.py migrate
 ```
 
 ### 4. Static Files
@@ -320,13 +320,14 @@ The superuser is created automatically on startup from `DJANGO_SUPERUSER_EMAIL` 
 ### 6. Compile Translations (if needed)
 
 ```bash
-podman-compose exec backend python manage.py compilemessages
+docker compose exec backend python manage.py compilemessages
 ```
 
 ## Reverse Proxy (Caddy)
 
-Caddy runs as a Docker service (see `podman-compose.yml`) and handles TLS termination
-with auto-provisioned Let's Encrypt certificates. Configuration is in `Caddyfile`.
+Caddy runs as a standalone service at `~/reverse-proxy/` on the server (not part of this repo).
+It handles TLS termination with auto-provisioned Let's Encrypt certificates and routes
+traffic by domain to multiple projects.
 
 Traffic flow:
 ```
@@ -346,13 +347,6 @@ SECURE_SSL_REDIRECT=1
 ```
 
 Cloudflare SSL/TLS mode must be set to **Full (Strict)**.
-
-server {
-    listen 80;
-    server_name yourdomain.com;
-    return 301 https://$host$request_uri;
-}
-```
 
 ## Service Details
 
@@ -395,10 +389,10 @@ Two named volumes are configured:
 
 ```bash
 # Database backup
-podman-compose exec db pg_dump -U taskmanager taskmanager > backup_$(date +%Y%m%d).sql
+docker compose exec db pg_dump -U taskmanager taskmanager > backup_$(date +%Y%m%d).sql
 
 # Database restore
-podman-compose exec -T db psql -U taskmanager taskmanager < backup_20260131.sql
+docker compose exec -T db psql -U taskmanager taskmanager < backup_20260131.sql
 
 # Media files backup
 podman volume export diplomka_media_data > media_backup_$(date +%Y%m%d).tar
@@ -412,7 +406,7 @@ Built-in health checks are configured for:
 - **Redis**: `redis-cli ping` (5s interval, 5 retries)
 
 Backend and Celery services use `depends_on` with `condition: service_healthy` to wait
-for infrastructure readiness. Note: podman-compose translates these to `--requires` flags.
+for infrastructure readiness. Note: docker compose translates these to `--requires` flags.
 
 ## Monitoring
 
@@ -420,12 +414,12 @@ for infrastructure readiness. Note: podman-compose translates these to `--requir
 
 ```bash
 # All services
-podman-compose logs -f
+docker compose logs -f
 
 # Specific service
-podman-compose logs -f backend
-podman-compose logs -f celery-worker
-podman-compose logs -f celery-beat
+docker compose logs -f backend
+docker compose logs -f celery-worker
+docker compose logs -f celery-beat
 ```
 
 ### Sentry Integration
@@ -435,7 +429,7 @@ included in production requirements.
 
 ## Scaling Considerations
 
-- **Celery workers**: Scale horizontally with `podman-compose up --scale celery-worker=3`
+- **Celery workers**: Scale horizontally with `docker compose up --scale celery-worker=3`
 - **Database**: For high load, consider a managed PostgreSQL service and update `POSTGRES_HOST`
 - **Redis**: For high WebSocket concurrency, consider Redis Sentinel or a managed Redis service
 - **File storage**: For multi-node deployments, replace local `MEDIA_ROOT` with S3-compatible storage (requires `django-storages`)
@@ -453,7 +447,7 @@ included in production requirements.
 | Static files 404 in production | Ensure `DJANGO_SETTINGS_MODULE=config.settings.prod` for WhiteNoise |
 | CORS errors | Set `CORS_ALLOWED_ORIGINS` in `.env` to your frontend domain |
 | File upload fails | Check `client_max_body_size` in external Nginx (must be >= 25M) |
-| Superuser not created on startup | Verify `DJANGO_SUPERUSER_EMAIL` and `DJANGO_SUPERUSER_PASSWORD` are set in `.env` and passed to the backend in `podman-compose.yml` |
+| Superuser not created on startup | Verify `DJANGO_SUPERUSER_EMAIL` and `DJANGO_SUPERUSER_PASSWORD` are set in `.env` and passed to the backend in `docker-compose.yml` |
 | Manual `createsuperuser` fails with `--noinput` | Must include `--first_name` and `--last_name` flags (custom User model) |
 | Podman "short-name did not resolve" | All images use `docker.io/library/` prefix; check your registries.conf if pulling fails |
 
@@ -461,20 +455,20 @@ included in production requirements.
 
 ```bash
 # Django shell
-podman-compose exec backend python manage.py shell
+docker compose exec backend python manage.py shell
 
 # Check system configuration
-podman-compose exec backend python manage.py check --deploy
+docker compose exec backend python manage.py check --deploy
 
 # Run specific migration
-podman-compose exec backend python manage.py migrate <app_name>
+docker compose exec backend python manage.py migrate <app_name>
 
 # Generate OpenAPI schema file
-podman-compose exec backend python manage.py spectacular --file schema.yml
+docker compose exec backend python manage.py spectacular --file schema.yml
 
 # Generate migrations after model changes
-podman-compose exec backend python manage.py makemigrations
+docker compose exec backend python manage.py makemigrations
 
 # Compile translation messages
-podman-compose exec backend python manage.py compilemessages
+docker compose exec backend python manage.py compilemessages
 ```

@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 from drf_spectacular.utils import (
@@ -260,45 +261,50 @@ class TaskViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
         new_ids = set(serializer.validated_data["assignee_ids"])
         old_ids = set(task.assignees.values_list("id", flat=True))
 
-        task.assignees.set(new_ids)
-
         added = new_ids - old_ids
         removed = old_ids - new_ids
 
         from django.contrib.auth import get_user_model
         user_model = get_user_model()
+        users_by_id = {
+            u.id: u
+            for u in user_model.objects.filter(pk__in=added | removed)
+        }
 
-        for uid in added:
-            user = user_model.objects.get(pk=uid)
-            create_notification(
-                recipient=user,
-                event_type="task_assigned",
-                task=task,
-                message=f"You have been assigned to task '{task.title}'",
-            )
-            create_audit_entry(
-                task=task,
-                actor=request.user,
-                action=AuditLogEntry.Action.ASSIGNMENT_CHANGE,
-                field_name="assignees",
-                new_value=f"{user.first_name} {user.last_name} (ID: {user.id})",
-            )
+        with transaction.atomic():
+            task.assignees.set(new_ids)
 
-        for uid in removed:
-            user = user_model.objects.get(pk=uid)
-            create_notification(
-                recipient=user,
-                event_type="task_unassigned",
-                task=task,
-                message=f"You have been removed from task '{task.title}'",
-            )
-            create_audit_entry(
-                task=task,
-                actor=request.user,
-                action=AuditLogEntry.Action.ASSIGNMENT_CHANGE,
-                field_name="assignees",
-                old_value=f"{user.first_name} {user.last_name} (ID: {user.id})",
-            )
+            for uid in added:
+                user = users_by_id[uid]
+                create_notification(
+                    recipient=user,
+                    event_type="task_assigned",
+                    task=task,
+                    message=f"You have been assigned to task '{task.title}'",
+                )
+                create_audit_entry(
+                    task=task,
+                    actor=request.user,
+                    action=AuditLogEntry.Action.ASSIGNMENT_CHANGE,
+                    field_name="assignees",
+                    new_value=f"{user.first_name} {user.last_name} (ID: {user.id})",
+                )
+
+            for uid in removed:
+                user = users_by_id[uid]
+                create_notification(
+                    recipient=user,
+                    event_type="task_unassigned",
+                    task=task,
+                    message=f"You have been removed from task '{task.title}'",
+                )
+                create_audit_entry(
+                    task=task,
+                    actor=request.user,
+                    action=AuditLogEntry.Action.ASSIGNMENT_CHANGE,
+                    field_name="assignees",
+                    old_value=f"{user.first_name} {user.last_name} (ID: {user.id})",
+                )
 
         assignees = task.assignees.all()
         return Response({
