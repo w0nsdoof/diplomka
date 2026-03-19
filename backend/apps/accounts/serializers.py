@@ -59,7 +59,7 @@ class MeSerializer(serializers.ModelSerializer):
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "role", "is_active", "date_joined", "last_login"]
+        fields = ["id", "email", "first_name", "last_name", "role", "phone", "is_active", "date_joined", "last_login"]
         read_only_fields = fields
 
 
@@ -69,7 +69,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id", "email", "first_name", "last_name", "role",
+            "id", "email", "first_name", "last_name", "role", "phone",
             "is_active", "date_joined", "last_login", "client",
             "assigned_tasks_count",
         ]
@@ -84,7 +84,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "role", "password", "client_id"]
+        fields = ["id", "email", "first_name", "last_name", "role", "password", "client_id", "phone", "job_title"]
         read_only_fields = ["id"]
 
     def validate_role(self, value):
@@ -120,7 +120,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "role", "is_active", "password", "client_id"]
+        fields = ["first_name", "last_name", "role", "is_active", "password", "client_id", "phone", "job_title"]
 
     def validate_role(self, value):
         if value not in self.ALLOWED_ROLES:

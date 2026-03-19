@@ -3,6 +3,15 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export interface ClientEmployee {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  job_title: string;
+  phone: string;
+}
+
 export interface Client {
   id: number;
   name: string;
@@ -12,6 +21,8 @@ export interface Client {
   contact_person: string;
   created_at: string;
   tasks_count?: number;
+  employee_count?: number;
+  employees?: ClientEmployee[];
   task_summary?: {
     total: number;
     created: number;

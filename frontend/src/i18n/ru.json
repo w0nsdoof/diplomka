@@ -149,7 +149,12 @@
     "contactPerson": "Контактное лицо",
     "tasksCount": "Задачи",
     "taskSummary": "Сводка задач",
-    "total": "Всего"
+    "total": "Всего",
+    "employees": "Сотрудники",
+    "employeeCount": "Сотрудники",
+    "addEmployee": "Добавить сотрудника",
+    "noEmployees": "Нет сотрудников",
+    "jobTitle": "Должность"
   },
   "companies": {
     "allCompanies": "Все компании"

@@ -46,12 +46,18 @@ class ClientViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
         if user.role == "client" and user.client_id:
             qs = qs.filter(pk=user.client_id)
         if self.action == "list":
-            qs = qs.annotate(tasks_count=Count("tasks"))
+            qs = qs.annotate(
+                tasks_count=Count("tasks", distinct=True),
+                employee_count=Count("portal_users", distinct=True),
+            )
         elif self.action == "retrieve":
-            qs = qs.annotate(**{
-                f"tasks_{s}": Count("tasks", filter=Q(tasks__status=s))
-                for s in Task.Status.values
-            })
+            qs = qs.annotate(
+                employee_count=Count("portal_users", distinct=True),
+                **{
+                    f"tasks_{s}": Count("tasks", filter=Q(tasks__status=s), distinct=True)
+                    for s in Task.Status.values
+                },
+            ).prefetch_related("portal_users")
         return qs
 
     def get_serializer_class(self):
