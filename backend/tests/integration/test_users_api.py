@@ -57,6 +57,30 @@ class TestUserCreate:
         resp = manager_client.post(USERS_URL, data, format="json")
         assert resp.status_code == 201
 
+    def test_create_user_with_phone(self, manager_client):
+        data = {
+            "email": "withphone@example.com",
+            "first_name": "Phone",
+            "last_name": "User",
+            "role": "engineer",
+            "password": "StrongPass123!",
+            "phone": "+77001234567",
+        }
+        resp = manager_client.post(USERS_URL, data, format="json")
+        assert resp.status_code == 201
+        user = User.objects.get(email="withphone@example.com")
+        assert user.phone == "+77001234567"
+
+
+@pytest.mark.django_db
+class TestUserListFields:
+    def test_list_includes_phone(self, manager_client, organization):
+        EngineerFactory(organization=organization, phone="+70001112233")
+        resp = manager_client.get(USERS_URL)
+        assert resp.status_code == 200
+        phones = [u["phone"] for u in resp.data["results"]]
+        assert "+70001112233" in phones
+
 
 @pytest.mark.django_db
 class TestUserSoftDelete:

@@ -47,6 +47,10 @@ import { SearchBarComponent } from '../../../../shared/components/search-bar/sea
         <th mat-header-cell *matHeaderCellDef>{{ 'common.phone' | translate }}</th>
         <td mat-cell *matCellDef="let c">{{ c.phone }}</td>
       </ng-container>
+      <ng-container matColumnDef="employee_count">
+        <th mat-header-cell *matHeaderCellDef>{{ 'clients.employeeCount' | translate }}</th>
+        <td mat-cell *matCellDef="let c">{{ c.employee_count }}</td>
+      </ng-container>
       <ng-container matColumnDef="tasks_count">
         <th mat-header-cell *matHeaderCellDef>{{ 'clients.tasksCount' | translate }}</th>
         <td mat-cell *matCellDef="let c">{{ c.tasks_count }}</td>
@@ -92,7 +96,7 @@ import { SearchBarComponent } from '../../../../shared/components/search-bar/sea
 export class ClientListComponent implements OnInit, OnDestroy {
   clients: Client[] = [];
   totalCount = 0;
-  columns = ['name', 'client_type', 'email', 'phone', 'tasks_count', 'actions'];
+  columns = ['name', 'client_type', 'email', 'phone', 'employee_count', 'tasks_count', 'actions'];
   private page = 1;
   private searchTerm = '';
   private destroy$ = new Subject<void>();

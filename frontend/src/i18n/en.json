@@ -149,7 +149,12 @@
     "contactPerson": "Contact Person",
     "tasksCount": "Tasks",
     "taskSummary": "Task Summary",
-    "total": "Total"
+    "total": "Total",
+    "employees": "Employees",
+    "employeeCount": "Employees",
+    "addEmployee": "Add Employee",
+    "noEmployees": "No employees",
+    "jobTitle": "Position"
   },
   "companies": {
     "allCompanies": "All Companies"

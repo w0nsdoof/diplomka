@@ -1,7 +1,7 @@
 import pytest
 
 from apps.clients.models import Client
-from tests.factories import ClientFactory, TaskFactory
+from tests.factories import ClientFactory, ClientUserFactory, TaskFactory
 
 CLIENTS_URL = "/api/clients/"
 
@@ -14,6 +14,15 @@ class TestClientList:
         assert resp.status_code == 200
         assert resp.data["count"] == 3
 
+    def test_list_includes_employee_count(self, manager_client, organization):
+        client_obj = ClientFactory(organization=organization)
+        ClientUserFactory(client=client_obj, organization=organization)
+        ClientUserFactory(client=client_obj, organization=organization)
+        resp = manager_client.get(CLIENTS_URL)
+        assert resp.status_code == 200
+        result = resp.data["results"][0]
+        assert result["employee_count"] == 2
+
     def test_engineer_can_read_clients(self, engineer_client):
         ClientFactory()
         resp = engineer_client.get(CLIENTS_URL)
@@ -25,6 +34,45 @@ class TestClientList:
         assert resp.status_code == 200
         assert resp.data["count"] == 1
         assert resp.data["results"][0]["id"] == client_user.client_id
+
+
+@pytest.mark.django_db
+class TestClientDetail:
+    def test_detail_includes_employees(self, manager_client, organization):
+        client_obj = ClientFactory(organization=organization)
+        emp1 = ClientUserFactory(
+            client=client_obj, organization=organization,
+            first_name="Alice", last_name="Smith",
+            email="alice@example.com", phone="+7001",
+        )
+        emp2 = ClientUserFactory(
+            client=client_obj, organization=organization,
+            first_name="Bob", last_name="Jones",
+        )
+        resp = manager_client.get(f"{CLIENTS_URL}{client_obj.id}/")
+        assert resp.status_code == 200
+        assert resp.data["employee_count"] == 2
+        employees = resp.data["employees"]
+        assert len(employees) == 2
+        emails = {e["email"] for e in employees}
+        assert emp1.email in emails
+        assert emp2.email in emails
+        # Check fields present
+        first = employees[0]
+        assert "first_name" in first
+        assert "last_name" in first
+        assert "email" in first
+        assert "job_title" in first
+        assert "phone" in first
+
+    def test_detail_employees_scoped_to_client(self, manager_client, organization):
+        client1 = ClientFactory(organization=organization)
+        client2 = ClientFactory(organization=organization)
+        ClientUserFactory(client=client1, organization=organization)
+        ClientUserFactory(client=client2, organization=organization)
+        resp = manager_client.get(f"{CLIENTS_URL}{client1.id}/")
+        assert resp.data["employee_count"] == 1
+        assert len(resp.data["employees"]) == 1
 
 
 @pytest.mark.django_db

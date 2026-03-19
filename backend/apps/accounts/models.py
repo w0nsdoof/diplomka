@@ -46,6 +46,7 @@ class User(AbstractUser):
         blank=True,
         related_name="users",
     )
+    phone = models.CharField(max_length=40, blank=True, default="")
     avatar = models.ImageField(upload_to="avatars/", blank=True, default="")
     job_title = models.CharField(max_length=150, blank=True, default="")
     skills = models.TextField(blank=True, default="")
