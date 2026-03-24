@@ -1,7 +1,9 @@
 import pytest
 from django.utils import timezone
 
+from apps.attachments.models import Attachment
 from apps.audit.models import AuditLogEntry
+from apps.comments.models import Comment
 from apps.notifications.models import Notification
 from apps.tasks.models import Task
 from tests.factories import (
@@ -314,3 +316,42 @@ class TestTaskHistory:
         resp = engineer_client.get(f"{task_url(task.id)}history/")
         assert resp.status_code == 200
         assert resp.data["count"] >= 1
+
+
+@pytest.mark.django_db
+class TestTaskDelete:
+    def test_manager_deletes_task(self, manager_client, task):
+        resp = manager_client.delete(task_url(task.id))
+        assert resp.status_code == 204
+        assert not Task.objects.filter(pk=task.id).exists()
+
+    def test_delete_cascades_attachments(self, manager_client, task, manager):
+        Attachment.objects.create(
+            task=task,
+            file="test.txt",
+            original_filename="test.txt",
+            file_size=100,
+            content_type="text/plain",
+            uploaded_by=manager,
+        )
+        manager_client.delete(task_url(task.id))
+        assert Attachment.objects.count() == 0
+
+    def test_delete_cascades_comments(self, manager_client, task, manager):
+        Comment.objects.create(task=task, author=manager, content="test")
+        manager_client.delete(task_url(task.id))
+        assert Comment.objects.count() == 0
+
+    def test_delete_nullifies_subtask_parent(self, manager_client, task, manager):
+        subtask = TaskFactory(created_by=manager, parent_task=task)
+        manager_client.delete(task_url(task.id))
+        subtask.refresh_from_db()
+        assert subtask.parent_task is None
+
+    def test_engineer_cannot_delete_task(self, engineer_client, task):
+        resp = engineer_client.delete(task_url(task.id))
+        assert resp.status_code == 403
+
+    def test_client_cannot_delete_task(self, client_user_client, task):
+        resp = client_user_client.delete(task_url(task.id))
+        assert resp.status_code == 403

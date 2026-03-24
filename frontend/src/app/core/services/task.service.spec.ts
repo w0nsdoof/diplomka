@@ -196,6 +196,16 @@ describe('TaskService', () => {
     });
   });
 
+  describe('delete', () => {
+    it('should DELETE a task', () => {
+      service.delete(5).subscribe();
+
+      const req = httpMock.expectOne('/api/tasks/5/');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+  });
+
   describe('deleteAttachment', () => {
     it('should DELETE an attachment', () => {
       service.deleteAttachment(5, 10).subscribe();
