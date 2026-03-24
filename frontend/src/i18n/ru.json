@@ -98,7 +98,12 @@
     "failedChangeStatus": "Не удалось изменить статус",
     "deadlineLabel": "Срок:",
     "clientLabel": "Клиент:",
-    "searchArchived": "Поиск в архиве..."
+    "searchArchived": "Поиск в архиве...",
+    "deleteTask": "Удалить задачу?",
+    "deleteTaskConfirm": "Задача будет удалена без возможности восстановления",
+    "taskDeleted": "Задача удалена",
+    "failedDelete": "Не удалось удалить задачу",
+    "changeStatus": "Изменить статус"
   },
   "statuses": {
     "created": "Создана",

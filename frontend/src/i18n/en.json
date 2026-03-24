@@ -98,7 +98,12 @@
     "failedChangeStatus": "Failed to change status",
     "deadlineLabel": "Deadline:",
     "clientLabel": "Client:",
-    "searchArchived": "Search archived tasks..."
+    "searchArchived": "Search archived tasks...",
+    "deleteTask": "Delete task?",
+    "deleteTaskConfirm": "The task will be permanently deleted",
+    "taskDeleted": "Task deleted",
+    "failedDelete": "Failed to delete task",
+    "changeStatus": "Change status"
   },
   "statuses": {
     "created": "Created",

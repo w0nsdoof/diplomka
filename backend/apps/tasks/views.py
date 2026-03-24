@@ -30,7 +30,11 @@ from apps.tasks.serializers import (
     TaskUpdateEngineerSerializer,
     TaskUpdateSerializer,
 )
-from apps.tasks.services import MANAGER_ONLY_TRANSITIONS, apply_status_change
+from apps.tasks.services import (
+    MANAGER_ONLY_TRANSITIONS,
+    _broadcast_task_event,
+    apply_status_change,
+)
 
 
 @extend_schema_view(
@@ -84,6 +88,12 @@ from apps.tasks.services import MANAGER_ONLY_TRANSITIONS, apply_status_change
         ),
         responses={200: TaskDetailSerializer, 409: OpenApiResponse(description="Optimistic lock conflict")},
     ),
+    destroy=extend_schema(
+        tags=["Tasks"],
+        summary="Delete a task",
+        description="Manager-only. Permanently deletes a task and cascades to attachments, comments, audit log, and notifications.",
+        responses={204: None, 403: OpenApiResponse(description="Only managers can delete tasks")},
+    ),
 )
 class TaskViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
     queryset = Task.objects.all()
@@ -91,10 +101,10 @@ class TaskViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
     search_fields = ["title", "description"]
     ordering_fields = ["created_at", "deadline", "priority"]
     ordering = ["-created_at"]
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_permissions(self):
-        if self.action == "assign":
+        if self.action in ("assign", "destroy"):
             return [IsManager()]
         if self.action in ("create", "partial_update", "update", "change_status"):
             return [IsManagerOrEngineer()]
@@ -206,6 +216,10 @@ class TaskViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("Engineers can only edit tasks they are assigned to.")
         serializer.save()
+
+    def perform_destroy(self, instance):
+        _broadcast_task_event("task_deleted", instance)
+        instance.delete()
 
     @extend_schema(
         tags=["Tasks"],

@@ -137,6 +137,10 @@ export class TaskService {
     });
   }
 
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}/`);
+  }
+
   deleteAttachment(taskId: number, attachmentId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${taskId}/attachments/${attachmentId}/`);
   }

@@ -30,7 +30,7 @@ describe('TaskListComponent', () => {
   };
 
   beforeEach(async () => {
-    taskService = jasmine.createSpyObj('TaskService', ['list', 'changeStatus']);
+    taskService = jasmine.createSpyObj('TaskService', ['list', 'changeStatus', 'delete']);
     authService = jasmine.createSpyObj('AuthService', ['hasRole', 'hasAnyRole']);
     clientService = jasmine.createSpyObj('ClientService', ['list']);
     taskService.list.and.returnValue(of(mockResponse));
@@ -100,7 +100,7 @@ describe('TaskListComponent', () => {
     it('should have correct columns', () => {
       createComponent();
       expect(component.displayedColumns).toEqual([
-        'title', 'status', 'priority', 'assignees', 'client', 'tags', 'deadline',
+        'title', 'status', 'priority', 'assignees', 'client', 'tags', 'deadline', 'actions',
       ]);
     });
   });

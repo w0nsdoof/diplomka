@@ -17,6 +17,8 @@ import { STATUS_TRANSLATION_KEYS, VALID_TRANSITIONS } from '../../../../core/con
 import { SearchBarComponent } from '../../../../shared/components/search-bar/search-bar.component';
 import { FilterPanelComponent, FilterState } from '../filter-panel/filter-panel.component';
 import { CreateEntityDialogComponent } from '../create-dialog/create-entity-dialog.component';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { MatDividerModule } from '@angular/material/divider';
 
 export interface DisplayRow extends TaskListItem {
   _isSubtaskRow?: boolean;
@@ -28,7 +30,7 @@ export interface DisplayRow extends TaskListItem {
     imports: [
         CommonModule, RouterModule, MatTableModule, MatButtonModule,
         MatIconModule, MatChipsModule, MatPaginatorModule, MatMenuModule, MatSnackBarModule,
-        MatDialogModule, SearchBarComponent, FilterPanelComponent, TranslateModule,
+        MatDialogModule, MatDividerModule, SearchBarComponent, FilterPanelComponent, TranslateModule,
     ],
     template: `
     <div class="page-header">
@@ -92,17 +94,9 @@ export interface DisplayRow extends TaskListItem {
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef>{{ 'common.status' | translate }}</th>
         <td mat-cell *matCellDef="let task">
-          <mat-chip [class]="'status-' + task.status"
-                    [matMenuTriggerFor]="getNextStatuses(task.status).length ? statusMenu : null"
-                    [style.cursor]="getNextStatuses(task.status).length ? 'pointer' : 'default'">
+          <mat-chip [class]="'status-' + task.status">
             {{ statusLabel(task.status) }}
-            <mat-icon *ngIf="getNextStatuses(task.status).length" iconPositionEnd style="font-size:16px;width:16px;height:16px">arrow_drop_down</mat-icon>
           </mat-chip>
-          <mat-menu #statusMenu="matMenu">
-            <button mat-menu-item *ngFor="let s of getNextStatuses(task.status)" (click)="onChangeStatus(task, s)">
-              {{ statusLabel(s) }}
-            </button>
-          </mat-menu>
         </td>
       </ng-container>
 
@@ -152,6 +146,25 @@ export interface DisplayRow extends TaskListItem {
             {{ getOverdueDays(task) }} ({{ task.deadline | date:'mediumDate' }})
           </ng-container>
           <ng-template #normalDeadline>{{ task.deadline | date:'mediumDate' }}</ng-template>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
+        <td mat-cell *matCellDef="let task" class="actions-col">
+          <button mat-icon-button [matMenuTriggerFor]="actionsMenu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #actionsMenu="matMenu">
+            <button mat-menu-item *ngFor="let s of getNextStatuses(task.status)" (click)="onChangeStatus(task, s)">
+              <mat-icon>swap_horiz</mat-icon> {{ statusLabel(s) }}
+            </button>
+            <mat-divider *ngIf="isManager && getNextStatuses(task.status).length"></mat-divider>
+            <button mat-menu-item *ngIf="isManager" class="delete-action" (click)="onDelete(task)">
+              <mat-icon color="warn">delete</mat-icon>
+              <span class="delete-text">{{ 'common.delete' | translate }}</span>
+            </button>
+          </mat-menu>
         </td>
       </ng-container>
 
@@ -215,6 +228,9 @@ export interface DisplayRow extends TaskListItem {
       flex-shrink: 0;
     }
     :host ::ng-deep .subtask-row { background: #f8fafc; }
+    .actions-col { width: 48px; padding: 0 4px !important; text-align: center; }
+    .delete-action { color: #d32f2f; }
+    .delete-text { color: #d32f2f; }
   `],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -226,7 +242,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
   isManager = false;
   canCreate = false;
   statusFilter: string | undefined = undefined;
-  displayedColumns = ['title', 'status', 'priority', 'assignees', 'client', 'tags', 'deadline'];
+  displayedColumns = ['title', 'status', 'priority', 'assignees', 'client', 'tags', 'deadline', 'actions'];
   expandedTasks = new Map<number, TaskListItem[]>();
   computedRows: DisplayRow[] = [];
   private searchTerm = '';
@@ -344,6 +360,37 @@ export class TaskListComponent implements OnInit, OnDestroy {
         const msg = err.error?.detail || this.translate.instant('tasks.failedChangeStatus');
         this.snackBar.open(msg, this.translate.instant('common.close'), { duration: 3000 });
       },
+    });
+  }
+
+  onDelete(task: TaskListItem): void {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      data: {
+        title: this.translate.instant('tasks.deleteTask'),
+        message: this.translate.instant('tasks.deleteTaskConfirm'),
+      },
+    });
+    dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe((confirmed) => {
+      if (confirmed) {
+        this.taskService.delete(task.id).pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => {
+            this.snackBar.open(
+              this.translate.instant('tasks.taskDeleted'),
+              this.translate.instant('common.close'),
+              { duration: 3000 },
+            );
+            this.loadTasks();
+          },
+          error: () => {
+            this.snackBar.open(
+              this.translate.instant('tasks.failedDelete'),
+              this.translate.instant('common.close'),
+              { duration: 3000 },
+            );
+          },
+        });
+      }
     });
   }
 
