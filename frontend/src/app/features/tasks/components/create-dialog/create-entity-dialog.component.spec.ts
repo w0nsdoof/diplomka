@@ -61,7 +61,7 @@ describe('CreateEntityDialogComponent', () => {
     tagServiceSpy.list.and.returnValue(of(emptyPage));
     authServiceSpy.getCurrentUser.and.returnValue({
       id: 1, email: 'mgr@test.com', first_name: 'A', last_name: 'B',
-      role: 'manager', organization_id: 1,
+      role: 'manager', organization_id: 1, language: 'en',
     });
 
     await TestBed.configureTestingModule({

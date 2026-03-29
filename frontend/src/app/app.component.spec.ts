@@ -1,13 +1,24 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
+import { BehaviorSubject } from 'rxjs';
 import { AppComponent } from './app.component';
+import { AuthService, UserInfo } from './core/services/auth.service';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
+    const authService = {
+      ...jasmine.createSpyObj('AuthService', ['getCurrentUser']),
+      currentUser$: new BehaviorSubject<UserInfo | null>(null).asObservable(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter([]), provideTranslateService()],
+      providers: [
+        provideRouter([]),
+        provideTranslateService(),
+        { provide: AuthService, useValue: authService },
+      ],
     }).compileComponents();
   });
 

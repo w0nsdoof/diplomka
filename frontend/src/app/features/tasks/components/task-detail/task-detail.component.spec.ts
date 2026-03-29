@@ -51,7 +51,7 @@ describe('TaskDetailComponent', () => {
     taskServiceSpy.deleteAttachment.and.returnValue(of(undefined));
     authServiceSpy.hasRole.and.returnValue(true);
     authServiceSpy.hasAnyRole.and.returnValue(true);
-    authServiceSpy.getCurrentUser.and.returnValue({ id: 1, email: 'mgr@test.com', first_name: 'A', last_name: 'B', role: 'manager', organization_id: 1 });
+    authServiceSpy.getCurrentUser.and.returnValue({ id: 1, email: 'mgr@test.com', first_name: 'A', last_name: 'B', role: 'manager', organization_id: 1, language: 'en' });
 
     await TestBed.configureTestingModule({
       imports: [TaskDetailComponent],

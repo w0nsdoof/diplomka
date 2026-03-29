@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -20,6 +21,7 @@ describe('LoginComponent', () => {
       imports: [LoginComponent],
       providers: [
         provideNoopAnimations(),
+        provideHttpClient(),
         provideTranslateService(),
         { provide: AuthService, useValue: authService },
         { provide: Router, useValue: router },
@@ -76,7 +78,7 @@ describe('LoginComponent', () => {
 
     it('should call login with form values', () => {
       authService.login.and.returnValue(of({ access: 'a', refresh: 'r' }));
-      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'manager', organization_id: 1 });
+      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'manager', organization_id: 1, language: 'en' });
 
       component.loginForm.patchValue({ email: 'test@test.com', password: 'pass' });
       component.onSubmit();
@@ -86,7 +88,7 @@ describe('LoginComponent', () => {
 
     it('should set loading=true during request', () => {
       authService.login.and.returnValue(of({ access: 'a', refresh: 'r' }));
-      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'manager', organization_id: 1 });
+      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'manager', organization_id: 1, language: 'en' });
 
       component.loginForm.patchValue({ email: 'test@test.com', password: 'pass' });
       component.onSubmit();
@@ -97,7 +99,7 @@ describe('LoginComponent', () => {
 
     it('should navigate to /portal for client role', () => {
       authService.login.and.returnValue(of({ access: 'a', refresh: 'r' }));
-      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'client', organization_id: 2 });
+      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'client', organization_id: 2, language: 'en' });
 
       component.loginForm.patchValue({ email: 'client@test.com', password: 'pass' });
       component.onSubmit();
@@ -107,7 +109,7 @@ describe('LoginComponent', () => {
 
     it('should navigate to /tasks for non-client roles', () => {
       authService.login.and.returnValue(of({ access: 'a', refresh: 'r' }));
-      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'engineer', organization_id: 3 });
+      authService.getCurrentUser.and.returnValue({ id: 1, email: '', first_name: '', last_name: '', role: 'engineer', organization_id: 3, language: 'en' });
 
       component.loginForm.patchValue({ email: 'eng@test.com', password: 'pass' });
       component.onSubmit();

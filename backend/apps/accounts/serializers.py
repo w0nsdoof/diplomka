@@ -15,6 +15,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["last_name"] = user.last_name
         token["role"] = user.role
         token["organization_id"] = user.organization_id
+        token["language"] = user.language
         return token
 
 
@@ -29,7 +30,7 @@ class MeSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "id", "email", "first_name", "last_name", "role",
-            "avatar", "job_title", "skills", "bio",
+            "avatar", "job_title", "skills", "bio", "language",
             "date_joined", "password",
         ]
         read_only_fields = ["id", "email", "role", "date_joined"]

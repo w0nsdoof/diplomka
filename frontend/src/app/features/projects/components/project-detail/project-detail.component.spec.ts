@@ -64,7 +64,7 @@ describe('ProjectDetailComponent', () => {
     authServiceSpy.hasAnyRole.and.returnValue(true);
     authServiceSpy.getCurrentUser.and.returnValue({
       id: 1, email: 'mgr@test.com', first_name: 'A', last_name: 'B',
-      role: 'manager', organization_id: 1,
+      role: 'manager', organization_id: 1, language: 'en',
     });
     clientServiceSpy.list.and.returnValue(of({ count: 0, next: null, previous: null, results: [] }));
     tagServiceSpy.list.and.returnValue(of({ count: 0, next: null, previous: null, results: [] }));

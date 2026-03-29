@@ -287,7 +287,7 @@ LANGUAGE_CODE = "en-us"
 
 USE_I18N = False
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Almaty"
 USE_TZ = True
 
 # Static / Media

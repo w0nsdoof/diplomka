@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -17,7 +18,7 @@ describe('LayoutComponent', () => {
   let profileService: jasmine.SpyObj<ProfileService>;
 
   function setupWithRole(role: 'superadmin' | 'manager' | 'engineer' | 'client') {
-    const user: UserInfo = { id: 1, email: `${role}@test.com`, first_name: 'Test', last_name: 'User', role, organization_id: role === 'superadmin' ? null : 1 };
+    const user: UserInfo = { id: 1, email: `${role}@test.com`, first_name: 'Test', last_name: 'User', role, organization_id: role === 'superadmin' ? null : 1, language: 'en' };
     currentUserSubject.next(user);
     fixture.detectChanges();
   }
@@ -45,6 +46,7 @@ describe('LayoutComponent', () => {
       imports: [LayoutComponent],
       providers: [
         provideNoopAnimations(),
+        provideHttpClient(),
         provideRouter([]),
         provideTranslateService(),
         { provide: AuthService, useValue: authService },

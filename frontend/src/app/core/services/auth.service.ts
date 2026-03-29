@@ -15,6 +15,7 @@ export interface UserInfo {
   last_name: string;
   role: 'superadmin' | 'manager' | 'engineer' | 'client';
   organization_id: number | null;
+  language: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -125,8 +126,10 @@ export class AuthService {
         last_name: payload.last_name || '',
         role: payload.role || 'engineer',
         organization_id: payload.organization_id ?? null,
+        language: payload.language || 'en',
       };
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      localStorage.setItem('app_language', user.language);
       this.currentUserSubject.next(user);
     } catch {
       // Token decode failed

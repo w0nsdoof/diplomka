@@ -46,11 +46,18 @@ class User(AbstractUser):
         blank=True,
         related_name="users",
     )
+    class Language(models.TextChoices):
+        EN = "en", "English"
+        RU = "ru", "Русский"
+
     phone = models.CharField(max_length=40, blank=True, default="")
     avatar = models.ImageField(upload_to="avatars/", blank=True, default="")
     job_title = models.CharField(max_length=150, blank=True, default="")
     skills = models.TextField(blank=True, default="")
     bio = models.TextField(blank=True, default="")
+    language = models.CharField(
+        max_length=5, choices=Language.choices, default=Language.EN,
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["first_name", "last_name"]
