@@ -13,7 +13,7 @@ export interface TaskListItem {
   updated_at: string;
   client: { id: number; name: string } | null;
   assignees: { id: number; first_name: string; last_name: string }[];
-  tags: { id: number; name: string; slug: string; color: string }[];
+  tags: { id: number; name: string; color: string }[];
   comments_count: number;
   attachments_count: number;
   entity_type: string;

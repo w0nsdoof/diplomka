@@ -7,7 +7,7 @@ describe('TagService', () => {
   let service: TagService;
   let httpMock: HttpTestingController;
 
-  const mockTag: Tag = { id: 1, name: 'Bug', slug: 'bug', color: '#ff0000' };
+  const mockTag: Tag = { id: 1, name: 'Bug', color: '#ff0000' };
 
   const mockPaginated: PaginatedResponse<Tag> = {
     count: 1, next: null, previous: null, results: [mockTag],

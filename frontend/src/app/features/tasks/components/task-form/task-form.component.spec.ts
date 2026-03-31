@@ -22,7 +22,7 @@ describe('TaskFormComponent', () => {
   let httpTesting: HttpTestingController;
 
   const mockClients = { count: 1, next: null, previous: null, results: [{ id: 1, name: 'Client A' }] };
-  const mockTags = { count: 1, next: null, previous: null, results: [{ id: 1, name: 'Bug', slug: 'bug', color: '#f00' }] };
+  const mockTags = { count: 1, next: null, previous: null, results: [{ id: 1, name: 'Bug', color: '#f00' }] };
   const mockEngineers = { count: 1, next: null, previous: null, results: [{ id: 2, first_name: 'John', last_name: 'Doe', email: 'john@example.com' }] };
 
   function createComponent(routeParams: any = {}) {
@@ -140,7 +140,7 @@ describe('TaskFormComponent', () => {
     const mockTask = {
       id: 5, title: 'Existing', description: 'Desc', status: 'created',
       priority: 'high', deadline: '2025-06-01', client: { id: 1, name: 'C' },
-      tags: [{ id: 1, name: 'Bug', slug: 'bug' }], assignees: [{ id: 2, first_name: 'John', last_name: 'Doe' }],
+      tags: [{ id: 1, name: 'Bug' }], assignees: [{ id: 2, first_name: 'John', last_name: 'Doe' }],
       created_at: '', updated_at: '', comments_count: 0, attachments_count: 0,
       created_by: { id: 1, first_name: 'A', last_name: 'B' },
       comments: [], attachments: [], history: [], version: 1,

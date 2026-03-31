@@ -12,7 +12,6 @@ export interface ClientBrief {
 export interface TagBrief {
   id: number;
   name: string;
-  slug?: string;
   color: string;
 }
 

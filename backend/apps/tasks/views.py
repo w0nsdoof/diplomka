@@ -52,7 +52,7 @@ from apps.tasks.services import (
         ),
         parameters=[
             OpenApiParameter("assignee", type=int, description="Filter by assignee user ID"),
-            OpenApiParameter("tags", type=str, description="Comma-separated tag slugs"),
+            OpenApiParameter("tags", type=str, description="Comma-separated tag IDs"),
             OpenApiParameter("deadline_from", type=str, description="Filter tasks with deadline >= this date (YYYY-MM-DD)"),
             OpenApiParameter("deadline_to", type=str, description="Filter tasks with deadline <= this date (YYYY-MM-DD)"),
             OpenApiParameter(
@@ -140,8 +140,8 @@ class TaskViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
 
         tags = self.request.query_params.get("tags")
         if tags:
-            tag_slugs = [t.strip() for t in tags.split(",")]
-            qs = qs.filter(tags__slug__in=tag_slugs).distinct()
+            tag_ids = [int(t.strip()) for t in tags.split(",") if t.strip().isdigit()]
+            qs = qs.filter(tags__id__in=tag_ids).distinct()
 
         deadline_from = self.request.query_params.get("deadline_from")
         if deadline_from:

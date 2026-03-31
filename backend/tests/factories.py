@@ -72,7 +72,6 @@ class TagFactory(factory.django.DjangoModelFactory):
         model = Tag
 
     name = factory.Sequence(lambda n: f"tag-{n}")
-    slug = factory.LazyAttribute(lambda o: o.name)
     color = "#6c757d"
     organization = factory.SubFactory(OrganizationFactory)
 

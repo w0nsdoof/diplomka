@@ -13,7 +13,7 @@ from apps.tags.serializers import TagSerializer
     create=extend_schema(
         tags=["Tags"],
         summary="Create a tag",
-        description="Slug is auto-generated from name. Name must be unique within organization.",
+        description="Name must be unique within organization.",
     ),
     retrieve=extend_schema(tags=["Tags"], summary="Get tag details"),
     destroy=extend_schema(tags=["Tags"], summary="Delete a tag", description="Manager-only.", responses={204: None}),

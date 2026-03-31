@@ -49,10 +49,10 @@ class TestTaskList:
         assert resp.data["count"] == 1
 
     def test_filter_by_tags(self, manager_client, manager):
-        tag = TagFactory(name="urgent", slug="urgent")
+        tag = TagFactory(name="urgent")
         TaskFactory(created_by=manager, tags=[tag])
         TaskFactory(created_by=manager)
-        resp = manager_client.get(TASKS_URL, {"tags": "urgent"})
+        resp = manager_client.get(TASKS_URL, {"tags": str(tag.id)})
         assert resp.data["count"] == 1
 
 

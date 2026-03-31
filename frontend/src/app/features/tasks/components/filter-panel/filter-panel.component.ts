@@ -79,8 +79,8 @@ export interface FilterState {
 
       <mat-form-field appearance="outline" class="compact-field">
         <mat-label>{{ 'filters.tags' | translate }}</mat-label>
-        <mat-select [(ngModel)]="selectedTagSlugs" (ngModelChange)="onTagsChange()" multiple>
-          <mat-option *ngFor="let t of tags" [value]="t.slug">{{ t.name }}</mat-option>
+        <mat-select [(ngModel)]="selectedTagIds" (ngModelChange)="onTagsChange()" multiple>
+          <mat-option *ngFor="let t of tags" [value]="t.id">{{ t.name }}</mat-option>
         </mat-select>
       </mat-form-field>
 
@@ -120,7 +120,7 @@ export class FilterPanelComponent implements OnInit, OnDestroy {
   deadlineTo: Date | null = null;
   clients: Client[] = [];
   tags: Tag[] = [];
-  selectedTagSlugs: string[] = [];
+  selectedTagIds: number[] = [];
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -157,8 +157,8 @@ export class FilterPanelComponent implements OnInit, OnDestroy {
   }
 
   onTagsChange(): void {
-    if (this.selectedTagSlugs.length) {
-      this.filters.tags = this.selectedTagSlugs.join(',');
+    if (this.selectedTagIds.length) {
+      this.filters.tags = this.selectedTagIds.join(',');
     } else {
       delete this.filters.tags;
     }
@@ -177,7 +177,7 @@ export class FilterPanelComponent implements OnInit, OnDestroy {
     this.filters = {};
     this.deadlineFrom = null;
     this.deadlineTo = null;
-    this.selectedTagSlugs = [];
+    this.selectedTagIds = [];
     this.filtersChange.emit({});
   }
 

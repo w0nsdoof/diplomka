@@ -7,13 +7,12 @@ from apps.tags.models import Tag
 
 class TagSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=50, help_text="Tag display name. Must be unique within organization.")
-    slug = serializers.SlugField(read_only=True, help_text="Auto-generated URL-friendly slug from name.")
     color = serializers.CharField(required=False, help_text="Hex color code (#RRGGBB). Default: #6c757d.")
 
     class Meta:
         model = Tag
-        fields = ["id", "name", "slug", "color"]
-        read_only_fields = ["id", "slug"]
+        fields = ["id", "name", "color"]
+        read_only_fields = ["id"]
 
     def validate_color(self, value):
         if value and not re.match(r"^#[0-9a-fA-F]{6}$", value):

@@ -6,7 +6,6 @@ import { environment } from '../../../environments/environment';
 export interface Tag {
   id: number;
   name: string;
-  slug: string;
   color: string;
 }
 

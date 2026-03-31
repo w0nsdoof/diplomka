@@ -63,11 +63,6 @@ import { SearchBarComponent } from '../../shared/components/search-bar/search-ba
         <td mat-cell *matCellDef="let tag">{{ tag.name }}</td>
       </ng-container>
 
-      <ng-container matColumnDef="slug">
-        <th mat-header-cell *matHeaderCellDef>{{ 'common.slug' | translate }}</th>
-        <td mat-cell *matCellDef="let tag">{{ tag.slug }}</td>
-      </ng-container>
-
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | translate }}</th>
         <td mat-cell *matCellDef="let tag">
@@ -97,7 +92,7 @@ import { SearchBarComponent } from '../../shared/components/search-bar/search-ba
 })
 export class TagManagementComponent implements OnInit, OnDestroy {
   tags: Tag[] = [];
-  columns = ['color', 'name', 'slug', 'actions'];
+  columns = ['color', 'name', 'actions'];
   showCreateForm = false;
   newTag = { name: '', color: '#6c757d' };
   private searchTerm = '';
