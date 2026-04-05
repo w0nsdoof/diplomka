@@ -20,7 +20,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { Subject, interval, switchMap, takeUntil, takeWhile } from 'rxjs';
+import { Subject, forkJoin, interval, of, switchMap, takeUntil, takeWhile } from 'rxjs';
 import { ProjectService } from '../../../../core/services/project.service';
 import { ClientService, Client } from '../../../../core/services/client.service';
 import { TagService, Tag } from '../../../../core/services/tag.service';
@@ -571,34 +571,38 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
   }
 
   private openPreviewDialog(tasks: any[]): void {
-    // Collect team members and tags for the dialog
-    const teamMembers: UserBrief[] = this.epic?.project
-      ? (this.users || []).map(u => ({ id: u.id, first_name: u.first_name, last_name: u.last_name }))
-      : [];
-    const tagBriefs: TagBrief[] = (this.tags || []).map(t => ({ id: t.id, name: t.name, color: (t as any).color || '#6c757d' }));
+    const projectId = this.epic?.project?.id;
 
-    // Load team data if not already loaded
-    if (teamMembers.length === 0 || tagBriefs.length === 0) {
-      this.loadDropdownData();
-    }
+    const team$ = projectId
+      ? this.projectService.getProject(projectId)
+      : of(null);
+    const tags$ = this.tags?.length
+      ? of(this.tags)
+      : this.tagService.list();
 
-    const dialogData: AiTaskPreviewDialogData = {
-      tasks,
-      teamMembers: teamMembers.length > 0 ? teamMembers : [],
-      tags: tagBriefs.length > 0 ? tagBriefs : [],
-      epicId: this.epicId,
-    };
+    forkJoin([team$, tags$]).pipe(takeUntil(this.destroy$)).subscribe(([projectOrNull, tagsResult]) => {
+      const teamMembers: UserBrief[] = projectOrNull?.team ?? [];
+      const tagBriefs: TagBrief[] = (Array.isArray(tagsResult) ? tagsResult : (tagsResult as any)?.results ?? [])
+        .map((t: any) => ({ id: t.id, name: t.name, color: t.color || '#6c757d' }));
 
-    const dialogRef = this.dialog.open(AiTaskPreviewDialogComponent, {
-      width: '800px',
-      data: dialogData,
-      disableClose: true,
-    });
+      const dialogData: AiTaskPreviewDialogData = {
+        tasks,
+        teamMembers,
+        tags: tagBriefs,
+        epicId: this.epicId,
+      };
 
-    dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
-      if (result) {
-        this.loadTasks();
-      }
+      const dialogRef = this.dialog.open(AiTaskPreviewDialogComponent, {
+        width: '800px',
+        data: dialogData,
+        disableClose: true,
+      });
+
+      dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
+        if (result) {
+          this.loadTasks();
+        }
+      });
     });
   }
 
