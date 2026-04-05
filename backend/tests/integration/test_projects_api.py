@@ -4,7 +4,6 @@ from apps.projects.models import Project
 from tests.factories import (
     EngineerFactory,
     ProjectFactory,
-    TagFactory,
 )
 
 PROJECTS_URL = "/api/projects/"

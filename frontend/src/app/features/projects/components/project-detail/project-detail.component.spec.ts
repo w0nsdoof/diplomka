@@ -21,7 +21,7 @@ describe('ProjectDetailComponent', () => {
 
   const mockProject = {
     id: 1, title: 'Test Project', status: 'created', priority: 'high',
-    deadline: '2025-12-31', assignee: null, client: null, tags: [],
+    deadline: '2025-12-31', assignee: null, client: null, tags: [], team: [],
     epics_count: 2, created_at: '2025-01-01', updated_at: '2025-01-01',
     description: 'A test project',
     created_by: { id: 1, first_name: 'A', last_name: 'B' },

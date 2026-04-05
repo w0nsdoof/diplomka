@@ -5,7 +5,6 @@ from tests.factories import (
     ClientFactory,
     ClientUserFactory,
     EngineerFactory,
-    EpicFactory,
     ManagerFactory,
     OrganizationFactory,
     ProjectFactory,

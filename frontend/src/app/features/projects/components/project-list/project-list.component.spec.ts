@@ -21,7 +21,7 @@ describe('ProjectListComponent', () => {
     count: 1, next: null, previous: null,
     results: [{
       id: 1, title: 'Test Project', status: 'created', priority: 'high',
-      deadline: '2025-12-31', assignee: null, client: null, tags: [],
+      deadline: '2025-12-31', assignee: null, client: null, tags: [], team: [],
       epics_count: 2, created_at: '2025-01-01', updated_at: '2025-01-01',
     }],
   };
