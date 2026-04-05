@@ -1,0 +1,332 @@
+openapi: "3.0.3"
+info:
+  title: AI Epic Task Generation API
+  version: "1.0.0"
+  description: >
+    Endpoints for AI-powered task generation from Epics.
+    All endpoints require JWT authentication and manager role.
+
+paths:
+  /api/epics/{id}/generate-tasks/:
+    post:
+      operationId: epic_generate_tasks
+      tags: [Epics, AI]
+      summary: Trigger AI task generation for an Epic
+      description: >
+        Manager-only. Validates the Epic has a title and description,
+        acquires a Redis lock to prevent concurrent generation,
+        dispatches a Celery task for LLM-based task generation, and
+        returns the Celery task ID for polling.
+      parameters:
+        - $ref: "#/components/parameters/EpicId"
+      responses:
+        "202":
+          description: Generation started. Poll the status endpoint with the returned task_id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateTasksAccepted"
+              example:
+                task_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        "400":
+          description: Epic is missing title or description.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                detail: "Epic must have a non-empty title and description to generate tasks."
+                code: "validation_error"
+        "403":
+          description: User is not a manager.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                detail: "You do not have permission to perform this action."
+        "404":
+          description: Epic not found.
+        "409":
+          description: Generation already in progress for this Epic.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                detail: "Task generation is already in progress for this epic."
+                code: "generation_in_progress"
+
+  /api/epics/{id}/generate-tasks/status/:
+    get:
+      operationId: epic_generate_tasks_status
+      tags: [Epics, AI]
+      summary: Poll task generation status
+      description: >
+        Manager-only. Checks the status of a previously triggered Celery task.
+        Returns the current status and, when completed, the generated task list.
+      parameters:
+        - $ref: "#/components/parameters/EpicId"
+        - name: task_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Celery task ID returned by the generate-tasks endpoint.
+      responses:
+        "200":
+          description: Current generation status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateTasksStatus"
+              examples:
+                pending:
+                  summary: Generation still in progress
+                  value:
+                    status: "pending"
+                    result: null
+                completed:
+                  summary: Generation completed
+                  value:
+                    status: "completed"
+                    result:
+                      tasks:
+                        - title: "Set up database schema"
+                          description: "Create the PostgreSQL tables and indexes needed for the new feature."
+                          priority: "high"
+                          assignee_id: 5
+                          tag_ids: [1, 3]
+                        - title: "Implement REST API endpoints"
+                          description: "Build CRUD endpoints for the new resource with proper validation."
+                          priority: "medium"
+                          assignee_id: 7
+                          tag_ids: [1]
+                      generation_meta:
+                        model: "openai/gpt-4o-mini"
+                        prompt_tokens: 1250
+                        completion_tokens: 680
+                        generation_time_ms: 4200
+                failed:
+                  summary: Generation failed
+                  value:
+                    status: "failed"
+                    error: "LLM service unavailable. Please try again."
+        "400":
+          description: Missing or invalid task_id parameter.
+        "403":
+          description: User is not a manager.
+        "404":
+          description: Epic not found.
+
+  /api/epics/{id}/confirm-tasks/:
+    post:
+      operationId: epic_confirm_tasks
+      tags: [Epics, AI]
+      summary: Confirm and create AI-generated tasks
+      description: >
+        Manager-only. Receives the (possibly edited) task list from
+        the preview dialog and creates all tasks under the Epic.
+        Triggers standard notification flows for assigned engineers.
+        Wrapped in a database transaction (all-or-nothing).
+      parameters:
+        - $ref: "#/components/parameters/EpicId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmTasksRequest"
+            example:
+              tasks:
+                - title: "Set up database schema"
+                  description: "Create the PostgreSQL tables and indexes."
+                  priority: "high"
+                  assignee_id: 5
+                  tag_ids: [1, 3]
+                - title: "Implement REST API endpoints"
+                  description: "Build CRUD endpoints with validation."
+                  priority: "medium"
+                  assignee_id: null
+                  tag_ids: [1]
+      responses:
+        "201":
+          description: All tasks created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmTasksResponse"
+              example:
+                created_count: 2
+                tasks:
+                  - id: 101
+                    title: "Set up database schema"
+                    status: "created"
+                  - id: 102
+                    title: "Implement REST API endpoints"
+                    status: "created"
+        "400":
+          description: Validation error (empty list, invalid fields).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                detail: "Task list must contain at least one task."
+                code: "validation_error"
+        "403":
+          description: User is not a manager.
+        "404":
+          description: Epic not found.
+
+components:
+  parameters:
+    EpicId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Epic ID.
+
+  schemas:
+    GenerateTasksAccepted:
+      type: object
+      required: [task_id]
+      properties:
+        task_id:
+          type: string
+          format: uuid
+          description: Celery task ID for polling.
+
+    GenerateTasksStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          description: Current generation status.
+        result:
+          type: object
+          nullable: true
+          description: Present when status is "completed".
+          properties:
+            tasks:
+              type: array
+              items:
+                $ref: "#/components/schemas/GeneratedTask"
+            generation_meta:
+              $ref: "#/components/schemas/GenerationMeta"
+        error:
+          type: string
+          nullable: true
+          description: Present when status is "failed".
+
+    GeneratedTask:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          description: Task title (AI-generated).
+        description:
+          type: string
+          default: ""
+          description: Task description (AI-generated).
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          default: medium
+          description: Task priority.
+        assignee_id:
+          type: integer
+          nullable: true
+          description: Suggested assignee user ID (from project team), or null.
+        tag_ids:
+          type: array
+          items:
+            type: integer
+          default: []
+          description: Suggested tag IDs (from organization tag set).
+
+    GenerationMeta:
+      type: object
+      properties:
+        model:
+          type: string
+          description: LLM model used for generation.
+        prompt_tokens:
+          type: integer
+          nullable: true
+        completion_tokens:
+          type: integer
+          nullable: true
+        generation_time_ms:
+          type: integer
+          nullable: true
+
+    ConfirmTasksRequest:
+      type: object
+      required: [tasks]
+      properties:
+        tasks:
+          type: array
+          minItems: 1
+          maxItems: 15
+          items:
+            $ref: "#/components/schemas/ConfirmTaskItem"
+
+    ConfirmTaskItem:
+      type: object
+      required: [title, priority]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          minLength: 1
+        description:
+          type: string
+          default: ""
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        assignee_id:
+          type: integer
+          nullable: true
+          description: Must be an active engineer in the project team.
+        tag_ids:
+          type: array
+          items:
+            type: integer
+          default: []
+          description: Must be valid tag IDs in the organization.
+
+    ConfirmTasksResponse:
+      type: object
+      required: [created_count, tasks]
+      properties:
+        created_count:
+          type: integer
+          description: Number of tasks created.
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              title:
+                type: string
+              status:
+                type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        code:
+          type: string

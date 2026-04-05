@@ -12,6 +12,9 @@ import {
   EpicCreatePayload,
   EpicUpdatePayload,
   PaginatedResponse,
+  GeneratedTask,
+  GenerationStatus,
+  ConfirmTasksResponse,
 } from '../models/hierarchy.models';
 
 export interface ProjectFilters {
@@ -132,5 +135,21 @@ export class ProjectService {
 
   deleteEpic(id: number): Observable<void> {
     return this.http.delete<void>(`${this.epicsUrl}/${id}/`);
+  }
+
+  // ── AI Task Generation ────────────────────────────────────────────
+
+  generateEpicTasks(epicId: number): Observable<{ task_id: string }> {
+    return this.http.post<{ task_id: string }>(`${this.epicsUrl}/${epicId}/generate-tasks/`, {});
+  }
+
+  pollGenerationStatus(epicId: number, taskId: string): Observable<GenerationStatus> {
+    return this.http.get<GenerationStatus>(`${this.epicsUrl}/${epicId}/generate-tasks/status/`, {
+      params: { task_id: taskId },
+    });
+  }
+
+  confirmEpicTasks(epicId: number, tasks: GeneratedTask[]): Observable<ConfirmTasksResponse> {
+    return this.http.post<ConfirmTasksResponse>(`${this.epicsUrl}/${epicId}/confirm-tasks/`, { tasks });
   }
 }

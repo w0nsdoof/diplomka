@@ -144,7 +144,15 @@
     "project": "Проект",
     "tasks": "Задачи",
     "addTask": "Добавить задачу",
-    "noTasks": "Нет задач."
+    "noTasks": "Нет задач.",
+    "generateTasks": "Сгенерировать задачи с ИИ",
+    "generating": "Генерация задач...",
+    "generationFailed": "Ошибка генерации задач. Попробуйте ещё раз.",
+    "generationInProgress": "Генерация уже выполняется",
+    "previewTitle": "Просмотр сгенерированных задач",
+    "confirmTasks": "Подтвердить и создать",
+    "tasksCreated": "{count} задач успешно создано",
+    "noTasksToConfirm": "Добавьте хотя бы одну задачу для подтверждения"
   },
   "clients": {
     "title": "Клиенты",

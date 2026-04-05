@@ -576,3 +576,65 @@ class EpicStatusChangeSerializer(serializers.Serializer):
         choices=Epic.Status.choices,
         help_text="Target status. Any transition is allowed (manager-only).",
     )
+
+
+# ---------------------------------------------------------------------------
+# AI Task Generation serializers
+# ---------------------------------------------------------------------------
+
+class ConfirmTaskItemSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=255)
+    description = serializers.CharField(required=False, default="", allow_blank=True)
+    priority = serializers.ChoiceField(choices=["low", "medium", "high", "critical"])
+    assignee_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    tag_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list,
+    )
+
+
+class ConfirmTasksSerializer(serializers.Serializer):
+    tasks = serializers.ListField(
+        child=ConfirmTaskItemSerializer(),
+        min_length=1,
+        max_length=15,
+    )
+
+    def validate_tasks(self, value):
+        # Collect all referenced assignee/tag IDs for bulk validation
+        epic = self.context["epic"]
+        project = epic.project
+
+        # Validate assignee_ids against project team (active engineers)
+        all_assignee_ids = {
+            item["assignee_id"]
+            for item in value
+            if item.get("assignee_id") is not None
+        }
+        valid_team_ids = set()
+        if project and all_assignee_ids:
+            valid_team_ids = set(
+                project.team.filter(
+                    role="engineer", is_active=True, pk__in=all_assignee_ids,
+                ).values_list("pk", flat=True)
+            )
+
+        # Validate tag_ids against organization
+        all_tag_ids = set()
+        for item in value:
+            all_tag_ids.update(item.get("tag_ids", []))
+        valid_tag_ids = set()
+        if all_tag_ids:
+            valid_tag_ids = set(
+                Tag.objects.filter(
+                    pk__in=all_tag_ids, organization=epic.organization,
+                ).values_list("pk", flat=True)
+            )
+
+        # Silently drop invalid assignees and tags per FR-013/FR-018
+        for item in value:
+            if item.get("assignee_id") is not None and item["assignee_id"] not in valid_team_ids:
+                item["assignee_id"] = None
+            if item.get("tag_ids"):
+                item["tag_ids"] = [tid for tid in item["tag_ids"] if tid in valid_tag_ids]
+
+        return value

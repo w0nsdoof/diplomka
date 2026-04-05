@@ -1,3 +1,6 @@
+from celery.result import AsyncResult
+from django.conf import settings
+from django.db import transaction
 from django.db.models import Count, Q
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -6,6 +9,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
     inline_serializer,
 )
+from redis import Redis
 from rest_framework import serializers as drf_serializers
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -17,6 +21,7 @@ from apps.organizations.mixins import OrganizationQuerySetMixin
 from apps.projects.models import Epic, Project
 from apps.projects.serializers import (
     AssigneeSerializer,
+    ConfirmTasksSerializer,
     EpicCreateEngineerSerializer,
     EpicCreateSerializer,
     EpicDetailSerializer,
@@ -281,7 +286,7 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ("create", "partial_update", "update", "change_status"):
             return [IsManagerOrEngineer()]
-        if self.action == "destroy":
+        if self.action in ("destroy", "generate_tasks", "generate_tasks_status", "confirm_tasks"):
             return [IsManager()]
         return [IsManagerOrReadOnly()]
 
@@ -464,3 +469,209 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
             for e in page
         ]
         return self.get_paginated_response(data)
+
+    # ------------------------------------------------------------------
+    # AI Task Generation actions
+    # ------------------------------------------------------------------
+
+    @extend_schema(
+        tags=["Epics", "AI"],
+        summary="Trigger AI task generation for an Epic",
+        description=(
+            "Manager-only. Validates the Epic has a title and description, "
+            "acquires a Redis lock to prevent concurrent generation, "
+            "dispatches a Celery task for LLM-based task generation, "
+            "and returns the Celery task ID for polling."
+        ),
+        request=None,
+        responses={
+            202: inline_serializer("GenerateTasksAccepted", fields={
+                "task_id": drf_serializers.CharField(),
+            }),
+            400: OpenApiResponse(description="Epic is missing title or description"),
+            403: OpenApiResponse(description="User is not a manager"),
+            404: OpenApiResponse(description="Epic not found"),
+            409: OpenApiResponse(description="Generation already in progress"),
+        },
+    )
+    @action(detail=True, methods=["post"], url_path="generate-tasks")
+    def generate_tasks(self, request, pk=None):
+        epic = self.get_object()
+
+        if not epic.title or not epic.title.strip() or not epic.description or not epic.description.strip():
+            return Response(
+                {
+                    "detail": "Epic must have a non-empty title and description to generate tasks.",
+                    "code": "validation_error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        redis_client = Redis.from_url(settings.CELERY_BROKER_URL)
+        lock_key = f"epic_generate:{epic.id}"
+        acquired = redis_client.set(lock_key, "1", nx=True, ex=120)
+        if not acquired:
+            return Response(
+                {
+                    "detail": "Task generation is already in progress for this epic.",
+                    "code": "generation_in_progress",
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        from apps.projects.tasks import generate_epic_tasks
+
+        result = generate_epic_tasks.delay(epic.id)
+        return Response({"task_id": result.id}, status=status.HTTP_202_ACCEPTED)
+
+    @extend_schema(
+        tags=["Epics", "AI"],
+        summary="Poll task generation status",
+        description=(
+            "Manager-only. Checks the status of a previously triggered Celery task. "
+            "Returns the current status and, when completed, the generated task list."
+        ),
+        parameters=[
+            OpenApiParameter(
+                "task_id", type=str, required=True,
+                description="Celery task ID returned by generate-tasks",
+            ),
+        ],
+        responses={
+            200: inline_serializer("GenerateTasksStatus", fields={
+                "status": drf_serializers.CharField(),
+                "result": drf_serializers.DictField(allow_null=True),
+                "error": drf_serializers.CharField(allow_null=True),
+            }),
+            400: OpenApiResponse(description="Missing task_id"),
+            403: OpenApiResponse(description="User is not a manager"),
+            404: OpenApiResponse(description="Epic not found"),
+        },
+    )
+    @action(detail=True, methods=["get"], url_path="generate-tasks/status")
+    def generate_tasks_status(self, request, pk=None):
+        self.get_object()  # validate epic exists + permissions
+
+        task_id = request.query_params.get("task_id")
+        if not task_id:
+            return Response(
+                {"detail": "Missing required query parameter: task_id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = AsyncResult(task_id)
+        state = result.state
+
+        status_map = {
+            "PENDING": "pending",
+            "STARTED": "processing",
+            "SUCCESS": "completed",
+            "FAILURE": "failed",
+        }
+        mapped_status = status_map.get(state, "pending")
+
+        response_data = {"status": mapped_status, "result": None, "error": None}
+
+        if state == "SUCCESS":
+            response_data["result"] = result.result
+        elif state == "FAILURE":
+            response_data["error"] = (
+                str(result.result) if result.result else "Task generation failed."
+            )
+
+        return Response(response_data)
+
+    @extend_schema(
+        tags=["Epics", "AI"],
+        summary="Confirm and create AI-generated tasks",
+        description=(
+            "Manager-only. Receives the (possibly edited) task list from the preview dialog "
+            "and creates all tasks under the Epic. Triggers standard notification flows "
+            "for assigned engineers. Wrapped in a database transaction."
+        ),
+        request=ConfirmTasksSerializer,
+        responses={
+            201: inline_serializer("ConfirmTasksResponse", fields={
+                "created_count": drf_serializers.IntegerField(),
+                "tasks": drf_serializers.ListField(child=drf_serializers.DictField()),
+            }),
+            400: OpenApiResponse(description="Validation error"),
+            403: OpenApiResponse(description="User is not a manager"),
+            404: OpenApiResponse(description="Epic not found"),
+        },
+    )
+    @action(detail=True, methods=["post"], url_path="confirm-tasks")
+    def confirm_tasks(self, request, pk=None):
+        epic = self.get_object()
+        serializer = ConfirmTasksSerializer(data=request.data, context={"epic": epic})
+        serializer.is_valid(raise_exception=True)
+
+        from apps.audit.services import create_audit_entry
+        from apps.notifications.services import create_notification
+        from apps.tasks.models import Task
+        from apps.telegram.templates import build_telegram_context
+
+        task_items = serializer.validated_data["tasks"]
+        created_tasks = []
+
+        with transaction.atomic():
+            for item in task_items:
+                task = Task.objects.create(
+                    title=item["title"],
+                    description=item.get("description", ""),
+                    priority=item["priority"],
+                    status="created",
+                    epic=epic,
+                    organization=epic.organization,
+                    client=epic.client,
+                    created_by=request.user,
+                )
+
+                assignee_id = item.get("assignee_id")
+                if assignee_id:
+                    task.assignees.set([assignee_id])
+
+                tag_ids = item.get("tag_ids", [])
+                if tag_ids:
+                    task.tags.set(tag_ids)
+
+                create_audit_entry(
+                    task=task,
+                    actor=request.user,
+                    action=AuditLogEntry.Action.FIELD_UPDATE,
+                    field_name="task",
+                    new_value=f"Task '{task.title}' created via AI generation",
+                )
+
+                # Notify assigned engineer (skip if assignee is the current user)
+                if assignee_id and assignee_id != request.user.pk:
+                    from apps.accounts.models import User
+
+                    try:
+                        assignee = User.objects.get(pk=assignee_id)
+                        ctx = build_telegram_context(
+                            event_type="task_assigned",
+                            task=task,
+                            actor=request.user,
+                        )
+                        create_notification(
+                            recipient=assignee,
+                            event_type="task_assigned",
+                            task=task,
+                            message=f"You have been assigned to task '{task.title}'",
+                            actor=request.user,
+                            telegram_context=ctx,
+                        )
+                    except User.DoesNotExist:
+                        pass
+
+                created_tasks.append({
+                    "id": task.id,
+                    "title": task.title,
+                    "status": task.status,
+                })
+
+        return Response(
+            {"created_count": len(created_tasks), "tasks": created_tasks},
+            status=status.HTTP_201_CREATED,
+        )

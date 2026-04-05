@@ -108,3 +108,35 @@ export interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
+
+// AI Task Generation types
+export interface GeneratedTask {
+  title: string;
+  description: string;
+  priority: string;
+  assignee_id: number | null;
+  tag_ids: number[];
+}
+
+export interface GenerationMeta {
+  model: string;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  generation_time_ms: number | null;
+}
+
+export interface GenerationResult {
+  tasks: GeneratedTask[];
+  generation_meta: GenerationMeta;
+}
+
+export interface GenerationStatus {
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  result?: GenerationResult;
+  error?: string;
+}
+
+export interface ConfirmTasksResponse {
+  created_count: number;
+  tasks: { id: number; title: string; status: string }[];
+}

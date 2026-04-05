@@ -144,7 +144,15 @@
     "project": "Project",
     "tasks": "Tasks",
     "addTask": "Add Task",
-    "noTasks": "No tasks yet."
+    "noTasks": "No tasks yet.",
+    "generateTasks": "Generate Tasks with AI",
+    "generating": "Generating tasks...",
+    "generationFailed": "Task generation failed. Please try again.",
+    "generationInProgress": "Generation already in progress",
+    "previewTitle": "Review Generated Tasks",
+    "confirmTasks": "Confirm & Create",
+    "tasksCreated": "{count} tasks created successfully",
+    "noTasksToConfirm": "Add at least one task to confirm"
   },
   "clients": {
     "title": "Clients",

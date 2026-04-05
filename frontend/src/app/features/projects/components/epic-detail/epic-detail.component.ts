@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule, MatTabChangeEvent } from '@angular/material/tabs';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -19,12 +20,13 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, interval, switchMap, takeUntil, takeWhile } from 'rxjs';
 import { ProjectService } from '../../../../core/services/project.service';
 import { ClientService, Client } from '../../../../core/services/client.service';
 import { TagService, Tag } from '../../../../core/services/tag.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { EpicDetail, EpicUpdatePayload, ProjectListItem, ParentContext } from '../../../../core/models/hierarchy.models';
+import { EpicDetail, EpicUpdatePayload, ProjectListItem, ParentContext, UserBrief, TagBrief } from '../../../../core/models/hierarchy.models';
+import { AiTaskPreviewDialogComponent, AiTaskPreviewDialogData } from '../ai-task-preview/ai-task-preview-dialog.component';
 import { STATUS_TRANSLATION_KEYS } from '../../../../core/constants/task-status';
 import { CreateEntityDialogComponent } from '../../../tasks/components/create-dialog/create-entity-dialog.component';
 import { ParentBreadcrumbComponent, BreadcrumbItem } from '../../../../shared/components/parent-breadcrumb/parent-breadcrumb.component';
@@ -45,7 +47,7 @@ const ALL_STATUSES = ['created', 'in_progress', 'waiting', 'done', 'archived'];
   imports: [
     CommonModule, RouterModule, ReactiveFormsModule, MatCardModule, MatChipsModule,
     MatButtonModule, MatIconModule, MatDividerModule, MatTabsModule,
-    MatProgressBarModule, MatMenuModule, MatSnackBarModule, MatDialogModule,
+    MatProgressBarModule, MatProgressSpinnerModule, MatMenuModule, MatSnackBarModule, MatDialogModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatDatepickerModule, MatNativeDateModule, TranslateModule,
     ParentBreadcrumbComponent,
@@ -256,6 +258,15 @@ const ALL_STATUSES = ['created', 'in_progress', 'waiting', 'done', 'archived'];
               <button class="flat-btn-primary" *ngIf="canEdit" (click)="openAddTaskDialog()">
                 <mat-icon>add</mat-icon> {{ 'epics.addTask' | translate }}
               </button>
+              <button class="flat-btn-outline" *ngIf="isManager && !isGenerating"
+                      (click)="onGenerateTasks()"
+                      [disabled]="!epic?.title || !epic?.description">
+                <mat-icon>auto_awesome</mat-icon> {{ 'epics.generateTasks' | translate }}
+              </button>
+              <span *ngIf="isGenerating" class="generating-indicator">
+                <mat-spinner diameter="20"></mat-spinner>
+                <span>{{ 'epics.generating' | translate }}</span>
+              </span>
             </div>
             <div *ngIf="tasks.length; else noTasks" class="child-list">
               <div *ngFor="let task of tasks" class="child-item">
@@ -374,7 +385,11 @@ const ALL_STATUSES = ['created', 'in_progress', 'waiting', 'done', 'archived'];
 
     /* Tab content */
     .tab-content { padding: 16px 0; }
-    .tab-header { margin-bottom: 12px; }
+    .tab-header { margin-bottom: 12px; display: flex; gap: 12px; align-items: center; }
+    .generating-indicator {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text-secondary, #6b7280);
+    }
     .empty-message { color: #9ca3af; padding: 16px 0; }
 
     /* Child list (tasks) */
@@ -416,6 +431,7 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
   canEdit = false;
   editMode = false;
   saving = false;
+  isGenerating = false;
   editForm!: FormGroup;
 
   // Tasks
@@ -482,6 +498,103 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
       width: '600px',
       data: parentContext,
     });
+    dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
+      if (result) {
+        this.loadTasks();
+      }
+    });
+  }
+
+  onGenerateTasks(): void {
+    if (!this.epic || this.isGenerating) return;
+    this.isGenerating = true;
+    this.cdr.markForCheck();
+
+    this.projectService.generateEpicTasks(this.epicId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        this.pollGeneration(res.task_id);
+      },
+      error: (err) => {
+        this.isGenerating = false;
+        this.cdr.markForCheck();
+        if (err.status === 409) {
+          this.snackBar.open(
+            this.translate.instant('epics.generationInProgress'),
+            this.translate.instant('common.close'),
+            { duration: 3000 },
+          );
+        } else {
+          this.snackBar.open(
+            this.translate.instant('epics.generationFailed'),
+            this.translate.instant('common.close'),
+            { duration: 4000 },
+          );
+        }
+      },
+    });
+  }
+
+  private pollGeneration(taskId: string): void {
+    let pollCount = 0;
+    interval(1000).pipe(
+      takeUntil(this.destroy$),
+      switchMap(() => {
+        pollCount++;
+        // Back off to 3s interval after 10 polls
+        if (pollCount > 10 && pollCount % 3 !== 0) {
+          return [];
+        }
+        return this.projectService.pollGenerationStatus(this.epicId, taskId);
+      }),
+      takeWhile((status) => status.status === 'pending' || status.status === 'processing', true),
+    ).subscribe({
+      next: (genStatus) => {
+        if (genStatus.status === 'completed' && genStatus.result) {
+          this.isGenerating = false;
+          this.cdr.markForCheck();
+          this.openPreviewDialog(genStatus.result.tasks);
+        } else if (genStatus.status === 'failed') {
+          this.isGenerating = false;
+          this.cdr.markForCheck();
+          this.snackBar.open(
+            genStatus.error || this.translate.instant('epics.generationFailed'),
+            this.translate.instant('common.close'),
+            { duration: 4000 },
+          );
+        }
+      },
+      error: () => {
+        this.isGenerating = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private openPreviewDialog(tasks: any[]): void {
+    // Collect team members and tags for the dialog
+    const teamMembers: UserBrief[] = this.epic?.project
+      ? (this.users || []).map(u => ({ id: u.id, first_name: u.first_name, last_name: u.last_name }))
+      : [];
+    const tagBriefs: TagBrief[] = (this.tags || []).map(t => ({ id: t.id, name: t.name, color: (t as any).color || '#6c757d' }));
+
+    // Load team data if not already loaded
+    if (teamMembers.length === 0 || tagBriefs.length === 0) {
+      this.loadDropdownData();
+    }
+
+    const dialogData: AiTaskPreviewDialogData = {
+      tasks,
+      teamMembers: teamMembers.length > 0 ? teamMembers : [],
+      tags: tagBriefs.length > 0 ? tagBriefs : [],
+      epicId: this.epicId,
+    };
+
+    const dialogRef = this.dialog.open(AiTaskPreviewDialogComponent, {
+      width: '800px',
+      data: dialogData,
+      disableClose: true,
+    });
+
     dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result) => {
       if (result) {
         this.loadTasks();

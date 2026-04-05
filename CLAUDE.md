@@ -55,6 +55,8 @@ Known bugs and issues are tracked in [ISSUES.md](ISSUES.md). When fixing an issu
 - Python 3.13 (Django 6.0 / DRF 3.16), Angular 19 (TypeScript 5.8) + Django REST Framework, djangorestframework-simplejwt, LiteLLM, Django Channels, Angular Material 19, factory-boy
 - PostgreSQL 16 (shared database, organization FK discriminator), Redis 7 (Celery broker, cache, channel layer)
 - Python 3.13, Django 6.0 / DRF 3.16 (backend); TypeScript 5.8, Angular 19 (frontend) + Django REST Framework 3.16, drf-spectacular, Angular Material 19, Angular CDK (007-work-hierarchy)
+- Python 3.13 (Django 6.0 / DRF 3.16), TypeScript 5.8 (Angular 19) + LiteLLM (existing), Celery 5.6+ (existing), Redis 7 (existing), Angular Material 19 (existing), drf-spectacular (existing) (008-ai-epic-tasks)
+- PostgreSQL 16 (no new models needed — uses existing Task, Epic, User, Tag, Project models) (008-ai-epic-tasks)
 
 ## Recent Changes
 - project-team: Added `team` M2M field on Project model — managers can assign team members to projects via create/edit forms; team displayed in project detail with avatar pills
