@@ -16,6 +16,8 @@ from apps.tags.serializers import TagSerializer
         description="Name must be unique within organization.",
     ),
     retrieve=extend_schema(tags=["Tags"], summary="Get tag details"),
+    update=extend_schema(tags=["Tags"], summary="Update a tag", description="Manager-only. Replace all fields."),
+    partial_update=extend_schema(tags=["Tags"], summary="Partially update a tag", description="Manager-only."),
     destroy=extend_schema(tags=["Tags"], summary="Delete a tag", description="Manager-only.", responses={204: None}),
 )
 class TagViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
@@ -23,10 +25,10 @@ class TagViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
     serializer_class = TagSerializer
     search_fields = ["name"]
     ordering = ["name"]
-    http_method_names = ["get", "post", "delete", "head", "options"]
+    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
     def get_permissions(self):
-        if self.action == "destroy":
+        if self.action in ("update", "partial_update", "destroy"):
             return [IsManager()]
         return [IsAuthenticated()]
 

@@ -76,6 +76,7 @@ class TaskListSerializer(serializers.ModelSerializer):
     client = ClientBriefSerializer(read_only=True)
     assignees = AssigneeSerializer(many=True, read_only=True)
     tags = TagBriefSerializer(many=True, read_only=True)
+    created_by = AssigneeSerializer(read_only=True)
     comments_count = serializers.IntegerField(read_only=True, default=0, help_text="Number of comments on this task.")
     attachments_count = serializers.IntegerField(read_only=True, default=0, help_text="Number of attachments on this task.")
     entity_type = serializers.SerializerMethodField()
@@ -87,7 +88,7 @@ class TaskListSerializer(serializers.ModelSerializer):
         model = Task
         fields = [
             "id", "title", "status", "priority", "deadline",
-            "created_at", "updated_at", "client", "assignees", "tags",
+            "created_at", "updated_at", "created_by", "client", "assignees", "tags",
             "comments_count", "attachments_count",
             "entity_type", "epic", "parent_task", "subtasks_count",
         ]
