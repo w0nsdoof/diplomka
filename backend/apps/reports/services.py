@@ -23,13 +23,15 @@ def get_report_data(date_from=None, date_to=None, client_id=None, organization=N
 
     total = base_qs.count()
 
-    by_status = {}
-    for s in Task.Status.values:
-        by_status[s] = base_qs.filter(status=s).count()
+    status_counts = dict(
+        base_qs.values("status").annotate(c=Count("id")).values_list("status", "c")
+    )
+    by_status = {s: status_counts.get(s, 0) for s in Task.Status.values}
 
-    by_priority = {}
-    for p in Task.Priority.values:
-        by_priority[p] = base_qs.filter(priority=p).count()
+    priority_counts = dict(
+        base_qs.values("priority").annotate(c=Count("id")).values_list("priority", "c")
+    )
+    by_priority = {p: priority_counts.get(p, 0) for p in Task.Priority.values}
 
     now = timezone.now()
     overdue = base_qs.filter(deadline__lt=now).exclude(

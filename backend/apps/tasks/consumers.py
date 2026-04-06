@@ -3,6 +3,7 @@ import logging
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,8 @@ class KanbanConsumer(AsyncJsonWebsocketConsumer):
             if user.is_active:
                 return user
             logger.warning("WebSocket auth: inactive user=%s", user.pk)
-        except Exception:
+        except (InvalidToken, TokenError):
             logger.debug("WebSocket auth failed: invalid or expired token")
-            return None
+        except User.DoesNotExist:
+            logger.debug("WebSocket auth failed: user not found")
         return None

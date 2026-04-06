@@ -3,6 +3,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.clients.models import Client
+from apps.common.validators import CommonValidatorsMixin
 from apps.projects.models import Epic
 from apps.tags.models import Tag
 from apps.tasks.models import Task
@@ -141,7 +142,7 @@ def _validate_subtask_constraints(data, parent_task_id):
     return parent
 
 
-class TaskCreateSerializer(serializers.ModelSerializer):
+class TaskCreateSerializer(CommonValidatorsMixin, serializers.ModelSerializer):
     assignee_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False, default=list,
         help_text="List of user IDs to assign. Must be active engineers. Manager-only.",
@@ -163,31 +164,11 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id"]
 
-    def validate_client_id(self, value):
-        if value:
-            if not Client.objects.filter(pk=value).exists():
-                raise serializers.ValidationError("Client not found.")
-        return value
-
     def validate_assignee_ids(self, value):
         if value:
             engineers = User.objects.filter(pk__in=value, role="engineer", is_active=True)
             if engineers.count() != len(value):
                 raise serializers.ValidationError("One or more assignees are invalid.")
-        return value
-
-    def validate_tag_ids(self, value):
-        if value:
-            tags = Tag.objects.filter(pk__in=value)
-            if tags.count() != len(value):
-                raise serializers.ValidationError("One or more tags are invalid.")
-        return value
-
-    def validate_epic_id(self, value):
-        if value:
-            org = self.context["request"].user.organization
-            if not Epic.objects.filter(pk=value, organization=org).exists():
-                raise serializers.ValidationError("Epic not found or does not belong to your organization.")
         return value
 
     def validate(self, data):
@@ -256,7 +237,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         return task
 
 
-class TaskUpdateSerializer(serializers.ModelSerializer):
+class TaskUpdateSerializer(CommonValidatorsMixin, serializers.ModelSerializer):
     tag_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False,
         help_text="Set of tag IDs. Replaces existing tags.",
@@ -272,19 +253,6 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
             "client_id", "tag_ids",
             "epic_id", "parent_task_id",
         ]
-
-    def validate_client_id(self, value):
-        if value:
-            if not Client.objects.filter(pk=value).exists():
-                raise serializers.ValidationError("Client not found.")
-        return value
-
-    def validate_epic_id(self, value):
-        if value:
-            org = self.context["request"].user.organization
-            if not Epic.objects.filter(pk=value, organization=org).exists():
-                raise serializers.ValidationError("Epic not found or does not belong to your organization.")
-        return value
 
     def validate(self, data):
         parent_task_id = data.get("parent_task_id")
@@ -334,7 +302,7 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
         return task
 
 
-class TaskCreateEngineerSerializer(serializers.ModelSerializer):
+class TaskCreateEngineerSerializer(CommonValidatorsMixin, serializers.ModelSerializer):
     tag_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False, default=list
     )
@@ -345,20 +313,6 @@ class TaskCreateEngineerSerializer(serializers.ModelSerializer):
         model = Task
         fields = ["id", "title", "description", "priority", "deadline", "tag_ids", "epic_id", "parent_task_id"]
         read_only_fields = ["id"]
-
-    def validate_tag_ids(self, value):
-        if value:
-            tags = Tag.objects.filter(pk__in=value)
-            if tags.count() != len(value):
-                raise serializers.ValidationError("One or more tags are invalid.")
-        return value
-
-    def validate_epic_id(self, value):
-        if value:
-            org = self.context["request"].user.organization
-            if not Epic.objects.filter(pk=value, organization=org).exists():
-                raise serializers.ValidationError("Epic not found or does not belong to your organization.")
-        return value
 
     def validate(self, data):
         parent_task_id = data.get("parent_task_id")

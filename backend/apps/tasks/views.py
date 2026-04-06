@@ -112,9 +112,11 @@ class TaskViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        qs = qs.select_related(
-            "client", "created_by", "epic", "epic__project", "parent_task",
-        ).prefetch_related("assignees", "tags")
+
+        select = ["client", "created_by", "epic", "parent_task"]
+        if self.action == "retrieve":
+            select.append("epic__project")
+        qs = qs.select_related(*select).prefetch_related("assignees", "tags")
 
         if self.action == "list":
             qs = qs.annotate(
@@ -212,7 +214,7 @@ class TaskViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
     def perform_update(self, serializer):
         if self.request.user.role == "engineer":
             task = self.get_object()
-            if self.request.user not in task.assignees.all():
+            if not task.assignees.filter(pk=self.request.user.pk).exists():
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("Engineers can only edit tasks they are assigned to.")
         serializer.save()
@@ -253,7 +255,7 @@ class TaskViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
         user = request.user
 
         if user.role == "engineer":
-            if user not in task.assignees.all():
+            if not task.assignees.filter(pk=user.pk).exists():
                 return Response(
                     {"detail": "Engineers can only change status on assigned tasks."},
                     status=status.HTTP_403_FORBIDDEN,

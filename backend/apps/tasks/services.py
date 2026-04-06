@@ -82,43 +82,15 @@ def apply_status_change(task, new_status, actor, comment=None):
 
 
 def update_task_with_version(task, validated_data, actor):
-    old_values = {}
-    for field, value in validated_data.items():
-        if field in ("assignee_ids", "tag_ids"):
-            continue
-        old_values[field] = str(getattr(task, field, ""))
+    from apps.common.services import update_with_version
 
-    update_fields = {k: v for k, v in validated_data.items() if k not in ("assignee_ids", "tag_ids")}
-    if not update_fields:
-        return True, None, task
-
-    rows = Task.objects.filter(pk=task.pk, version=task.version).update(
-        version=F("version") + 1,
-        **update_fields,
+    success, error, task = update_with_version(
+        task, validated_data, actor,
+        excluded_fields=("assignee_ids", "tag_ids"),
     )
-    if rows == 0:
-        logger.warning("Optimistic lock conflict task=%s version=%s actor=%s", task.pk, task.version, actor.pk)
-        return False, "Conflict: task was modified by another user.", None
-
-    task.refresh_from_db()
-    logger.info("Task updated task=%s fields=%s actor=%s", task.pk, list(update_fields.keys()), actor.pk)
-
-    for field, new_value in update_fields.items():
-        old_val = old_values.get(field, "")
-        new_val = str(new_value)
-        if old_val != new_val:
-            AuditLogEntry.objects.create(
-                task=task,
-                actor=actor,
-                action=AuditLogEntry.Action.FIELD_UPDATE,
-                field_name=field,
-                old_value=old_val,
-                new_value=new_val,
-            )
-
-    _broadcast_task_event("task_updated", task)
-
-    return True, None, task
+    if success:
+        _broadcast_task_event("task_updated", task)
+    return success, error, task
 
 
 def _broadcast_task_event(event_type, task):

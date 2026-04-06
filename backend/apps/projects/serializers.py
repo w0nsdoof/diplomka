@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from rest_framework import serializers
 
-from apps.clients.models import Client
+from apps.common.validators import CommonValidatorsMixin
 from apps.projects.models import Epic, Project
 from apps.tags.models import Tag
 from apps.tasks.serializers import AssigneeSerializer, ClientBriefSerializer, TagBriefSerializer
@@ -59,7 +59,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         ]
 
 
-class ProjectCreateSerializer(serializers.ModelSerializer):
+class ProjectCreateSerializer(CommonValidatorsMixin, serializers.ModelSerializer):
     assignee_id = serializers.IntegerField(
         required=False, allow_null=True, help_text="FK to User (assignee)."
     )
@@ -79,32 +79,6 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         model = Project
         fields = ["id", "title", "description", "priority", "deadline", "assignee_id", "client_id", "tag_ids", "team_member_ids"]
         read_only_fields = ["id"]
-
-    def validate_assignee_id(self, value):
-        if value is not None:
-            if not User.objects.filter(pk=value, is_active=True).exists():
-                raise serializers.ValidationError("Assignee not found or inactive.")
-        return value
-
-    def validate_client_id(self, value):
-        if value is not None:
-            if not Client.objects.filter(pk=value).exists():
-                raise serializers.ValidationError("Client not found.")
-        return value
-
-    def validate_tag_ids(self, value):
-        if value:
-            tags = Tag.objects.filter(pk__in=value)
-            if tags.count() != len(value):
-                raise serializers.ValidationError("One or more tags are invalid.")
-        return value
-
-    def validate_team_member_ids(self, value):
-        if value:
-            users = User.objects.filter(pk__in=value, is_active=True)
-            if users.count() != len(value):
-                raise serializers.ValidationError("One or more team members not found or inactive.")
-        return value
 
     @transaction.atomic
     def create(self, validated_data):
@@ -160,7 +134,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         return project
 
 
-class ProjectUpdateSerializer(serializers.ModelSerializer):
+class ProjectUpdateSerializer(CommonValidatorsMixin, serializers.ModelSerializer):
     assignee_id = serializers.IntegerField(
         required=False, allow_null=True, help_text="FK to User (assignee). Pass null to unlink."
     )
@@ -180,32 +154,6 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ["title", "description", "priority", "deadline", "assignee_id", "client_id", "tag_ids", "team_member_ids", "version"]
-
-    def validate_assignee_id(self, value):
-        if value is not None:
-            if not User.objects.filter(pk=value, is_active=True).exists():
-                raise serializers.ValidationError("Assignee not found or inactive.")
-        return value
-
-    def validate_client_id(self, value):
-        if value is not None:
-            if not Client.objects.filter(pk=value).exists():
-                raise serializers.ValidationError("Client not found.")
-        return value
-
-    def validate_tag_ids(self, value):
-        if value:
-            tags = Tag.objects.filter(pk__in=value)
-            if tags.count() != len(value):
-                raise serializers.ValidationError("One or more tags are invalid.")
-        return value
-
-    def validate_team_member_ids(self, value):
-        if value:
-            users = User.objects.filter(pk__in=value, is_active=True)
-            if users.count() != len(value):
-                raise serializers.ValidationError("One or more team members not found or inactive.")
-        return value
 
     def update(self, instance, validated_data):
         tag_ids = validated_data.pop("tag_ids", None)
@@ -284,7 +232,7 @@ class EpicDetailSerializer(serializers.ModelSerializer):
         ]
 
 
-class EpicCreateSerializer(serializers.ModelSerializer):
+class EpicCreateSerializer(CommonValidatorsMixin, serializers.ModelSerializer):
     """Manager epic create — full field access."""
 
     project_id = serializers.IntegerField(
@@ -308,32 +256,6 @@ class EpicCreateSerializer(serializers.ModelSerializer):
             "project_id", "assignee_id", "client_id", "tag_ids",
         ]
         read_only_fields = ["id"]
-
-    def validate_project_id(self, value):
-        if value is not None:
-            user = self.context["request"].user
-            if not Project.objects.filter(pk=value, organization=user.organization).exists():
-                raise serializers.ValidationError("Project not found or belongs to different organization.")
-        return value
-
-    def validate_assignee_id(self, value):
-        if value is not None:
-            if not User.objects.filter(pk=value, is_active=True).exists():
-                raise serializers.ValidationError("Assignee not found or inactive.")
-        return value
-
-    def validate_client_id(self, value):
-        if value is not None:
-            if not Client.objects.filter(pk=value).exists():
-                raise serializers.ValidationError("Client not found.")
-        return value
-
-    def validate_tag_ids(self, value):
-        if value:
-            tags = Tag.objects.filter(pk__in=value)
-            if tags.count() != len(value):
-                raise serializers.ValidationError("One or more tags are invalid.")
-        return value
 
     @transaction.atomic
     def create(self, validated_data):
@@ -388,7 +310,7 @@ class EpicCreateSerializer(serializers.ModelSerializer):
         return epic
 
 
-class EpicCreateEngineerSerializer(serializers.ModelSerializer):
+class EpicCreateEngineerSerializer(CommonValidatorsMixin, serializers.ModelSerializer):
     """Engineer epic create — limited fields (no assignee_id, client_id)."""
 
     project_id = serializers.IntegerField(
@@ -403,20 +325,6 @@ class EpicCreateEngineerSerializer(serializers.ModelSerializer):
         model = Epic
         fields = ["id", "title", "description", "priority", "deadline", "project_id", "tag_ids"]
         read_only_fields = ["id"]
-
-    def validate_project_id(self, value):
-        if value is not None:
-            user = self.context["request"].user
-            if not Project.objects.filter(pk=value, organization=user.organization).exists():
-                raise serializers.ValidationError("Project not found or belongs to different organization.")
-        return value
-
-    def validate_tag_ids(self, value):
-        if value:
-            tags = Tag.objects.filter(pk__in=value)
-            if tags.count() != len(value):
-                raise serializers.ValidationError("One or more tags are invalid.")
-        return value
 
     @transaction.atomic
     def create(self, validated_data):
@@ -448,7 +356,7 @@ class EpicCreateEngineerSerializer(serializers.ModelSerializer):
         return epic
 
 
-class EpicUpdateSerializer(serializers.ModelSerializer):
+class EpicUpdateSerializer(CommonValidatorsMixin, serializers.ModelSerializer):
     """Manager epic update — full field access including project_id re-parenting."""
 
     project_id = serializers.IntegerField(
@@ -472,32 +380,6 @@ class EpicUpdateSerializer(serializers.ModelSerializer):
             "title", "description", "priority", "deadline",
             "project_id", "assignee_id", "client_id", "tag_ids", "version",
         ]
-
-    def validate_project_id(self, value):
-        if value is not None:
-            user = self.context["request"].user
-            if not Project.objects.filter(pk=value, organization=user.organization).exists():
-                raise serializers.ValidationError("Project not found or belongs to different organization.")
-        return value
-
-    def validate_assignee_id(self, value):
-        if value is not None:
-            if not User.objects.filter(pk=value, is_active=True).exists():
-                raise serializers.ValidationError("Assignee not found or inactive.")
-        return value
-
-    def validate_client_id(self, value):
-        if value is not None:
-            if not Client.objects.filter(pk=value).exists():
-                raise serializers.ValidationError("Client not found.")
-        return value
-
-    def validate_tag_ids(self, value):
-        if value:
-            tags = Tag.objects.filter(pk__in=value)
-            if tags.count() != len(value):
-                raise serializers.ValidationError("One or more tags are invalid.")
-        return value
 
     def update(self, instance, validated_data):
         tag_ids = validated_data.pop("tag_ids", None)
@@ -534,7 +416,7 @@ class EpicUpdateSerializer(serializers.ModelSerializer):
         return epic
 
 
-class EpicUpdateEngineerSerializer(serializers.ModelSerializer):
+class EpicUpdateEngineerSerializer(CommonValidatorsMixin, serializers.ModelSerializer):
     """Engineer epic update — no assignee_id, client_id, or project_id (no re-parenting)."""
 
     tag_ids = serializers.ListField(
@@ -546,13 +428,6 @@ class EpicUpdateEngineerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Epic
         fields = ["title", "description", "priority", "deadline", "tag_ids", "version"]
-
-    def validate_tag_ids(self, value):
-        if value:
-            tags = Tag.objects.filter(pk__in=value)
-            if tags.count() != len(value):
-                raise serializers.ValidationError("One or more tags are invalid.")
-        return value
 
     def update(self, instance, validated_data):
         tag_ids = validated_data.pop("tag_ids", None)

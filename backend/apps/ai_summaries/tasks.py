@@ -76,7 +76,7 @@ def generate_weekly_summary():
         try:
             prev_metrics = collect_metrics(prev_monday, prev_sunday, organization=org)
         except Exception:
-            logger.info("Could not collect previous week metrics for org=%s", org.slug)
+            logger.warning("Could not collect previous week metrics for org=%s", org.slug)
 
         result = generate_summary.delay(
             "weekly", str(last_monday), str(last_sunday),
@@ -144,4 +144,4 @@ def generate_summary(period_type, period_start, period_end, requested_by_id=None
         try:
             lock.release()
         except Exception:
-            pass
+            logger.warning("Failed to release Redis lock %s", lock_key)

@@ -26,7 +26,7 @@ class IsAssignedEngineer(BasePermission):
         return (
             request.user.is_authenticated
             and request.user.role == "engineer"
-            and request.user in obj.assignees.all()
+            and obj.assignees.filter(pk=request.user.pk).exists()
         )
 
 
