@@ -66,4 +66,4 @@ coverage/
 
 # Auto Claude data directory
 .auto-claude/
-celerybeat-schedule
+celerybeat-schedule.playwright-mcp/

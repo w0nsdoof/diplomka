@@ -51,7 +51,7 @@ describe('ProjectService', () => {
   describe('confirmEpicTasks', () => {
     it('should POST tasks to confirm endpoint', () => {
       const tasks = [
-        { title: 'Task 1', description: '', priority: 'high', assignee_id: null, tag_ids: [] },
+        { title: 'Task 1', description: '', priority: 'high', assignee_id: null, tag_ids: [], estimated_hours: null },
       ];
       service.confirmEpicTasks(5, tasks).subscribe((res) => {
         expect(res.created_count).toBe(1);

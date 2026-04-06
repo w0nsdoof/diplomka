@@ -606,12 +606,27 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
         serializer = ConfirmTasksSerializer(data=request.data, context={"epic": epic})
         serializer.is_valid(raise_exception=True)
 
+        from apps.accounts.models import User
         from apps.audit.services import create_audit_entry
         from apps.notifications.services import create_notification
         from apps.tasks.models import Task
         from apps.telegram.templates import build_telegram_context
 
         task_items = serializer.validated_data["tasks"]
+
+        # Batch-fetch all assignees upfront (avoids N+1 queries)
+        all_assignee_ids = {
+            item["assignee_id"]
+            for item in task_items
+            if item.get("assignee_id")
+        }
+        assignee_map = {}
+        if all_assignee_ids:
+            assignee_map = {
+                u.pk: u
+                for u in User.objects.filter(pk__in=all_assignee_ids)
+            }
+
         created_tasks = []
 
         with transaction.atomic():
@@ -620,6 +635,7 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
                     title=item["title"],
                     description=item.get("description", ""),
                     priority=item["priority"],
+                    estimated_hours=item.get("estimated_hours"),
                     status="created",
                     epic=epic,
                     organization=epic.organization,
@@ -644,26 +660,21 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
                 )
 
                 # Notify assigned engineer (skip if assignee is the current user)
-                if assignee_id and assignee_id != request.user.pk:
-                    from apps.accounts.models import User
-
-                    try:
-                        assignee = User.objects.get(pk=assignee_id)
-                        ctx = build_telegram_context(
-                            event_type="task_assigned",
-                            task=task,
-                            actor=request.user,
-                        )
-                        create_notification(
-                            recipient=assignee,
-                            event_type="task_assigned",
-                            task=task,
-                            message=f"You have been assigned to task '{task.title}'",
-                            actor=request.user,
-                            telegram_context=ctx,
-                        )
-                    except User.DoesNotExist:
-                        pass
+                assignee = assignee_map.get(assignee_id)
+                if assignee and assignee_id != request.user.pk:
+                    ctx = build_telegram_context(
+                        event_type="task_assigned",
+                        task=task,
+                        actor=request.user,
+                    )
+                    create_notification(
+                        recipient=assignee,
+                        event_type="task_assigned",
+                        task=task,
+                        message=f"You have been assigned to task '{task.title}'",
+                        actor=request.user,
+                        telegram_context=ctx,
+                    )
 
                 created_tasks.append({
                     "id": task.id,

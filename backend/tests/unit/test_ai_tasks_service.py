@@ -26,6 +26,16 @@ class TestBuildSystemPrompt:
         assert isinstance(prompt, str)
         assert "JSON" in prompt
 
+    def test_dynamic_task_range_short_description(self):
+        ctx = {"epic": {"description": "Short"}, "team_members": []}
+        prompt = build_system_prompt(ctx)
+        assert "3" in prompt and "8" in prompt
+
+    def test_dynamic_task_range_long_description(self):
+        ctx = {"epic": {"description": "x" * 1000}, "team_members": [{"id": i} for i in range(5)]}
+        prompt = build_system_prompt(ctx)
+        assert "5" in prompt
+
 
 # ---------------------------------------------------------------------------
 # build_user_prompt
@@ -200,38 +210,54 @@ class TestValidateGeneratedTasks:
             {"title": "Task A", "priority": "high", "assignee_id": 1, "tag_ids": [10]},
             {"title": "Task B", "priority": "low", "assignee_id": 2, "tag_ids": [10, 20]},
         ]
-        result = validate_generated_tasks(tasks, team_ids={1, 2}, org_tag_ids={10, 20})
+        result, warnings = validate_generated_tasks(tasks, team_ids={1, 2}, org_tag_ids={10, 20})
         assert len(result) == 2
         assert result[0]["assignee_id"] == 1
         assert result[1]["tag_ids"] == [10, 20]
+        assert warnings == []
 
     def test_invalid_assignee_dropped(self):
         tasks = [{"title": "T", "priority": "medium", "assignee_id": 999, "tag_ids": []}]
-        result = validate_generated_tasks(tasks, team_ids={1, 2}, org_tag_ids=set())
+        result, warnings = validate_generated_tasks(tasks, team_ids={1, 2}, org_tag_ids=set())
         assert result[0]["assignee_id"] is None
+        assert any("assignee" in w for w in warnings)
 
     def test_invalid_tag_ids_dropped(self):
         tasks = [{"title": "T", "priority": "medium", "tag_ids": [1, 999]}]
-        result = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids={1})
+        result, warnings = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids={1})
         assert result[0]["tag_ids"] == [1]
+        assert any("tag" in w for w in warnings)
 
     def test_priority_defaults_to_medium(self):
         tasks = [{"title": "T", "priority": "urgent"}]
-        result = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
+        result, _ = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
         assert result[0]["priority"] == "medium"
 
     def test_list_capped_at_15(self):
         tasks = [{"title": f"T{i}", "priority": "low"} for i in range(20)]
-        result = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
+        result, warnings = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
         assert len(result) == 15
+        assert any("Truncated" in w for w in warnings)
 
     def test_empty_title_skipped(self):
         tasks = [{"title": "", "priority": "low"}, {"title": "Valid", "priority": "low"}]
-        result = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
+        result, warnings = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
         assert len(result) == 1
         assert result[0]["title"] == "Valid"
+        assert any("malformed" in w for w in warnings)
 
     def test_non_dict_skipped(self):
         tasks = ["not a dict", {"title": "Valid", "priority": "low"}]
-        result = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
+        result, warnings = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
         assert len(result) == 1
+        assert any("malformed" in w for w in warnings)
+
+    def test_estimated_hours_parsed(self):
+        tasks = [{"title": "T", "priority": "low", "estimated_hours": 4.5}]
+        result, _ = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
+        assert result[0]["estimated_hours"] == 4.5
+
+    def test_invalid_estimated_hours_set_to_none(self):
+        tasks = [{"title": "T", "priority": "low", "estimated_hours": -1}]
+        result, _ = validate_generated_tasks(tasks, team_ids=set(), org_tag_ids=set())
+        assert result[0]["estimated_hours"] is None

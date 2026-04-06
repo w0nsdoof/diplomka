@@ -79,6 +79,7 @@
     "taskTopic": "Тема задачи",
     "description": "Описание",
     "priority": "Приоритет",
+    "estimatedHours": "Оценка",
     "deadline": "Срок",
     "assignees": "Исполнители",
     "noAssignees": "Нет исполнителей",

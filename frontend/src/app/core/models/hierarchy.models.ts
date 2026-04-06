@@ -116,6 +116,7 @@ export interface GeneratedTask {
   priority: string;
   assignee_id: number | null;
   tag_ids: number[];
+  estimated_hours: number | null;
 }
 
 export interface GenerationMeta {
@@ -127,6 +128,7 @@ export interface GenerationMeta {
 
 export interface GenerationResult {
   tasks: GeneratedTask[];
+  warnings: string[];
   generation_meta: GenerationMeta;
 }
 
