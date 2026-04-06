@@ -8,19 +8,41 @@ Each task object must have:
 - priority: "low" | "medium" | "high" | "critical"
 - assignee_id: number | null (from the provided team member list, or null if no good match)
 - tag_ids: number[] (from the provided tag list, empty array if none match)
+- estimated_hours: number | null (rough time estimate in hours, null if uncertain)
 
 Rules:
-- Generate between 3 and 15 tasks depending on Epic complexity.
+- Generate between {min_tasks} and {max_tasks} tasks depending on Epic complexity.
 - Only use assignee IDs from the provided team member list.
 - Only use tag IDs from the provided tag set.
 - Do not duplicate existing tasks (titles provided below).
 - Consider team members' track records and profiles (job_title, skills) when suggesting assignees.
+- If the Epic has a deadline, distribute work so tasks can finish before it.
 - Return ONLY valid JSON — no markdown fences, no commentary, no extra text.\
 """
 
 
-def build_system_prompt() -> str:
-    return TASK_GENERATION_SYSTEM_PROMPT
+def _compute_task_range(context: dict) -> tuple[int, int]:
+    """Derive min/max task count from epic complexity signals."""
+    desc_len = len(context.get("epic", {}).get("description", ""))
+    team_size = len(context.get("team_members", []))
+    # Short description → fewer tasks; long → more
+    if desc_len < 200:
+        return 3, 8
+    if desc_len < 800:
+        return 4, 12
+    # Large description + large team → up to 15
+    max_tasks = min(15, max(8, team_size * 2))
+    return 5, max_tasks
+
+
+def build_system_prompt(context: dict | None = None) -> str:
+    min_tasks, max_tasks = _compute_task_range(context or {})
+    return TASK_GENERATION_SYSTEM_PROMPT.format(
+        min_tasks=min_tasks, max_tasks=max_tasks,
+    )
+
+
+MAX_DESCRIPTION_CHARS = 2000
 
 
 def build_user_prompt(context: dict) -> str:
@@ -28,9 +50,12 @@ def build_user_prompt(context: dict) -> str:
 
     # Epic section
     epic = context["epic"]
+    desc = epic["description"]
+    if len(desc) > MAX_DESCRIPTION_CHARS:
+        desc = desc[:MAX_DESCRIPTION_CHARS] + "… (truncated)"
     lines.append("## Epic")
     lines.append(f"Title: {epic['title']}")
-    lines.append(f"Description: {epic['description']}")
+    lines.append(f"Description: {desc}")
     if epic.get("priority"):
         lines.append(f"Priority: {epic['priority']}")
     if epic.get("deadline"):
@@ -61,6 +86,9 @@ def build_user_prompt(context: dict) -> str:
                 parts.append(f"Role: {member['job_title']}")
             if member.get("skills"):
                 parts.append(f"Skills: {member['skills']}")
+            velocity = member.get("tasks_completed_30d")
+            if velocity is not None:
+                parts.append(f"Tasks done (30d): {velocity}")
             line = " | ".join(parts)
             track = member.get("track_record", [])
             if track:

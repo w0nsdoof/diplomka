@@ -590,6 +590,7 @@ class ConfirmTaskItemSerializer(serializers.Serializer):
     tag_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False, default=list,
     )
+    estimated_hours = serializers.FloatField(required=False, allow_null=True, default=None, min_value=0)
 
 
 class ConfirmTasksSerializer(serializers.Serializer):

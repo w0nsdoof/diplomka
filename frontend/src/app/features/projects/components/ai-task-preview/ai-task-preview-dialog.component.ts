@@ -15,6 +15,7 @@ import { ProjectService } from '../../../../core/services/project.service';
 
 export interface AiTaskPreviewDialogData {
   tasks: GeneratedTask[];
+  warnings: string[];
   teamMembers: UserBrief[];
   tags: TagBrief[];
   epicId: number;
@@ -31,6 +32,12 @@ export interface AiTaskPreviewDialogData {
   template: `
     <h2 mat-dialog-title>{{ 'epics.previewTitle' | translate }}</h2>
     <mat-dialog-content class="preview-content">
+      <div *ngIf="data.warnings?.length" class="warnings-box">
+        <mat-icon class="warn-icon">warning</mat-icon>
+        <ul>
+          <li *ngFor="let w of data.warnings">{{ w }}</li>
+        </ul>
+      </div>
       <div *ngFor="let task of tasks; let i = index" class="task-row">
         <div class="task-header">
           <span class="task-number">#{{ i + 1 }}</span>
@@ -76,6 +83,12 @@ export interface AiTaskPreviewDialogData {
               <mat-option *ngFor="let t of data.tags" [value]="t.id">{{ t.name }}</mat-option>
             </mat-select>
           </mat-form-field>
+
+          <mat-form-field appearance="outline" class="estimate-field">
+            <mat-label>{{ 'tasks.estimatedHours' | translate }}</mat-label>
+            <input matInput type="number" [(ngModel)]="task.estimated_hours" min="0" step="0.5" />
+            <span matSuffix>h</span>
+          </mat-form-field>
         </div>
       </div>
 
@@ -120,6 +133,21 @@ export interface AiTaskPreviewDialogData {
       gap: 12px;
     }
     .task-meta-row mat-form-field { flex: 1; }
+    .estimate-field { max-width: 120px; }
+    .warnings-box {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      color: #9a3412;
+      font-size: 13px;
+    }
+    .warnings-box ul { margin: 0; padding-left: 16px; }
+    .warnings-box li { margin-bottom: 2px; }
+    .warn-icon { color: #f59e0b; font-size: 20px; margin-top: 2px; }
     .empty-msg {
       color: #9ca3af;
       text-align: center;
@@ -141,7 +169,7 @@ export class AiTaskPreviewDialogComponent {
     private cdr: ChangeDetectorRef,
   ) {
     // Deep copy to avoid mutating original data
-    this.tasks = data.tasks.map(t => ({ ...t, tag_ids: [...t.tag_ids] }));
+    this.tasks = data.tasks.map(t => ({ ...t, tag_ids: [...t.tag_ids], estimated_hours: t.estimated_hours ?? null }));
   }
 
   removeTask(index: number): void {

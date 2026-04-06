@@ -79,6 +79,7 @@
     "taskTopic": "Task topic",
     "description": "Description",
     "priority": "Priority",
+    "estimatedHours": "Estimate",
     "deadline": "Deadline",
     "assignees": "Assignees",
     "noAssignees": "No assignees",

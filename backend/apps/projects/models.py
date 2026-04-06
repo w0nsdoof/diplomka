@@ -128,6 +128,10 @@ class Epic(models.Model):
         on_delete=models.PROTECT,
         related_name="created_epics",
     )
+    last_generation = models.JSONField(
+        null=True, blank=True, default=None,
+        help_text="Raw AI generation output for audit (model, tokens, raw tasks, timestamp)",
+    )
     version = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)

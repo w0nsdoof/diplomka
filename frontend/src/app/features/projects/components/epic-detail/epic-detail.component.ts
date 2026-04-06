@@ -20,7 +20,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { Subject, forkJoin, interval, of, switchMap, takeUntil, takeWhile } from 'rxjs';
+import { Subject, forkJoin, of, switchMap, takeUntil, takeWhile, timer, scan, delayWhen } from 'rxjs';
 import { ProjectService } from '../../../../core/services/project.service';
 import { ClientService, Client } from '../../../../core/services/client.service';
 import { TagService, Tag } from '../../../../core/services/tag.service';
@@ -535,24 +535,19 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
   }
 
   private pollGeneration(taskId: string): void {
-    let pollCount = 0;
-    interval(1000).pipe(
+    // Exponential backoff: 1s, 1.5s, 2.25s, ... capped at 5s
+    timer(0, 1000).pipe(
       takeUntil(this.destroy$),
-      switchMap(() => {
-        pollCount++;
-        // Back off to 3s interval after 10 polls
-        if (pollCount > 10 && pollCount % 3 !== 0) {
-          return [];
-        }
-        return this.projectService.pollGenerationStatus(this.epicId, taskId);
-      }),
-      takeWhile((status) => status.status === 'pending' || status.status === 'processing', true),
+      scan((delay) => Math.min(delay * 1.5, 5000), 1000),
+      delayWhen((delay) => timer(delay)),
+      switchMap(() => this.projectService.pollGenerationStatus(this.epicId, taskId)),
+      takeWhile((s) => s.status === 'pending' || s.status === 'processing', true),
     ).subscribe({
       next: (genStatus) => {
         if (genStatus.status === 'completed' && genStatus.result) {
           this.isGenerating = false;
           this.cdr.markForCheck();
-          this.openPreviewDialog(genStatus.result.tasks);
+          this.openPreviewDialog(genStatus.result.tasks, genStatus.result.warnings || []);
         } else if (genStatus.status === 'failed') {
           this.isGenerating = false;
           this.cdr.markForCheck();
@@ -570,7 +565,7 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  private openPreviewDialog(tasks: any[]): void {
+  private openPreviewDialog(tasks: any[], warnings: string[] = []): void {
     const projectId = this.epic?.project?.id;
 
     const team$ = projectId
@@ -587,6 +582,7 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
 
       const dialogData: AiTaskPreviewDialogData = {
         tasks,
+        warnings,
         teamMembers,
         tags: tagBriefs,
         epicId: this.epicId,
