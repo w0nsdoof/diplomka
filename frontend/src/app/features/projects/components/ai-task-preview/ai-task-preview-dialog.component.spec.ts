@@ -16,9 +16,10 @@ describe('AiTaskPreviewDialogComponent', () => {
 
   const mockData: AiTaskPreviewDialogData = {
     tasks: [
-      { title: 'Task A', description: 'Desc A', priority: 'high', assignee_id: 1, tag_ids: [10] },
-      { title: 'Task B', description: 'Desc B', priority: 'low', assignee_id: null, tag_ids: [] },
+      { title: 'Task A', description: 'Desc A', priority: 'high', assignee_id: 1, tag_ids: [10], estimated_hours: 4 },
+      { title: 'Task B', description: 'Desc B', priority: 'low', assignee_id: null, tag_ids: [], estimated_hours: null },
     ],
+    warnings: [],
     teamMembers: [{ id: 1, first_name: 'Alice', last_name: 'Smith' }],
     tags: [{ id: 10, name: 'backend', color: '#6c757d' }],
     epicId: 42,

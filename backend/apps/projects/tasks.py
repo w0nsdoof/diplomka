@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from celery import shared_task
 from django.conf import settings
@@ -80,7 +80,7 @@ def generate_epic_tasks(epic_id: int) -> dict:
 
         # Store raw generation for audit
         Epic.objects.filter(pk=epic_id).update(last_generation={
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "raw_task_count": len(raw_tasks),
             "validated_task_count": len(validated),
             "warnings": warnings,
