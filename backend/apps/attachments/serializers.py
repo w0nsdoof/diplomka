@@ -10,7 +10,18 @@ ALLOWED_CONTENT_TYPES = [
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.ms-excel",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/zip", "application/x-rar-compressed",
+    # ZIP — browsers report it differently:
+    #   application/zip                — RFC 6839, Linux/macOS Chrome, Firefox
+    #   application/x-zip-compressed   — Windows Chrome / Edge legacy MIME
+    #   application/x-zip              — older browsers
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/x-zip",
+    # RAR
+    "application/x-rar-compressed",
+    "application/vnd.rar",
+    # 7-Zip (commonly used alongside ZIP/RAR)
+    "application/x-7z-compressed",
 ]
 
 MAX_FILE_SIZE = 25 * 1024 * 1024

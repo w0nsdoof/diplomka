@@ -308,6 +308,27 @@ class TestCommentAttachments:
         errors = resp.data.get("errors", resp.data)
         assert "files" in errors
 
+    @pytest.mark.parametrize(
+        "mime",
+        [
+            "application/zip",  # standard
+            "application/x-zip-compressed",  # Windows Chrome/Edge
+            "application/x-zip",  # legacy
+        ],
+    )
+    def test_zip_mime_aliases_accepted(self, engineer_client, task, mime):
+        # Regression: Windows browsers report ZIP as application/x-zip-compressed.
+        # All three common ZIP MIME aliases must be accepted.
+        zip_bytes = b"PK\x03\x04" + b"\x00" * 26  # minimal ZIP local file header
+        zf = SimpleUploadedFile("archive.zip", zip_bytes, content_type=mime)
+        resp = engineer_client.post(
+            comments_url(task.id),
+            {"content": "with zip", "is_public": "true", "files": [zf]},
+            format="multipart",
+        )
+        assert resp.status_code == 201, resp.content
+        assert len(resp.data["attachments"]) == 1
+
     def test_text_only_comment_still_works(self, engineer_client, task):
         # Regression: ensure JSON-only POST (no files) still succeeds.
         resp = engineer_client.post(
