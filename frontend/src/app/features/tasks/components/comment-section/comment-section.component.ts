@@ -12,8 +12,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, takeUntil } from 'rxjs';
-import { CommentService, Comment as TaskComment } from '../../../../core/services/comment.service';
+import { CommentService, Comment as TaskComment, CommentAttachment } from '../../../../core/services/comment.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { TaskService } from '../../../../core/services/task.service';
+
+const PREVIEWABLE_MIME_PREFIXES = ['image/', 'application/pdf'];
 
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
@@ -96,12 +99,13 @@ const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
             </div>
             <a
               *ngFor="let att of comment.attachments"
-              [href]="att.download_url"
-              target="_blank"
-              rel="noopener"
+              href="#"
+              (click)="openAttachment(att, $event)"
               class="attachment-link"
+              [class.is-image]="isImage(att)"
+              [matTooltip]="isPreviewable(att) ? ('comments.preview' | translate) : ('comments.download' | translate)"
             >
-              <mat-icon>insert_drive_file</mat-icon>
+              <mat-icon>{{ isImage(att) ? 'image' : 'insert_drive_file' }}</mat-icon>
               {{ att.filename }}
               <span class="file-size">({{ formatBytes(att.file_size) }})</span>
             </a>
@@ -151,6 +155,7 @@ export class CommentSectionComponent implements OnInit, OnDestroy {
   constructor(
     private commentService: CommentService,
     private authService: AuthService,
+    private taskService: TaskService,
     private cdr: ChangeDetectorRef,
     private snackBar: MatSnackBar,
     private translate: TranslateService,
@@ -219,6 +224,51 @@ export class CommentSectionComponent implements OnInit, OnDestroy {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  isImage(att: CommentAttachment): boolean {
+    return att.content_type?.startsWith('image/') ?? false;
+  }
+
+  isPreviewable(att: CommentAttachment): boolean {
+    const ct = att.content_type ?? '';
+    return PREVIEWABLE_MIME_PREFIXES.some((p) => ct.startsWith(p));
+  }
+
+  openAttachment(att: CommentAttachment, event: Event): void {
+    event.preventDefault();
+    // The download URL requires JWT auth, which the browser would not send on a
+    // raw <a href> click. Fetch through the interceptor-aware service so the
+    // token is attached, then either preview (images, PDFs) or trigger a save.
+    this.taskService
+      .downloadAttachment(this.taskId, att.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob) => {
+          // Wrap in a typed Blob so the browser uses our content_type, not
+          // the application/octet-stream the backend sets for downloads.
+          const typed = new Blob([blob], { type: att.content_type || 'application/octet-stream' });
+          const url = URL.createObjectURL(typed);
+          if (this.isPreviewable(att)) {
+            window.open(url, '_blank', 'noopener');
+            // Give the new tab time to fetch the blob before revoking.
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+          } else {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = att.filename;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+        },
+        error: () => {
+          this.snackBar.open(
+            this.translate.instant('comments.downloadFailed'),
+            'OK',
+            { duration: 4000 },
+          );
+        },
+      });
   }
 
   ngOnDestroy(): void {

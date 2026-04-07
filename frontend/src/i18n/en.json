@@ -302,7 +302,10 @@
     "attach": "Attach files",
     "removeAttachment": "Remove",
     "attachmentTooLarge": "{{name}} exceeds 25 MB and was not attached",
-    "attachments": "Attachments"
+    "attachments": "Attachments",
+    "preview": "Preview in new tab",
+    "download": "Download",
+    "downloadFailed": "Could not download the attachment"
   },
   "errors": {
     "unexpected": "An unexpected error occurred",
