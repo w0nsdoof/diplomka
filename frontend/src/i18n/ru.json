@@ -302,7 +302,10 @@
     "attach": "Прикрепить файлы",
     "removeAttachment": "Удалить",
     "attachmentTooLarge": "{{name}} превышает 25 МБ и не был прикреплён",
-    "attachments": "Вложения"
+    "attachments": "Вложения",
+    "preview": "Открыть в новой вкладке",
+    "download": "Скачать",
+    "downloadFailed": "Не удалось скачать вложение"
   },
   "errors": {
     "unexpected": "Произошла непредвиденная ошибка",
