@@ -5,6 +5,7 @@ from rest_framework import serializers
 from apps.common.validators import CommonValidatorsMixin
 from apps.projects.models import Epic, Project
 from apps.tags.models import Tag
+from apps.tasks.models import Task
 from apps.tasks.serializers import AssigneeSerializer, ClientBriefSerializer, TagBriefSerializer
 
 User = get_user_model()
@@ -196,6 +197,39 @@ class ProjectStatusChangeSerializer(serializers.Serializer):
 
 
 # ---------------------------------------------------------------------------
+# Nested epic-task helpers
+# ---------------------------------------------------------------------------
+
+class EpicTaskAssigneeSerializer(serializers.ModelSerializer):
+    """Assignee with first_name + optional job_title."""
+    job_title = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ["id", "first_name", "job_title"]
+
+    def get_job_title(self, obj):
+        return obj.job_title if obj.job_title else None
+
+
+class EpicSubtaskSerializer(serializers.ModelSerializer):
+    assignees = EpicTaskAssigneeSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Task
+        fields = ["id", "title", "status", "assignees"]
+
+
+class EpicTaskSerializer(serializers.ModelSerializer):
+    assignees = EpicTaskAssigneeSerializer(many=True, read_only=True)
+    subtasks = EpicSubtaskSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Task
+        fields = ["id", "title", "status", "assignees", "subtasks"]
+
+
+# ---------------------------------------------------------------------------
 # Epic serializers
 # ---------------------------------------------------------------------------
 
@@ -205,14 +239,50 @@ class EpicListSerializer(serializers.ModelSerializer):
     client = ClientBriefSerializer(read_only=True)
     tags = TagBriefSerializer(many=True, read_only=True)
     tasks_count = serializers.IntegerField(read_only=True, default=0)
+    display_status = serializers.SerializerMethodField()
+    task_stats = serializers.SerializerMethodField()
+    team = serializers.SerializerMethodField()
+    tasks = serializers.SerializerMethodField()
 
     class Meta:
         model = Epic
         fields = [
-            "id", "title", "status", "priority", "deadline",
+            "id", "title", "status", "display_status", "priority", "deadline",
             "project", "assignee", "client", "tags", "tasks_count",
+            "task_stats", "team", "tasks",
             "created_at", "updated_at",
         ]
+
+    def get_display_status(self, obj):
+        return "completed" if obj.status in (Epic.Status.DONE, Epic.Status.ARCHIVED) else "active"
+
+    def get_task_stats(self, obj):
+        top_tasks = [t for t in obj._prefetched_tasks if t.parent_task_id is None] if hasattr(obj, "_prefetched_tasks") else []
+        not_started = sum(1 for t in top_tasks if t.status == "created")
+        in_progress = sum(1 for t in top_tasks if t.status in ("in_progress", "waiting"))
+        completed = sum(1 for t in top_tasks if t.status in ("done", "archived"))
+        return {
+            "not_started": not_started,
+            "in_progress": in_progress,
+            "completed": completed,
+            "total": len(top_tasks),
+        }
+
+    def get_team(self, obj):
+        if not hasattr(obj, "_prefetched_tasks"):
+            return []
+        seen = {}
+        for task in obj._prefetched_tasks:
+            for user in task.assignees.all():
+                if user.id not in seen:
+                    seen[user.id] = EpicTaskAssigneeSerializer(user).data
+        return list(seen.values())
+
+    def get_tasks(self, obj):
+        if not hasattr(obj, "_prefetched_tasks"):
+            return []
+        top_tasks = [t for t in obj._prefetched_tasks if t.parent_task_id is None]
+        return EpicTaskSerializer(top_tasks, many=True).data
 
 
 class EpicDetailSerializer(serializers.ModelSerializer):

@@ -221,6 +221,64 @@ class TestProjectEpics:
         assert resp.status_code == 200
         assert resp.data["count"] == 0
 
+    def test_epic_includes_enriched_fields(self, manager_client, manager):
+        """Each epic includes display_status, task_stats, team, and nested tasks with subtasks."""
+        project = ProjectFactory(created_by=manager)
+        engineer = EngineerFactory(organization=manager.organization, job_title="Backend Dev")
+        epic = EpicFactory(created_by=manager, project=project, organization=manager.organization)
+
+        # Create tasks: 1 done, 1 in_progress, 1 created — all top-level
+        t1 = TaskFactory(created_by=manager, epic=epic, organization=manager.organization, status="done", assignees=[engineer])
+        t2 = TaskFactory(created_by=manager, epic=epic, organization=manager.organization, status="in_progress", assignees=[manager])
+        TaskFactory(created_by=manager, epic=epic, organization=manager.organization, status="created")
+        # Subtask under t1
+        TaskFactory(created_by=manager, epic=epic, parent_task=t1, organization=manager.organization, status="done", assignees=[engineer])
+
+        resp = manager_client.get(f"{project_url(project.pk)}epics/")
+        assert resp.status_code == 200
+        epic_data = resp.data["results"][0]
+
+        # display_status
+        assert epic_data["display_status"] == "active"
+
+        # task_stats (only top-level tasks)
+        stats = epic_data["task_stats"]
+        assert stats["completed"] == 1
+        assert stats["in_progress"] == 1
+        assert stats["not_started"] == 1
+        assert stats["total"] == 3
+
+        # team — distinct assignees from all tasks (including subtasks)
+        team_ids = {m["id"] for m in epic_data["team"]}
+        assert engineer.pk in team_ids
+        assert manager.pk in team_ids
+
+        # team member has first_name and job_title
+        eng_entry = next(m for m in epic_data["team"] if m["id"] == engineer.pk)
+        assert eng_entry["first_name"] == engineer.first_name
+        assert eng_entry["job_title"] == "Backend Dev"
+
+        # tasks array — top-level only, with subtasks nested
+        tasks = epic_data["tasks"]
+        assert len(tasks) == 3  # 3 top-level tasks
+        done_task = next(t for t in tasks if t["id"] == t1.pk)
+        assert len(done_task["subtasks"]) == 1
+
+    def test_completed_epic_display_status(self, manager_client, manager):
+        project = ProjectFactory(created_by=manager)
+        EpicFactory(created_by=manager, project=project, organization=manager.organization, status="done")
+        resp = manager_client.get(f"{project_url(project.pk)}epics/")
+        assert resp.data["results"][0]["display_status"] == "completed"
+
+    def test_epic_no_tasks_gives_empty_stats(self, manager_client, manager):
+        project = ProjectFactory(created_by=manager)
+        EpicFactory(created_by=manager, project=project, organization=manager.organization)
+        resp = manager_client.get(f"{project_url(project.pk)}epics/")
+        epic_data = resp.data["results"][0]
+        assert epic_data["task_stats"] == {"not_started": 0, "in_progress": 0, "completed": 0, "total": 0}
+        assert epic_data["team"] == []
+        assert epic_data["tasks"] == []
+
 
 @pytest.mark.django_db
 class TestProjectHistory:

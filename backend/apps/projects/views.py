@@ -1,7 +1,7 @@
 from celery.result import AsyncResult
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiResponse,
@@ -38,7 +38,24 @@ from apps.projects.serializers import (
     ProjectUpdateSerializer,
 )
 from apps.projects.services import apply_epic_status_change, apply_project_status_change
+from apps.tasks.models import Task
 from apps.tasks.serializers import TaskListSerializer
+
+
+def _epic_tasks_prefetch():
+    """Prefetch tasks (+ subtasks + assignees) for EpicListSerializer."""
+    return Prefetch(
+        "tasks",
+        queryset=Task.objects.select_related().prefetch_related(
+            "assignees",
+            Prefetch(
+                "subtasks",
+                queryset=Task.objects.prefetch_related("assignees"),
+            ),
+        ),
+        to_attr="_prefetched_tasks",
+    )
+
 
 # ---------------------------------------------------------------------------
 # ProjectViewSet
@@ -182,7 +199,7 @@ class ProjectViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
             project=project, organization=request.user.organization
         ).select_related(
             "project", "assignee", "client"
-        ).prefetch_related("tags").annotate(
+        ).prefetch_related("tags", _epic_tasks_prefetch()).annotate(
             tasks_count=Count("tasks", filter=Q(tasks__parent_task__isnull=True), distinct=True),
         ).order_by("-created_at")
 
@@ -297,7 +314,7 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
         qs = qs.select_related("project", "assignee", "client", "created_by").prefetch_related("tags")
 
         if self.action == "list":
-            qs = qs.annotate(
+            qs = qs.prefetch_related(_epic_tasks_prefetch()).annotate(
                 tasks_count=Count("tasks", filter=Q(tasks__parent_task__isnull=True), distinct=True),
             )
 
@@ -408,8 +425,6 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
     )
     @action(detail=True, methods=["get"], url_path="tasks")
     def tasks(self, request, pk=None):
-        from apps.tasks.models import Task
-
         epic = self.get_object()
         qs = Task.objects.filter(
             epic=epic,
@@ -606,7 +621,6 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
         from apps.accounts.models import User
         from apps.audit.services import create_audit_entry
         from apps.notifications.services import create_notification
-        from apps.tasks.models import Task
         from apps.telegram.templates import build_telegram_context
 
         task_items = serializer.validated_data["tasks"]
