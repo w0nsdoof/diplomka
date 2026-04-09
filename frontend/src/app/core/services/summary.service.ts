@@ -26,6 +26,9 @@ export interface SummaryDetail extends SummaryListItem {
   sections: { [key: string]: string } | null;
   requested_by: { id: number; email: string; first_name: string; last_name: string } | null;
   version_count: number;
+  focus_prompt: string;
+  project_scope: { id: number; name: string } | null;
+  client_scope: { id: number; name: string } | null;
 }
 
 export interface SummaryVersion {
@@ -77,11 +80,19 @@ export class SummaryService {
     return this.http.get<SummaryVersion[]>(`${this.baseUrl}/${id}/versions/`);
   }
 
-  generate(periodStart: string, periodEnd: string): Observable<SummaryDetail> {
-    return this.http.post<SummaryDetail>(`${this.baseUrl}/generate/`, {
+  generate(periodStart: string, periodEnd: string, options?: {
+    projectId?: number | null;
+    clientId?: number | null;
+    focusPrompt?: string;
+  }): Observable<SummaryDetail> {
+    const body: Record<string, unknown> = {
       period_start: periodStart,
       period_end: periodEnd,
-    });
+    };
+    if (options?.projectId) body['project_id'] = options.projectId;
+    if (options?.clientId) body['client_id'] = options.clientId;
+    if (options?.focusPrompt) body['focus_prompt'] = options.focusPrompt;
+    return this.http.post<SummaryDetail>(`${this.baseUrl}/generate/`, body);
   }
 
   regenerate(id: number): Observable<SummaryDetail> {

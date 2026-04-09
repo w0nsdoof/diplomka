@@ -15,10 +15,13 @@ import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSelectModule } from '@angular/material/select';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { environment } from '../../../environments/environment';
 import { SummaryService, SummaryListItem } from '../../core/services/summary.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ProjectService } from '../../core/services/project.service';
+import { ClientService } from '../../core/services/client.service';
 
 @Component({
     selector: 'app-reports',
@@ -26,7 +29,7 @@ import { AuthService } from '../../core/services/auth.service';
         CommonModule, FormsModule, RouterModule, MatCardModule, MatFormFieldModule,
         MatInputModule, MatDatepickerModule, MatNativeDateModule,
         MatButtonModule, MatIconModule, MatTableModule, MatChipsModule,
-        MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
+        MatProgressSpinnerModule, MatSnackBarModule, MatSelectModule, TranslateModule,
     ],
     template: `
     <div class="page-header">
@@ -98,6 +101,26 @@ import { AuthService } from '../../core/services/auth.service';
           <input matInput [matDatepicker]="aiToPicker" [(ngModel)]="aiDateTo" />
           <mat-datepicker-toggle matIconSuffix [for]="aiToPicker"></mat-datepicker-toggle>
           <mat-datepicker #aiToPicker></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="scope-field">
+          <mat-label>{{ 'reports.project' | translate }}</mat-label>
+          <mat-select [(ngModel)]="aiProjectId">
+            <mat-option [value]="null">{{ 'reports.allProjects' | translate }}</mat-option>
+            <mat-option *ngFor="let p of projects" [value]="p.id">{{ p.title }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="scope-field">
+          <mat-label>{{ 'reports.client' | translate }}</mat-label>
+          <mat-select [(ngModel)]="aiClientId">
+            <mat-option [value]="null">{{ 'reports.allClients' | translate }}</mat-option>
+            <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="filter-row">
+        <mat-form-field appearance="outline" class="focus-field">
+          <mat-label>{{ 'reports.focusPrompt' | translate }}</mat-label>
+          <input matInput [(ngModel)]="aiFocusPrompt" [placeholder]="'reports.focusPlaceholder' | translate" maxlength="500" />
         </mat-form-field>
         <button class="flat-btn-primary"
                 (click)="generateAISummary()"
@@ -198,6 +221,8 @@ import { AuthService } from '../../core/services/auth.service';
     .report-section { margin-bottom: 24px; }
 
     .filter-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .scope-field { min-width: 160px; }
+    .focus-field { flex: 1; min-width: 300px; }
 
     .export-pdf { color: #dc2626; border-color: #fecaca; }
     .export-pdf:hover { background: #fef2f2; }
@@ -222,7 +247,12 @@ export class ReportsComponent implements OnInit, OnDestroy {
   summaryLoading = false;
   aiDateFrom: Date | null = null;
   aiDateTo: Date | null = null;
+  aiProjectId: number | null = null;
+  aiClientId: number | null = null;
+  aiFocusPrompt = '';
   generating = false;
+  projects: { id: number; title: string }[] = [];
+  clients: { id: number; name: string }[] = [];
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -230,6 +260,8 @@ export class ReportsComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private summaryService: SummaryService,
     private authService: AuthService,
+    private projectService: ProjectService,
+    private clientService: ClientService,
     private snackBar: MatSnackBar,
     private router: Router,
     public translate: TranslateService,
@@ -238,6 +270,9 @@ export class ReportsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.isManager = this.authService.hasRole('manager');
     this.loadLatestSummaries();
+    if (this.isManager) {
+      this.loadScopeOptions();
+    }
   }
 
   loadLatestSummaries(): void {
@@ -257,13 +292,32 @@ export class ReportsComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadScopeOptions(): void {
+    this.projectService.listProjects({ page_size: 100 }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        this.projects = res.results.map(p => ({ id: p.id, title: p.title }));
+        this.cdr.markForCheck();
+      },
+    });
+    this.clientService.list().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        this.clients = res.results.map(c => ({ id: c.id, name: c.name }));
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   generateAISummary(): void {
     if (!this.aiDateFrom || !this.aiDateTo) return;
     this.generating = true;
     this.cdr.markForCheck();
     const start = this.aiDateFrom.toISOString().split('T')[0];
     const end = this.aiDateTo.toISOString().split('T')[0];
-    this.summaryService.generate(start, end).pipe(takeUntil(this.destroy$)).subscribe({
+    this.summaryService.generate(start, end, {
+      projectId: this.aiProjectId,
+      clientId: this.aiClientId,
+      focusPrompt: this.aiFocusPrompt,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
         this.generating = false;
         this.snackBar.open(this.translate.instant('reports.summaryStarted'), this.translate.instant('common.view'), { duration: 5000 }).onAction().subscribe(() => {

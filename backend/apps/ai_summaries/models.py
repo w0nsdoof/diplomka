@@ -51,6 +51,21 @@ class ReportSummary(models.Model):
         blank=True,
         related_name="requested_summaries",
     )
+    project = models.ForeignKey(
+        "projects.Project",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="summaries",
+    )
+    client = models.ForeignKey(
+        "clients.Client",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="summaries",
+    )
+    focus_prompt = models.TextField(blank=True, default="")
     generated_at = models.DateTimeField(auto_now_add=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

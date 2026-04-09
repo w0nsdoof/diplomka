@@ -12,6 +12,8 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { BaseChartDirective } from 'ng2-charts';
+import { ChartData, ChartOptions } from 'chart.js';
 import { SummaryService, SummaryDetail, SummaryVersion } from '../../../core/services/summary.service';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -20,7 +22,8 @@ import { AuthService } from '../../../core/services/auth.service';
     imports: [
         CommonModule, RouterModule, MatCardModule, MatButtonModule,
         MatIconModule, MatChipsModule, MatListModule, MatDividerModule,
-        MatExpansionModule, MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
+        MatExpansionModule, MatProgressSpinnerModule, MatSnackBarModule,
+        TranslateModule, BaseChartDirective,
     ],
     template: `
     <div class="header-row">
@@ -33,6 +36,19 @@ import { AuthService } from '../../../core/services/auth.service';
     </div>
 
     <div *ngIf="summary && !loading">
+      <!-- Scope badges -->
+      <div *ngIf="summary.project_scope || summary.client_scope || summary.focus_prompt" class="scope-bar">
+        <span *ngIf="summary.project_scope" class="scope-badge project">
+          <mat-icon class="scope-icon">folder</mat-icon> {{ summary.project_scope.name }}
+        </span>
+        <span *ngIf="summary.client_scope" class="scope-badge client">
+          <mat-icon class="scope-icon">business</mat-icon> {{ summary.client_scope.name }}
+        </span>
+        <span *ngIf="summary.focus_prompt" class="scope-badge focus">
+          <mat-icon class="scope-icon">center_focus_strong</mat-icon> {{ summary.focus_prompt }}
+        </span>
+      </div>
+
       <mat-card class="detail-card">
         <mat-card-header>
           <mat-card-title>
@@ -57,6 +73,46 @@ import { AuthService } from '../../../core/services/auth.service';
           <ng-template #plainText>
             <p class="summary-text">{{ summary.summary_text }}</p>
           </ng-template>
+
+          <!-- Charts Section -->
+          <div *ngIf="hasChartData" class="charts-section">
+            <mat-divider></mat-divider>
+            <h3 class="charts-title">{{ 'summaries.visualBreakdown' | translate }}</h3>
+            <div class="charts-grid">
+              <div *ngIf="statusChartData" class="chart-card">
+                <h4>{{ 'summaries.statusDistribution' | translate }}</h4>
+                <canvas baseChart
+                  [type]="'doughnut'"
+                  [data]="statusChartData"
+                  [options]="doughnutOptions">
+                </canvas>
+              </div>
+              <div *ngIf="priorityChartData" class="chart-card">
+                <h4>{{ 'summaries.priorityDistribution' | translate }}</h4>
+                <canvas baseChart
+                  [type]="'bar'"
+                  [data]="priorityChartData"
+                  [options]="barOptions">
+                </canvas>
+              </div>
+              <div *ngIf="engineerChartData" class="chart-card chart-card-wide">
+                <h4>{{ 'summaries.engineerWorkload' | translate }}</h4>
+                <canvas baseChart
+                  [type]="'bar'"
+                  [data]="engineerChartData"
+                  [options]="stackedBarOptions">
+                </canvas>
+              </div>
+              <div *ngIf="clientChartData" class="chart-card">
+                <h4>{{ 'summaries.clientActivity' | translate }}</h4>
+                <canvas baseChart
+                  [type]="'bar'"
+                  [data]="clientChartData"
+                  [options]="barOptions">
+                </canvas>
+              </div>
+            </div>
+          </div>
 
           <mat-divider></mat-divider>
 
@@ -157,6 +213,30 @@ import { AuthService } from '../../../core/services/auth.service';
     .version-item:hover { background: rgba(0, 0, 0, 0.04); }
     .active-version { background: rgba(25, 118, 210, 0.08); }
     .version-preview { color: #666; font-size: 13px; }
+
+    .scope-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .scope-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 12px; border-radius: 16px; font-size: 13px; font-weight: 500;
+    }
+    .scope-badge.project { background: #e8eaf6; color: #283593; }
+    .scope-badge.client { background: #fce4ec; color: #880e4f; }
+    .scope-badge.focus { background: #fff8e1; color: #f57f17; }
+    .scope-icon { font-size: 16px; width: 16px; height: 16px; }
+
+    .charts-section { margin: 24px 0 16px 0; }
+    .charts-title { font-size: 16px; font-weight: 600; color: #1565c0; margin: 16px 0; }
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 16px;
+    }
+    .chart-card {
+      background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px;
+      padding: 16px;
+    }
+    .chart-card h4 { margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #424242; }
+    .chart-card-wide { grid-column: 1 / -1; }
   `],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -166,9 +246,34 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
   loading = false;
   regenerating = false;
   isManager = false;
-  // Preferred render order. Daily summaries use the short shape (Overview + Watchlist);
-  // weekly / on-demand use the full shape. Any other section the LLM emits is appended
-  // at the end so the user never silently loses content.
+  hasChartData = false;
+
+  // Chart data
+  statusChartData: ChartData<'doughnut'> | null = null;
+  priorityChartData: ChartData<'bar'> | null = null;
+  engineerChartData: ChartData<'bar'> | null = null;
+  clientChartData: ChartData<'bar'> | null = null;
+
+  doughnutOptions: ChartOptions<'doughnut'> = {
+    responsive: true,
+    plugins: { legend: { position: 'right' } },
+  };
+
+  barOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+  };
+
+  stackedBarOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    plugins: { legend: { position: 'top' } },
+    scales: {
+      x: { stacked: true },
+      y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+    },
+  };
+
   private static readonly DAILY_ORDER = ['Overview', 'Watchlist'];
   private static readonly FULL_ORDER = ['Overview', 'Key Metrics', 'Highlights', 'Risks & Blockers', 'Recommendations'];
   private destroy$ = new Subject<void>();
@@ -196,6 +301,7 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
     this.summaryService.getById(id).pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.summary = data;
+        this.buildCharts(data.raw_data);
         this.loading = false;
         this.cdr.markForCheck();
         this.loadVersions(id);
@@ -236,9 +342,7 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
   }
 
   renderMarkdown(text: string): string {
-    // Convert **bold** to <strong>
     let html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    // Split into lines and wrap list items in <ul>
     const lines = html.split('\n');
     const result: string[] = [];
     let inList = false;
@@ -268,7 +372,6 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
           this.router.navigate(['/reports/summaries', newSummary.id]);
         });
         this.cdr.markForCheck();
-        // Reload versions to show the new one
         this.loadVersions(this.summary!.id);
       },
       error: () => {
@@ -277,6 +380,90 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  // ---------- Chart building ----------
+
+  private buildCharts(rawData: any): void {
+    if (!rawData) { this.hasChartData = false; return; }
+
+    const tasks = rawData.tasks || {};
+    let anyChart = false;
+
+    // Status distribution doughnut
+    const byStatus = tasks.by_status || {};
+    const statusLabels = Object.keys(byStatus).filter(k => byStatus[k] > 0);
+    if (statusLabels.length > 0) {
+      this.statusChartData = {
+        labels: statusLabels.map(s => s.replace('_', ' ')),
+        datasets: [{
+          data: statusLabels.map(k => byStatus[k]),
+          backgroundColor: statusLabels.map(s => this.statusColor(s)),
+        }],
+      };
+      anyChart = true;
+    }
+
+    // Priority distribution bar
+    const byPriority = tasks.by_priority || {};
+    const prioLabels = Object.keys(byPriority).filter(k => byPriority[k] > 0);
+    if (prioLabels.length > 0) {
+      this.priorityChartData = {
+        labels: prioLabels,
+        datasets: [{
+          data: prioLabels.map(k => byPriority[k]),
+          backgroundColor: prioLabels.map(p => this.priorityColor(p)),
+        }],
+      };
+      anyChart = true;
+    }
+
+    // Engineer workload stacked bar
+    const engineers: any[] = rawData.by_engineer || [];
+    if (engineers.length > 0) {
+      const names = engineers.map(e => e.engineer_name);
+      this.engineerChartData = {
+        labels: names,
+        datasets: [
+          { label: 'Done', data: engineers.map(e => e.done || 0), backgroundColor: '#66bb6a' },
+          { label: 'In Progress', data: engineers.map(e => e.in_progress || 0), backgroundColor: '#42a5f5' },
+          { label: 'Overdue', data: engineers.map(e => e.overdue || 0), backgroundColor: '#ef5350' },
+        ],
+      };
+      anyChart = true;
+    }
+
+    // Client activity bar
+    const clients: any[] = rawData.by_client || [];
+    if (clients.length > 0) {
+      this.clientChartData = {
+        labels: clients.map(c => c.client_name),
+        datasets: [
+          { label: 'Total', data: clients.map(c => c.total || 0), backgroundColor: '#7e57c2' },
+          { label: 'Done', data: clients.map(c => c.done || 0), backgroundColor: '#66bb6a' },
+        ],
+      };
+      // Override: grouped bar for clients
+      this.clientChartData.datasets.forEach(ds => (ds as any).barPercentage = 0.8);
+      anyChart = true;
+    }
+
+    this.hasChartData = anyChart;
+  }
+
+  private statusColor(status: string): string {
+    const map: Record<string, string> = {
+      created: '#90caf9', in_progress: '#42a5f5', waiting: '#ffca28',
+      done: '#66bb6a', archived: '#bdbdbd',
+    };
+    return map[status] || '#9e9e9e';
+  }
+
+  private priorityColor(priority: string): string {
+    const map: Record<string, string> = {
+      low: '#81c784', medium: '#ffb74d', high: '#ff8a65', critical: '#ef5350',
+    };
+    return map[priority] || '#9e9e9e';
   }
 
   ngOnDestroy(): void {

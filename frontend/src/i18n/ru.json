@@ -203,7 +203,13 @@
     "closed": "Закрыто",
     "overdue": "Просрочено",
     "summaryStarted": "Генерация сводки запущена",
-    "failedGeneration": "Не удалось запустить генерацию"
+    "failedGeneration": "Не удалось запустить генерацию",
+    "project": "Проект",
+    "client": "Клиент",
+    "allProjects": "Все проекты",
+    "allClients": "Все клиенты",
+    "focusPrompt": "Фокус (необязательно)",
+    "focusPlaceholder": "напр. Сфокусируйся на просроченных задачах по биллингу"
   },
   "summaries": {
     "title": "История сводок",
@@ -230,7 +236,12 @@
     "versionHistory": "История версий",
     "regenerationStarted": "Перегенерация запущена",
     "regenerationFailed": "Не удалось перегенерировать",
-    "promptSent": "Промпт, отправленный в LLM"
+    "promptSent": "Промпт, отправленный в LLM",
+    "visualBreakdown": "Визуальная разбивка",
+    "statusDistribution": "Распределение по статусам",
+    "priorityDistribution": "Распределение по приоритетам",
+    "engineerWorkload": "Нагрузка инженеров",
+    "clientActivity": "Активность клиентов"
   },
   "admin": {
     "title": "Управление пользователями",

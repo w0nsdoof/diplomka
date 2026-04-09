@@ -275,10 +275,13 @@ def render_metrics_as_markdown(metrics):
     by_engineer = (metrics.get("by_engineer") or [])[:TOP_ENGINEERS]
     if by_engineer:
         parts.append(f"## Top {len(by_engineer)} engineers in period")
-        parts.append("| Engineer | Assigned | Done |")
-        parts.append("|---|---|---|")
+        parts.append("| Engineer | Assigned | Done | In Progress | Overdue |")
+        parts.append("|---|---|---|---|---|")
         for e in by_engineer:
-            parts.append(f"| {e['engineer_name']} | {e['assigned']} | {e['done']} |")
+            parts.append(
+                f"| {e['engineer_name']} | {e['assigned']} | {e['done']} "
+                f"| {e.get('in_progress', 0)} | {e.get('overdue', 0)} |"
+            )
         parts.append("")
 
     by_tag = (metrics.get("by_tag") or [])[:TOP_TAGS]
@@ -470,24 +473,44 @@ def generate_fallback_summary(period_type, metrics_data):
     )
 
 
-def collect_metrics(period_start, period_end, organization=None):
+def collect_metrics(period_start, period_end, organization=None, project_id=None,
+                    client_id=None):
     """Collect task metrics for a given date range using the existing reports service."""
     return get_report_data(
         date_from=str(period_start),
         date_to=str(period_end),
         organization=organization,
+        project_id=project_id,
+        client_id=client_id,
     )
 
 
-def _build_user_prompt(period_type, period_start, period_end, metrics_data, prev_metrics=None):
+def _build_scope_context(summary):
+    """Build a scope context string for scoped summaries."""
+    parts = []
+    if summary.project_id:
+        parts.append(f"**Scope: Project** — {summary.project.title}")
+    if summary.client_id:
+        parts.append(f"**Scope: Client** — {summary.client.name}")
+    if summary.focus_prompt:
+        parts.append(f"**Manager focus:** {summary.focus_prompt}")
+    if parts:
+        return "\n# Context\n" + "\n".join(parts) + "\n\nUse this context to tailor the summary. Prioritise information relevant to the scope and focus above.\n"
+    return ""
+
+
+def _build_user_prompt(period_type, period_start, period_end, metrics_data,
+                       prev_metrics=None, summary=None):
     """Build the appropriate user prompt for the period type using Markdown rendering."""
     metrics_markdown = render_metrics_as_markdown(metrics_data)
+    scope_context = _build_scope_context(summary) if summary else ""
 
     if period_type == "daily":
-        return DAILY_USER_PROMPT.format(
+        base = DAILY_USER_PROMPT.format(
             period_start=period_start,
             metrics_markdown=metrics_markdown,
         )
+        return scope_context + base
     elif period_type == "weekly":
         if prev_metrics:
             deltas = compute_deltas(metrics_data, prev_metrics)
@@ -496,18 +519,20 @@ def _build_user_prompt(period_type, period_start, period_end, metrics_data, prev
             )
         else:
             trend_section = WEEKLY_NO_TREND_SECTION
-        return WEEKLY_USER_PROMPT.format(
+        base = WEEKLY_USER_PROMPT.format(
             period_start=period_start,
             period_end=period_end,
             metrics_markdown=metrics_markdown,
             trend_section=trend_section,
         )
+        return scope_context + base
     else:
-        return ON_DEMAND_USER_PROMPT.format(
+        base = ON_DEMAND_USER_PROMPT.format(
             period_start=period_start,
             period_end=period_end,
             metrics_markdown=metrics_markdown,
         )
+        return scope_context + base
 
 
 def notify_managers_of_summary(summary):
@@ -557,13 +582,18 @@ def generate_summary_for_period(summary_id, prev_metrics=None):
         summary.id, summary.period_type, summary.period_start, summary.period_end,
     )
 
-    metrics_data = collect_metrics(summary.period_start, summary.period_end, organization=summary.organization)
+    metrics_data = collect_metrics(
+        summary.period_start, summary.period_end,
+        organization=summary.organization,
+        project_id=summary.project_id,
+        client_id=summary.client_id,
+    )
     summary.raw_data = metrics_data
     summary.save(update_fields=["raw_data"])
 
     user_prompt = _build_user_prompt(
         summary.period_type, summary.period_start, summary.period_end,
-        metrics_data, prev_metrics,
+        metrics_data, prev_metrics, summary=summary,
     )
     summary.prompt_text = user_prompt
     summary.save(update_fields=["prompt_text"])

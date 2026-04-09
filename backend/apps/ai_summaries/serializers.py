@@ -22,9 +22,17 @@ class SummaryListSerializer(serializers.ModelSerializer):
         ]
 
 
+class ScopeSerializer(serializers.Serializer):
+    """Inline serializer for project/client scope info."""
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+
+
 class SummaryDetailSerializer(serializers.ModelSerializer):
     version_count = serializers.IntegerField(read_only=True, default=1, help_text="Total number of versions for this period.")
     requested_by = RequestedBySerializer(read_only=True)
+    project_scope = serializers.SerializerMethodField()
+    client_scope = serializers.SerializerMethodField()
 
     class Meta:
         model = ReportSummary
@@ -34,7 +42,18 @@ class SummaryDetailSerializer(serializers.ModelSerializer):
             "llm_model", "prompt_tokens", "completion_tokens",
             "generation_time_ms", "raw_data", "error_message",
             "prompt_text", "requested_by", "generated_at", "version_count",
+            "focus_prompt", "project_scope", "client_scope",
         ]
+
+    def get_project_scope(self, obj):
+        if obj.project_id:
+            return {"id": obj.project_id, "name": obj.project.title}
+        return None
+
+    def get_client_scope(self, obj):
+        if obj.client_id:
+            return {"id": obj.client_id, "name": obj.client.name}
+        return None
 
 
 class SummaryVersionSerializer(serializers.ModelSerializer):
@@ -51,6 +70,13 @@ class SummaryVersionSerializer(serializers.ModelSerializer):
 class GenerateRequestSerializer(serializers.Serializer):
     period_start = serializers.DateField(help_text="Start date (YYYY-MM-DD). Must be <= period_end.")
     period_end = serializers.DateField(help_text="End date (YYYY-MM-DD). Must be >= period_start.")
+    project_id = serializers.IntegerField(required=False, allow_null=True, default=None,
+                                          help_text="Optional project ID to scope the summary.")
+    client_id = serializers.IntegerField(required=False, allow_null=True, default=None,
+                                         help_text="Optional client ID to scope the summary.")
+    focus_prompt = serializers.CharField(required=False, allow_blank=True, default="",
+                                         max_length=500,
+                                         help_text="Optional custom focus instructions for the AI.")
 
     def validate(self, data):
         if data["period_end"] < data["period_start"]:

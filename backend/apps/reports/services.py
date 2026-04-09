@@ -154,7 +154,8 @@ def _summarize_durations(durations):
     }
 
 
-def get_report_data(date_from=None, date_to=None, client_id=None, organization=None):
+def get_report_data(date_from=None, date_to=None, client_id=None, organization=None,
+                    project_id=None):
     """Aggregate task metrics for a period.
 
     `base_qs` (org-scoped, all-time) is used for current-state metrics: total counts,
@@ -173,6 +174,8 @@ def get_report_data(date_from=None, date_to=None, client_id=None, organization=N
         base_qs = base_qs.filter(organization=organization)
     if client_id:
         base_qs = base_qs.filter(client_id=client_id)
+    if project_id:
+        base_qs = base_qs.filter(project_id=project_id)
 
     total = base_qs.count()
 
@@ -198,6 +201,8 @@ def get_report_data(date_from=None, date_to=None, client_id=None, organization=N
         audit_period_filter &= Q(task__organization=organization)
     if client_id:
         audit_period_filter &= Q(task__client_id=client_id)
+    if project_id:
+        audit_period_filter &= Q(task__project_id=project_id)
 
     has_period = bool(date_from or date_to)
     if date_from:
@@ -228,6 +233,8 @@ def get_report_data(date_from=None, date_to=None, client_id=None, organization=N
             org_audit_qs = org_audit_qs.filter(task__organization=organization)
         if client_id:
             org_audit_qs = org_audit_qs.filter(task__client_id=client_id)
+        if project_id:
+            org_audit_qs = org_audit_qs.filter(task__project_id=project_id)
         cycle_durations = _compute_cycle_times(done_entries, org_audit_qs)
         cycle_time = _summarize_durations(cycle_durations)
 
@@ -354,6 +361,12 @@ def get_report_data(date_from=None, date_to=None, client_id=None, organization=N
         .annotate(
             assigned=Count("id", distinct=True),
             done=Count("id", filter=Q(status="done"), distinct=True),
+            in_progress=Count("id", filter=Q(status="in_progress"), distinct=True),
+            overdue=Count(
+                "id",
+                filter=Q(deadline__lt=now) & ~Q(status__in=["done", "archived"]),
+                distinct=True,
+            ),
         )
         .order_by("-assigned")
     )
@@ -403,6 +416,8 @@ def get_report_data(date_from=None, date_to=None, client_id=None, organization=N
                 "engineer_name": f"{e['assignees__first_name']} {e['assignees__last_name']}".strip(),
                 "assigned": e["assigned"],
                 "done": e["done"],
+                "in_progress": e["in_progress"],
+                "overdue": e["overdue"],
             }
             for e in by_engineer_qs
         ],

@@ -142,7 +142,7 @@ class SummaryDetailView(RetrieveAPIView):
 
     def get_queryset(self):
         org = self.request.user.organization
-        return ReportSummary.objects.filter(organization=org).select_related("requested_by").annotate(
+        return ReportSummary.objects.filter(organization=org).select_related("requested_by", "project", "client").annotate(
             version_count=Subquery(
                 ReportSummary.objects.filter(
                     organization=org,
@@ -206,16 +206,21 @@ class SummaryGenerateView(APIView):
 
         period_start = serializer.validated_data["period_start"]
         period_end = serializer.validated_data["period_end"]
+        project_id = serializer.validated_data.get("project_id")
+        client_id = serializer.validated_data.get("client_id")
+        focus_prompt = serializer.validated_data.get("focus_prompt", "")
         org = request.user.organization
 
-        in_progress = ReportSummary.objects.filter(
-            organization=org,
-            period_type=ReportSummary.PeriodType.ON_DEMAND,
-            period_start=period_start,
-            period_end=period_end,
-            status__in=[ReportSummary.Status.PENDING, ReportSummary.Status.GENERATING],
-        ).exists()
-        if in_progress:
+        in_progress_filter = {
+            "organization": org,
+            "period_type": ReportSummary.PeriodType.ON_DEMAND,
+            "period_start": period_start,
+            "period_end": period_end,
+            "status__in": [ReportSummary.Status.PENDING, ReportSummary.Status.GENERATING],
+            "project_id": project_id,
+            "client_id": client_id,
+        }
+        if ReportSummary.objects.filter(**in_progress_filter).exists():
             return Response(
                 {"detail": "Summary generation already in progress for this period."},
                 status=status.HTTP_409_CONFLICT,
@@ -228,6 +233,9 @@ class SummaryGenerateView(APIView):
             period_end=period_end,
             status=ReportSummary.Status.PENDING,
             requested_by=request.user,
+            project_id=project_id,
+            client_id=client_id,
+            focus_prompt=focus_prompt,
         )
 
         generate_summary.delay(

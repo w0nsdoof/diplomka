@@ -203,7 +203,13 @@
     "closed": "Closed",
     "overdue": "Overdue",
     "summaryStarted": "Summary generation started",
-    "failedGeneration": "Failed to start generation"
+    "failedGeneration": "Failed to start generation",
+    "project": "Project",
+    "client": "Client",
+    "allProjects": "All Projects",
+    "allClients": "All Clients",
+    "focusPrompt": "Focus (optional)",
+    "focusPlaceholder": "e.g. Focus on overdue risks for billing module"
   },
   "summaries": {
     "title": "Summary History",
@@ -230,7 +236,12 @@
     "versionHistory": "Version History",
     "regenerationStarted": "Regeneration started",
     "regenerationFailed": "Regeneration failed",
-    "promptSent": "Prompt Sent to LLM"
+    "promptSent": "Prompt Sent to LLM",
+    "visualBreakdown": "Visual Breakdown",
+    "statusDistribution": "Status Distribution",
+    "priorityDistribution": "Priority Distribution",
+    "engineerWorkload": "Engineer Workload",
+    "clientActivity": "Client Activity"
   },
   "admin": {
     "title": "User Management",
