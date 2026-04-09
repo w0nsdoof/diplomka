@@ -225,3 +225,95 @@ class TestStuckWaitingSample:
         data = get_report_data(organization=org)
         assert data["tasks"]["stuck_waiting"]["count"] == 0
         assert data["tasks"]["stuck_waiting"]["sample"] == []
+
+
+@pytest.mark.django_db
+class TestApproachingDeadline:
+    def test_approaching_deadline_returns_tasks_due_in_48h(self, org, manager):
+        now = timezone.now()
+        TaskFactory(
+            created_by=manager, organization=org, status="created",
+            title="Almost due", priority="high",
+            deadline=now + timedelta(hours=12),
+        )
+        # Task due in 3 days — should NOT appear
+        TaskFactory(
+            created_by=manager, organization=org, status="created",
+            deadline=now + timedelta(days=3),
+        )
+        # Done task due soon — should NOT appear
+        TaskFactory(
+            created_by=manager, organization=org, status="done",
+            deadline=now + timedelta(hours=6),
+        )
+
+        data = get_report_data(organization=org)
+        approaching = data["tasks"]["approaching_deadline"]
+        assert len(approaching) == 1
+        assert approaching[0]["title"] == "Almost due"
+        assert approaching[0]["priority"] == "high"
+        assert 11 <= approaching[0]["hours_remaining"] <= 13
+
+    def test_approaching_deadline_empty_when_no_upcoming(self, org, manager):
+        TaskFactory(
+            created_by=manager, organization=org, status="created",
+            deadline=timezone.now() + timedelta(days=5),
+        )
+        data = get_report_data(organization=org)
+        assert data["tasks"]["approaching_deadline"] == []
+
+
+@pytest.mark.django_db
+class TestOverdueBreakdown:
+    def test_new_vs_inherited_overdue(self, org, manager):
+        now = timezone.now()
+        # Overdue task whose deadline passed during the period (new overdue)
+        TaskFactory(
+            created_by=manager, organization=org, status="created",
+            deadline=now - timedelta(hours=6),
+        )
+        # Overdue task whose deadline passed before the period (inherited)
+        TaskFactory(
+            created_by=manager, organization=org, status="in_progress",
+            deadline=now - timedelta(days=30),
+        )
+
+        date_from = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+        date_to = now.strftime("%Y-%m-%d")
+
+        data = get_report_data(date_from=date_from, date_to=date_to, organization=org)
+        assert data["tasks"]["overdue"] == 2
+        assert data["tasks"]["overdue_new"] == 1
+        assert data["tasks"]["overdue_inherited"] == 1
+
+    def test_overdue_breakdown_is_none_without_period(self, org, manager):
+        TaskFactory(
+            created_by=manager, organization=org, status="created",
+            deadline=timezone.now() - timedelta(days=1),
+        )
+        data = get_report_data(organization=org)
+        assert data["tasks"]["overdue_new"] is None
+        assert data["tasks"]["overdue_inherited"] is None
+
+
+@pytest.mark.django_db
+class TestStatusTransitions:
+    def test_status_transitions_counted_in_period(self, org, manager):
+        now = _local_noon()
+        task = TaskFactory(created_by=manager, organization=org, status="done")
+
+        _make_status_change(task, "in_progress", now - timedelta(hours=5))
+        _make_status_change(task, "done", now - timedelta(hours=1))
+
+        date_from = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        date_to = now.strftime("%Y-%m-%d")
+
+        data = get_report_data(date_from=date_from, date_to=date_to, organization=org)
+        transitions = data["tasks"]["status_transitions"]
+        transition_map = {(t["from"], t["to"]): t["count"] for t in transitions}
+        assert transition_map.get(("", "in_progress"), 0) == 1
+        assert transition_map.get(("", "done"), 0) == 1
+
+    def test_status_transitions_empty_without_period(self, org, manager):
+        data = get_report_data(organization=org)
+        assert data["tasks"]["status_transitions"] == []

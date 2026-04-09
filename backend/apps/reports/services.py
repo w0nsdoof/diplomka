@@ -251,6 +251,57 @@ def get_report_data(date_from=None, date_to=None, client_id=None, organization=N
         .count()
     )
 
+    # Deadline proximity: active tasks with deadline in next 48 hours.
+    deadline_soon_cutoff = now + timedelta(hours=48)
+    approaching_deadline_qs = (
+        base_qs.filter(deadline__gt=now, deadline__lte=deadline_soon_cutoff)
+        .exclude(status__in=["done", "archived"])
+        .order_by("deadline")
+    )
+    approaching_deadline = [
+        {
+            "id": t.id,
+            "title": t.title,
+            "priority": t.priority,
+            "deadline": t.deadline.isoformat(),
+            "hours_remaining": round((t.deadline - now).total_seconds() / 3600.0, 1),
+        }
+        for t in approaching_deadline_qs[:10]
+    ]
+
+    # New overdue vs inherited: tasks whose deadline crossed "now" during the period.
+    if has_period and date_from:
+        new_overdue = (
+            base_qs.filter(deadline__gte=date_from, deadline__lt=now)
+            .exclude(status__in=["done", "archived"])
+            .count()
+        )
+    else:
+        new_overdue = None
+    inherited_overdue = (overdue - new_overdue) if new_overdue is not None else None
+
+    # Status transitions in period: count audit log STATUS_CHANGE entries by flow.
+    if has_period:
+        transition_rows = list(
+            AuditLogEntry.objects.filter(
+                audit_period_filter,
+                action=AuditLogEntry.Action.STATUS_CHANGE,
+            )
+            .values("old_value", "new_value")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+        )
+        status_transitions = [
+            {
+                "from": r["old_value"],
+                "to": r["new_value"],
+                "count": r["count"],
+            }
+            for r in transition_rows
+        ]
+    else:
+        status_transitions = []
+
     # Stuck-waiting tasks (current-state, not period-scoped).
     waiting_tasks = base_qs.filter(status="waiting")
     three_days_ago = now - timedelta(days=3)
@@ -332,6 +383,10 @@ def get_report_data(date_from=None, date_to=None, client_id=None, organization=N
             "completion_rate": completion_rate,
             "lead_time": lead_time,
             "cycle_time": cycle_time,
+            "approaching_deadline": approaching_deadline,
+            "overdue_new": new_overdue,
+            "overdue_inherited": inherited_overdue,
+            "status_transitions": status_transitions,
         },
         "by_client": [
             {

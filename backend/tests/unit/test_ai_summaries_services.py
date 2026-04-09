@@ -167,6 +167,8 @@ def _sample_metrics():
             "created_in_period": 12,
             "closed_in_period": 9,
             "overdue": 4,
+            "overdue_new": 2,
+            "overdue_inherited": 2,
             "avg_resolution_time_hours": 18.5,
             "unassigned_count": 2,
             "completion_rate": 75.0,
@@ -179,6 +181,15 @@ def _sample_metrics():
             },
             "lead_time": {"avg_hours": 18.5, "median_hours": 12.0, "p90_hours": 48.0, "count": 9},
             "cycle_time": {"avg_hours": 6.2, "median_hours": 4.5, "p90_hours": 16.0, "count": 9},
+            "approaching_deadline": [
+                {"id": 201, "title": "Finalize API contracts", "priority": "high", "deadline": "2026-04-08T14:00:00+00:00", "hours_remaining": 11.5},
+                {"id": 202, "title": "Ship billing fix", "priority": "critical", "deadline": "2026-04-08T23:00:00+00:00", "hours_remaining": 20.3},
+            ],
+            "status_transitions": [
+                {"from": "created", "to": "in_progress", "count": 8},
+                {"from": "in_progress", "to": "done", "count": 5},
+                {"from": "in_progress", "to": "waiting", "count": 2},
+            ],
         },
         "by_client": [
             {"client_id": 1, "client_name": "Acme Corp", "total": 8, "done": 5},
@@ -203,7 +214,7 @@ class TestRenderMetricsAsMarkdown:
         assert "| Created in period | 12 |" in md
         assert "| Closed in period | 9 |" in md
         assert "| Completion rate | 75.0% |" in md
-        assert "| Currently overdue | 4 |" in md
+        assert "| Currently overdue | 4 (2 new this period, 2 inherited) |" in md
 
     def test_includes_lead_and_cycle_time_with_median_p90(self):
         md = render_metrics_as_markdown(_sample_metrics())
@@ -263,6 +274,44 @@ class TestRenderMetricsAsMarkdown:
         assert "Lead time (created → done) | N/A" in md
         assert "Cycle time (in_progress → done) | N/A" in md
 
+    def test_includes_overdue_new_and_inherited(self):
+        md = render_metrics_as_markdown(_sample_metrics())
+        assert "2 new this period" in md
+        assert "2 inherited" in md
+
+    def test_overdue_without_breakdown_when_none(self):
+        m = _sample_metrics()
+        m["tasks"]["overdue_new"] = None
+        m["tasks"]["overdue_inherited"] = None
+        md = render_metrics_as_markdown(m)
+        assert "Currently overdue | 4 |" in md
+        assert "new this period" not in md
+
+    def test_includes_approaching_deadline_table(self):
+        md = render_metrics_as_markdown(_sample_metrics())
+        assert "Approaching deadline (next 48 h): 2 tasks" in md
+        assert "Finalize API contracts" in md
+        assert "Ship billing fix" in md
+        assert "11.5" in md
+
+    def test_approaching_deadline_empty(self):
+        m = _sample_metrics()
+        m["tasks"]["approaching_deadline"] = []
+        md = render_metrics_as_markdown(m)
+        assert "Approaching deadline (next 48 h): 0 tasks" in md
+
+    def test_includes_status_transitions_table(self):
+        md = render_metrics_as_markdown(_sample_metrics())
+        assert "Status transitions in period" in md
+        assert "| created | in_progress | 8 |" in md
+        assert "| in_progress | done | 5 |" in md
+
+    def test_status_transitions_empty(self):
+        m = _sample_metrics()
+        m["tasks"]["status_transitions"] = []
+        md = render_metrics_as_markdown(m)
+        assert "No transitions recorded" in md
+
 
 class TestRenderDeltasAsMarkdown:
     def test_renders_deltas_table(self):
@@ -288,6 +337,10 @@ class TestBuildUserPrompt:
         # Daily should NOT have the full 5-section template
         assert "## Recommendations" not in prompt
         assert "Headline numbers" in prompt
+        # Zero-activity instruction
+        assert "No task activity" in prompt
+        # Approaching deadline instruction
+        assert "approaching-deadline" in prompt
 
     def test_weekly_prompt_includes_no_trend_section_when_prev_missing(self):
         prompt = _build_user_prompt("weekly", "2026-04-01", "2026-04-07", _sample_metrics())

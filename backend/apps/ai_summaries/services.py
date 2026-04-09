@@ -237,7 +237,13 @@ def render_metrics_as_markdown(metrics):
     parts.append(f"| Created in period | {tasks.get('created_in_period', 0)} |")
     parts.append(f"| Closed in period | {tasks.get('closed_in_period', 0)} |")
     parts.append(f"| Completion rate | {_fmt_num(tasks.get('completion_rate'), '%')} |")
-    parts.append(f"| Currently overdue | {tasks.get('overdue', 0)} |")
+    overdue_total = tasks.get('overdue', 0)
+    overdue_new = tasks.get('overdue_new')
+    overdue_inherited = tasks.get('overdue_inherited')
+    if overdue_new is not None:
+        parts.append(f"| Currently overdue | {overdue_total} ({overdue_new} new this period, {overdue_inherited} inherited) |")
+    else:
+        parts.append(f"| Currently overdue | {overdue_total} |")
     parts.append(f"| Unassigned active | {tasks.get('unassigned_count', 0)} |")
     parts.append(f"| Lead time (created → done) | {_fmt_duration(lead_time)} |")
     parts.append(f"| Cycle time (in_progress → done) | {_fmt_duration(cycle_time)} |")
@@ -296,6 +302,28 @@ def render_metrics_as_markdown(metrics):
             parts.append(f"| {t.get('title', '')} | {t.get('priority', '')} | {wh_str} |")
     else:
         parts.append("_None._")
+    parts.append("")
+
+    approaching = tasks.get("approaching_deadline") or []
+    if approaching:
+        parts.append(f"## Approaching deadline (next 48 h): {len(approaching)} tasks")
+        parts.append("| Title | Priority | Hours remaining |")
+        parts.append("|---|---|---|")
+        for t in approaching[:STUCK_TASKS_IN_PROMPT]:
+            parts.append(f"| {t.get('title', '')} | {t.get('priority', '')} | {t.get('hours_remaining', '?')} |")
+    else:
+        parts.append("## Approaching deadline (next 48 h): 0 tasks")
+    parts.append("")
+
+    transitions = tasks.get("status_transitions") or []
+    if transitions:
+        parts.append("## Status transitions in period")
+        parts.append("| From | To | Count |")
+        parts.append("|---|---|---|")
+        for t in transitions:
+            parts.append(f"| {t['from']} | {t['to']} | {t['count']} |")
+    else:
+        parts.append("## Status transitions in period\n_No transitions recorded._")
     parts.append("")
 
     return "\n".join(parts).strip()
