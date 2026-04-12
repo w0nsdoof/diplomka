@@ -66,4 +66,11 @@ coverage/
 
 # Auto Claude data directory
 .auto-claude/
-celerybeat-schedule.playwright-mcp/
+
+# Celery beat local schedule
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
+
+# Playwright MCP artifacts
+.playwright-mcp/

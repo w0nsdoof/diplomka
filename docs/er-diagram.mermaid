@@ -1,0 +1,322 @@
+erDiagram
+
+    %% ── accounts ──
+    User {
+        int id PK
+        string email UK
+        string first_name
+        string last_name
+        string role "superadmin | manager | engineer | client"
+        string phone
+        image avatar
+        string job_title
+        string skills
+        string bio
+        string language "en | ru"
+        int organization_id FK
+        int client_id FK
+    }
+
+    %% ── organizations ──
+    Organization {
+        int id PK
+        string name UK
+        string slug UK
+        bool is_active
+        int default_llm_model_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% ── clients ──
+    Client {
+        int id PK
+        string name "unique with organization"
+        string client_type "company | individual"
+        string phone
+        string email
+        string contact_person
+        int organization_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% ── tags ──
+    Tag {
+        int id PK
+        string name "unique with organization"
+        string color
+        int organization_id FK
+    }
+
+    %% ── projects ──
+    Project {
+        int id PK
+        string title
+        string description
+        string priority "low | medium | high | critical"
+        string status "created | in_progress | waiting | done | archived"
+        datetime deadline
+        int version
+        int assignee_id FK
+        int client_id FK
+        int organization_id FK
+        int created_by_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    Epic {
+        int id PK
+        string title
+        string description
+        string priority "low | medium | high | critical"
+        string status "created | in_progress | waiting | done | archived"
+        datetime deadline
+        json last_generation
+        int version
+        int project_id FK
+        int assignee_id FK
+        int client_id FK
+        int organization_id FK
+        int created_by_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% ── tasks ──
+    Task {
+        int id PK
+        string title
+        string description
+        string priority "low | medium | high | critical"
+        string status "created | in_progress | waiting | done | archived"
+        datetime deadline
+        decimal estimated_hours
+        int version
+        int epic_id FK
+        int parent_task_id FK "self-ref for subtasks"
+        int client_id FK
+        int created_by_id FK
+        int organization_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% ── comments ──
+    Comment {
+        int id PK
+        text content
+        bool is_public
+        int task_id FK
+        int author_id FK
+        datetime created_at
+    }
+
+    %% ── attachments ──
+    Attachment {
+        int id PK
+        file file
+        string original_filename
+        int file_size
+        string content_type
+        int task_id FK
+        int comment_id FK
+        int uploaded_by_id FK
+        datetime uploaded_at
+    }
+
+    %% ── audit ──
+    AuditLogEntry {
+        int id PK
+        string action "status_change | field_update | comment_added | file_attached | assignment_change"
+        string field_name
+        string old_value
+        string new_value
+        int task_id FK
+        int project_id FK
+        int epic_id FK
+        int actor_id FK
+        datetime timestamp
+    }
+
+    %% ── notifications ──
+    Notification {
+        int id PK
+        string event_type
+        int related_object_id
+        text message
+        bool is_read
+        int recipient_id FK
+        int task_id FK
+        int project_id FK
+        int epic_id FK
+        datetime created_at
+    }
+
+    %% ── ai_summaries ──
+    LLMModel {
+        int id PK
+        string model_id UK
+        string display_name
+        bool is_active
+        bool is_default
+        datetime created_at
+        datetime updated_at
+    }
+
+    ReportSummary {
+        int id PK
+        string period_type "daily | weekly | on_demand"
+        date period_start
+        date period_end
+        text summary_text
+        string generation_method "ai | fallback"
+        string status "pending | generating | completed | failed"
+        string llm_model
+        int prompt_tokens
+        int completion_tokens
+        int generation_time_ms
+        json raw_data
+        string error_message
+        text prompt_text
+        json sections
+        text focus_prompt
+        int organization_id FK
+        int requested_by_id FK
+        int project_id FK
+        int client_id FK
+        datetime generated_at
+        datetime created_at
+    }
+
+    %% ── telegram ──
+    TelegramLink {
+        int id PK
+        bigint chat_id UK
+        string username
+        bool is_active
+        bool telegram_notifications_enabled
+        int user_id FK "OneToOne"
+        int organization_id FK
+        datetime linked_at
+    }
+
+    TelegramVerificationCode {
+        int id PK
+        string code UK
+        int user_id FK
+        int organization_id FK
+        datetime created_at
+        datetime expires_at
+        bool is_used
+    }
+
+    %% ── M2M junction tables ──
+    Project_Tags {
+        int project_id FK
+        int tag_id FK
+    }
+
+    Project_Team {
+        int project_id FK
+        int user_id FK
+    }
+
+    Epic_Tags {
+        int epic_id FK
+        int tag_id FK
+    }
+
+    Task_Assignees {
+        int task_id FK
+        int user_id FK
+    }
+
+    Task_Tags {
+        int task_id FK
+        int tag_id FK
+    }
+
+    Comment_Mentions {
+        int comment_id FK
+        int user_id FK
+    }
+
+    %% ════════════════════════════════════════
+    %% RELATIONSHIPS
+    %% ════════════════════════════════════════
+
+    %% ── Organization as tenant ──
+    Organization ||--o{ User : "has members"
+    Organization ||--o{ Client : "has clients"
+    Organization ||--o{ Tag : "has tags"
+    Organization ||--o{ Project : "has projects"
+    Organization ||--o{ Epic : "has epics"
+    Organization ||--o{ Task : "has tasks"
+    Organization ||--o{ ReportSummary : "has summaries"
+    Organization ||--o{ TelegramLink : "has telegram links"
+    Organization ||--o{ TelegramVerificationCode : "has verification codes"
+    Organization ||--o| LLMModel : "default LLM model"
+
+    %% ── User relationships ──
+    User ||--o| TelegramLink : "has telegram link"
+    User ||--o{ TelegramVerificationCode : "has verification codes"
+    Client ||--o{ User : "has portal users"
+
+    %% ── Project hierarchy ──
+    Project ||--o{ Epic : "contains epics"
+    Epic ||--o{ Task : "contains tasks"
+    Task ||--o{ Task : "has subtasks (parent_task)"
+
+    %% ── Project ownership / assignment ──
+    User ||--o{ Project : "assignee"
+    User ||--o{ Project : "created_by"
+    Client ||--o{ Project : "client"
+
+    %% ── Epic ownership / assignment ──
+    User ||--o{ Epic : "assignee"
+    User ||--o{ Epic : "created_by"
+    Client ||--o{ Epic : "client"
+
+    %% ── Task ownership / assignment ──
+    User ||--o{ Task : "created_by"
+    Client ||--o{ Task : "client"
+
+    %% ── Comments & Attachments ──
+    Task ||--o{ Comment : "has comments"
+    User ||--o{ Comment : "authored"
+    Task ||--o{ Attachment : "has attachments"
+    Comment ||--o{ Attachment : "has attachments"
+    User ||--o{ Attachment : "uploaded_by"
+
+    %% ── Audit ──
+    Task ||--o{ AuditLogEntry : "audit log"
+    Project ||--o{ AuditLogEntry : "audit log"
+    Epic ||--o{ AuditLogEntry : "audit log"
+    User ||--o{ AuditLogEntry : "actor"
+
+    %% ── Notifications ──
+    User ||--o{ Notification : "recipient"
+    Task ||--o{ Notification : "related task"
+    Project ||--o{ Notification : "related project"
+    Epic ||--o{ Notification : "related epic"
+
+    %% ── Report Summaries ──
+    User ||--o{ ReportSummary : "requested_by"
+    Project ||--o{ ReportSummary : "scoped to project"
+    Client ||--o{ ReportSummary : "scoped to client"
+
+    %% ── M2M relationships ──
+    Project ||--o{ Project_Tags : ""
+    Tag ||--o{ Project_Tags : ""
+    Project ||--o{ Project_Team : ""
+    User ||--o{ Project_Team : ""
+    Epic ||--o{ Epic_Tags : ""
+    Tag ||--o{ Epic_Tags : ""
+    Task ||--o{ Task_Assignees : ""
+    User ||--o{ Task_Assignees : ""
+    Task ||--o{ Task_Tags : ""
+    Tag ||--o{ Task_Tags : ""
+    Comment ||--o{ Comment_Mentions : ""
+    User ||--o{ Comment_Mentions : ""
