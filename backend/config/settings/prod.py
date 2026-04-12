@@ -1,19 +1,8 @@
 import os
 
-import sentry_sdk
-
 from .base import *  # noqa: F401, F403
 
 DEBUG = False
-
-# Sentry error monitoring & performance tracking
-_sentry_dsn = os.getenv("SENTRY_DSN", "")
-if _sentry_dsn:
-    sentry_sdk.init(
-        dsn=_sentry_dsn,
-        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.2")),
-        send_default_pii=False,
-    )
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -49,10 +38,9 @@ STORAGES = {
     },
 }
 
-# Production logging: JSON format for structured log aggregation
+# Production logging: structured JSON for Loki/Promtail aggregation
 LOGGING["formatters"]["json"] = {  # noqa: F405
-    "()": "django.utils.log.ServerFormatter",
-    "format": "{asctime} {levelname} {name} {message}",
-    "style": "{",
+    "()": "config.logging.JsonFormatter",
 }
+LOGGING["handlers"]["console"]["formatter"] = "json"  # noqa: F405
 LOGGING["loggers"]["django.request"]["level"] = "ERROR"  # noqa: F405

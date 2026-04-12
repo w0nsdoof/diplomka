@@ -8,6 +8,7 @@ from redis import Redis
 
 from apps.reports.services import get_report_data
 
+from .metrics import record_summary_completed
 from .prompts import (
     DAILY_USER_PROMPT,
     ON_DEMAND_USER_PROMPT,
@@ -707,6 +708,7 @@ def generate_summary_for_period(summary_id, prev_metrics=None, model_override=No
             "Summary completed id=%s method=ai model=%s tokens=%s/%s time_ms=%s",
             summary.id, model, prompt_tokens, completion_tokens, elapsed_ms,
         )
+        record_summary_completed(summary)
         notify_managers_of_summary(summary)
     except Exception as e:
         elapsed_ms = int((time.monotonic() - start_time) * 1000)
@@ -736,6 +738,7 @@ def generate_summary_for_period(summary_id, prev_metrics=None, model_override=No
             "error_message", "generation_time_ms",
         ])
         logger.info("Summary completed id=%s method=fallback time_ms=%s", summary.id, elapsed_ms)
+        record_summary_completed(summary)
         notify_managers_of_summary(summary)
 
     return summary

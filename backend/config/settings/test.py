@@ -10,6 +10,9 @@ DATABASES = {
     }
 }
 
+# Disable prometheus middleware in tests (no metrics endpoint needed)
+MIDDLEWARE = [m for m in MIDDLEWARE if not m.startswith("django_prometheus.")]  # noqa: F405
+
 # Faster password hashing for tests
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",

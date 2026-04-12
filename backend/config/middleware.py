@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 class RequestLoggingMiddleware:
     """Log HTTP requests with method, path, status, duration, and user."""
 
-    SKIP_PATHS = {"/api/health/"}
+    SKIP_PATHS = {"/api/health/", "/metrics"}
 
     def __init__(self, get_response):
         self.get_response = get_response

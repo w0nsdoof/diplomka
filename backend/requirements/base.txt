@@ -17,3 +17,4 @@ python-dotenv>=1.2,<2.0
 litellm>=1.60,<2.0
 tenacity>=9.0,<10.0
 httpx>=0.28,<1.0
+django-prometheus>=2.3,<3.0

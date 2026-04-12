@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "drf_spectacular",
     "channels",
+    "django_prometheus",
     # Local apps
     "apps.organizations",
     "apps.platform",
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -57,6 +59,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "config.middleware.RequestLoggingMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -84,7 +87,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django_prometheus.db.backends.postgresql",
         "NAME": os.getenv("POSTGRES_DB", "taskmanager"),
         "USER": os.getenv("POSTGRES_USER", "taskmanager"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "changeme"),
@@ -314,10 +317,6 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{asctime} {levelname} {name} {message}",
-            "style": "{",
-        },
-        "request": {
             "format": "{asctime} {levelname} {name} {message}",
             "style": "{",
         },
