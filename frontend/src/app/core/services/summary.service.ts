@@ -84,6 +84,7 @@ export class SummaryService {
     projectId?: number | null;
     clientId?: number | null;
     focusPrompt?: string;
+    llmModelId?: number | null;
   }): Observable<SummaryDetail> {
     const body: Record<string, unknown> = {
       period_start: periodStart,
@@ -92,10 +93,24 @@ export class SummaryService {
     if (options?.projectId) body['project_id'] = options.projectId;
     if (options?.clientId) body['client_id'] = options.clientId;
     if (options?.focusPrompt) body['focus_prompt'] = options.focusPrompt;
+    if (options?.llmModelId) body['llm_model_id'] = options.llmModelId;
     return this.http.post<SummaryDetail>(`${this.baseUrl}/generate/`, body);
   }
 
-  regenerate(id: number): Observable<SummaryDetail> {
-    return this.http.post<SummaryDetail>(`${this.baseUrl}/${id}/regenerate/`, {});
+  regenerate(id: number, llmModelId?: number | null): Observable<SummaryDetail> {
+    const body: Record<string, unknown> = {};
+    if (llmModelId) body['llm_model_id'] = llmModelId;
+    return this.http.post<SummaryDetail>(`${this.baseUrl}/${id}/regenerate/`, body);
   }
+
+  pollGenerationStatus(id: number): Observable<SummaryGenerationStatus> {
+    return this.http.get<SummaryGenerationStatus>(`${this.baseUrl}/${id}/generation-status/`);
+  }
+}
+
+export interface SummaryGenerationStatus {
+  id: number;
+  status: string;
+  stage: string | null;
+  stage_meta: Record<string, any>;
 }

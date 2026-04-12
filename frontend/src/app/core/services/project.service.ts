@@ -139,8 +139,10 @@ export class ProjectService {
 
   // ── AI Task Generation ────────────────────────────────────────────
 
-  generateEpicTasks(epicId: number): Observable<{ task_id: string }> {
-    return this.http.post<{ task_id: string }>(`${this.epicsUrl}/${epicId}/generate-tasks/`, {});
+  generateEpicTasks(epicId: number, llmModelId?: number | null): Observable<{ task_id: string }> {
+    const body: Record<string, unknown> = {};
+    if (llmModelId) body['llm_model_id'] = llmModelId;
+    return this.http.post<{ task_id: string }>(`${this.epicsUrl}/${epicId}/generate-tasks/`, body);
   }
 
   pollGenerationStatus(epicId: number, taskId: string): Observable<GenerationStatus> {

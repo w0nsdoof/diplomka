@@ -3,6 +3,39 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 
+class LLMModel(models.Model):
+    """Available LLM models managed by superadmin, selectable by org managers."""
+
+    model_id = models.CharField(
+        max_length=200,
+        unique=True,
+        help_text="LiteLLM model identifier, e.g. openrouter/google/gemini-2.5-flash",
+    )
+    display_name = models.CharField(max_length=200)
+    is_active = models.BooleanField(default=True, db_index=True)
+    is_default = models.BooleanField(
+        default=False,
+        help_text="System-wide default model. Only one model should have this set.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["display_name"]
+        verbose_name = "LLM Model"
+        verbose_name_plural = "LLM Models"
+
+    def __str__(self):
+        return f"{self.display_name} ({self.model_id})"
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            LLMModel.objects.filter(is_default=True).exclude(pk=self.pk).update(
+                is_default=False
+            )
+        super().save(*args, **kwargs)
+
+
 class ReportSummary(models.Model):
     class PeriodType(models.TextChoices):
         DAILY = "daily", "Daily"

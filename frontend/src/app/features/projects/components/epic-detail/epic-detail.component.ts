@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -20,13 +20,16 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { Subject, forkJoin, of, switchMap, takeUntil, takeWhile, timer, scan, delayWhen } from 'rxjs';
+import { Observable, Subject, forkJoin, map, of, switchMap, takeUntil, takeWhile, timer, scan, delayWhen } from 'rxjs';
 import { ProjectService } from '../../../../core/services/project.service';
+import { GenerationWsService, StageUpdate } from '../../../../core/services/generation-ws.service';
 import { ClientService, Client } from '../../../../core/services/client.service';
 import { TagService, Tag } from '../../../../core/services/tag.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { LlmModelService, LLMModel } from '../../../../core/services/llm-model.service';
 import { EpicDetail, EpicUpdatePayload, ProjectListItem, ParentContext, UserBrief, TagBrief } from '../../../../core/models/hierarchy.models';
 import { AiTaskPreviewDialogComponent, AiTaskPreviewDialogData } from '../ai-task-preview/ai-task-preview-dialog.component';
+import { GenerationPipelineComponent, PipelineStageConfig, StageDetailFormatter } from '../generation-pipeline/generation-pipeline.component';
 import { STATUS_TRANSLATION_KEYS } from '../../../../core/constants/task-status';
 import { CreateEntityDialogComponent } from '../../../tasks/components/create-dialog/create-entity-dialog.component';
 import { ParentBreadcrumbComponent, BreadcrumbItem } from '../../../../shared/components/parent-breadcrumb/parent-breadcrumb.component';
@@ -45,12 +48,12 @@ const ALL_STATUSES = ['created', 'in_progress', 'waiting', 'done', 'archived'];
   selector: 'app-epic-detail',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, ReactiveFormsModule, MatCardModule, MatChipsModule,
+    CommonModule, RouterModule, FormsModule, ReactiveFormsModule, MatCardModule, MatChipsModule,
     MatButtonModule, MatIconModule, MatDividerModule, MatTabsModule,
     MatProgressBarModule, MatProgressSpinnerModule, MatMenuModule, MatSnackBarModule, MatDialogModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatDatepickerModule, MatNativeDateModule, TranslateModule,
-    ParentBreadcrumbComponent,
+    ParentBreadcrumbComponent, GenerationPipelineComponent,
   ],
   template: `
     <div *ngIf="epic" class="epic-detail">
@@ -258,16 +261,27 @@ const ALL_STATUSES = ['created', 'in_progress', 'waiting', 'done', 'archived'];
               <button class="flat-btn-primary" *ngIf="canEdit" (click)="openAddTaskDialog()">
                 <mat-icon>add</mat-icon> {{ 'epics.addTask' | translate }}
               </button>
+              <mat-form-field appearance="outline" class="model-select" *ngIf="isManager && !isGenerating && llmModels.length > 1">
+                <mat-label>{{ 'epics.aiModel' | translate }}</mat-label>
+                <mat-select [(ngModel)]="selectedLlmModelId">
+                  <mat-option [value]="null">{{ 'epics.defaultModel' | translate }}</mat-option>
+                  <mat-option *ngFor="let m of llmModels" [value]="m.id">{{ m.display_name }}</mat-option>
+                </mat-select>
+              </mat-form-field>
               <button class="flat-btn-outline" *ngIf="isManager && !isGenerating"
                       (click)="onGenerateTasks()"
                       [disabled]="!epic?.title || !epic?.description">
                 <mat-icon>auto_awesome</mat-icon> {{ 'epics.generateTasks' | translate }}
               </button>
-              <span *ngIf="isGenerating" class="generating-indicator">
-                <mat-spinner diameter="20"></mat-spinner>
-                <span>{{ 'epics.generating' | translate }}</span>
-              </span>
             </div>
+            <app-generation-pipeline
+              *ngIf="isGenerating"
+              [stages]="epicPipelineStages"
+              [titleKey]="'epics.pipeline.title'"
+              [currentStage]="pipelineStage"
+              [stageMeta]="pipelineStageMeta"
+              [detailFormatter]="epicDetailFormatter">
+            </app-generation-pipeline>
             <div *ngIf="tasks.length; else noTasks" class="child-list">
               <div *ngFor="let task of tasks" class="child-item">
                 <div class="child-main">
@@ -386,10 +400,7 @@ const ALL_STATUSES = ['created', 'in_progress', 'waiting', 'done', 'archived'];
     /* Tab content */
     .tab-content { padding: 16px 0; }
     .tab-header { margin-bottom: 12px; display: flex; gap: 12px; align-items: center; }
-    .generating-indicator {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 13px; color: var(--text-secondary, #6b7280);
-    }
+    .model-select { min-width: 160px; font-size: 13px; }
     .empty-message { color: #9ca3af; padding: 16px 0; }
 
     /* Child list (tasks) */
@@ -432,6 +443,46 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
   editMode = false;
   saving = false;
   isGenerating = false;
+  pipelineStage: string | undefined;
+  pipelineStageMeta: Record<string, any> = {};
+
+  epicPipelineStages: PipelineStageConfig[] = [
+    { key: 'collecting_context', icon: 'inventory_2', labelKey: 'epics.pipeline.collectingContext' },
+    { key: 'building_prompt', icon: 'edit_note', labelKey: 'epics.pipeline.buildingPrompt' },
+    { key: 'calling_llm', icon: 'psychology', labelKey: 'epics.pipeline.callingLlm' },
+    { key: 'parsing_response', icon: 'data_object', labelKey: 'epics.pipeline.parsingResponse' },
+    { key: 'validating', icon: 'verified', labelKey: 'epics.pipeline.validating' },
+    { key: 'completed', icon: 'check_circle', labelKey: 'epics.pipeline.ready' },
+  ];
+
+  epicDetailFormatter: StageDetailFormatter = (key: string, meta: Record<string, any>) => {
+    switch (key) {
+      case 'collecting_context': {
+        const parts: string[] = [];
+        if (meta['tasks_found'] != null) parts.push(`${meta['tasks_found']} existing tasks`);
+        if (meta['team_size'] != null) parts.push(`${meta['team_size']} engineers`);
+        if (meta['tags_available'] != null) parts.push(`${meta['tags_available']} tags`);
+        return parts.join(' \u00b7 ');
+      }
+      case 'building_prompt':
+        return meta['token_estimate'] ? `~${meta['token_estimate']} tokens` : '';
+      case 'calling_llm':
+        return meta['model'] || '';
+      case 'parsing_response':
+        return meta['generation_time_ms'] ? `${(meta['generation_time_ms'] / 1000).toFixed(1)}s` : '';
+      case 'validating':
+        return meta['raw_task_count'] ? `${meta['raw_task_count']} tasks from AI` : '';
+      case 'completed': {
+        const parts: string[] = [];
+        if (meta['valid_tasks'] != null) parts.push(`${meta['valid_tasks']} tasks ready`);
+        if (meta['generation_time_ms'] != null) parts.push(`${(meta['generation_time_ms'] / 1000).toFixed(1)}s total`);
+        return parts.join(' \u00b7 ');
+      }
+      default:
+        return '';
+    }
+  };
+
   editForm!: FormGroup;
 
   // Tasks
@@ -451,6 +502,10 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
   tags: Tag[] = [];
   projects: ProjectListItem[] = [];
 
+  // LLM model selection
+  llmModels: LLMModel[] = [];
+  selectedLlmModelId: number | null = null;
+
   private epicId!: number;
   private destroy$ = new Subject<void>();
 
@@ -462,6 +517,8 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
     private clientService: ClientService,
     private tagService: TagService,
     private authService: AuthService,
+    private genWs: GenerationWsService,
+    private llmModelService: LlmModelService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private cdr: ChangeDetectorRef,
@@ -485,6 +542,11 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
 
     this.loadEpic();
     this.loadTasks();
+    if (this.isManager) {
+      this.llmModelService.listActive().pipe(takeUntil(this.destroy$)).subscribe({
+        next: (models) => { this.llmModels = models; this.cdr.markForCheck(); },
+      });
+    }
   }
 
   openAddTaskDialog(): void {
@@ -510,7 +572,10 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
     this.isGenerating = true;
     this.cdr.markForCheck();
 
-    this.projectService.generateEpicTasks(this.epicId).pipe(takeUntil(this.destroy$)).subscribe({
+    this.pipelineStage = 'collecting_context';
+    this.pipelineStageMeta = {};
+
+    this.projectService.generateEpicTasks(this.epicId, this.selectedLlmModelId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.pollGeneration(res.task_id);
       },
@@ -535,31 +600,70 @@ export class EpicDetailComponent implements OnInit, OnDestroy {
   }
 
   private pollGeneration(taskId: string): void {
-    // Exponential backoff: 1s, 1.5s, 2.25s, ... capped at 5s
-    timer(0, 1000).pipe(
+    // Build a polling fallback that the WS service can use if WS fails
+    const pollingFallback$: Observable<StageUpdate | null> = timer(0, 3000).pipe(
       takeUntil(this.destroy$),
-      scan((delay) => Math.min(delay * 1.5, 5000), 1000),
-      delayWhen((delay) => timer(delay)),
       switchMap(() => this.projectService.pollGenerationStatus(this.epicId, taskId)),
       takeWhile((s) => s.status === 'pending' || s.status === 'processing', true),
-    ).subscribe({
-      next: (genStatus) => {
-        if (genStatus.status === 'completed' && genStatus.result) {
+      map((s) => {
+        // Handle completion/failure via polling
+        if (s.status === 'completed' && s.result) {
           this.isGenerating = false;
+          this.pipelineStage = undefined;
+          this.pipelineStageMeta = {};
           this.cdr.markForCheck();
-          this.openPreviewDialog(genStatus.result.tasks, genStatus.result.warnings || []);
-        } else if (genStatus.status === 'failed') {
+          this.openPreviewDialog(s.result.tasks, s.result.warnings || []);
+          return null; // signal done
+        } else if (s.status === 'failed') {
           this.isGenerating = false;
+          this.pipelineStage = undefined;
+          this.pipelineStageMeta = {};
           this.cdr.markForCheck();
           this.snackBar.open(
-            genStatus.error || this.translate.instant('epics.generationFailed'),
+            s.error || this.translate.instant('epics.generationFailed'),
             this.translate.instant('common.close'),
             { duration: 4000 },
           );
+          return null;
+        }
+        return s.stage ? { stage: s.stage, stage_meta: s.stage_meta || {} } : null;
+      }),
+    );
+
+    // Try WS first, falls back to polling automatically
+    this.genWs.connect('epic_tasks', this.epicId, pollingFallback$).pipe(
+      takeUntil(this.destroy$),
+    ).subscribe({
+      next: (update) => {
+        this.pipelineStage = update.stage;
+        this.pipelineStageMeta = update.stage_meta;
+        this.cdr.markForCheck();
+
+        // When WS reports completed, do one final poll to get the actual result
+        if (update.stage === 'completed') {
+          this.projectService.pollGenerationStatus(this.epicId, taskId).pipe(
+            takeUntil(this.destroy$),
+          ).subscribe((s) => {
+            this.isGenerating = false;
+            this.pipelineStage = undefined;
+            this.pipelineStageMeta = {};
+            this.cdr.markForCheck();
+            if (s.status === 'completed' && s.result) {
+              this.openPreviewDialog(s.result.tasks, s.result.warnings || []);
+            } else if (s.status === 'failed') {
+              this.snackBar.open(
+                s.error || this.translate.instant('epics.generationFailed'),
+                this.translate.instant('common.close'),
+                { duration: 4000 },
+              );
+            }
+          });
         }
       },
       error: () => {
         this.isGenerating = false;
+        this.pipelineStage = undefined;
+        this.pipelineStageMeta = {};
         this.cdr.markForCheck();
       },
     });

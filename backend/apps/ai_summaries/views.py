@@ -1,3 +1,6 @@
+import json as _json
+
+from django.conf import settings
 from django.db.models import Count, OuterRef, Subquery
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -5,6 +8,8 @@ from drf_spectacular.utils import (
     extend_schema,
     inline_serializer,
 )
+from redis import Redis
+from rest_framework import serializers as drf_serializers
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
@@ -12,9 +17,12 @@ from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsManager, IsManagerOrEngineer
 
-from .models import ReportSummary
+from .models import LLMModel, ReportSummary
 from .serializers import (
     GenerateRequestSerializer,
+    LLMModelSerializer,
+    OrgDefaultModelSerializer,
+    RegenerateRequestSerializer,
     SummaryDetailSerializer,
     SummaryListSerializer,
     SummaryVersionSerializer,
@@ -238,9 +246,15 @@ class SummaryGenerateView(APIView):
             focus_prompt=focus_prompt,
         )
 
+        model_override = None
+        llm_model_id = serializer.validated_data.get("llm_model_id")
+        if llm_model_id:
+            model_override = LLMModel.objects.get(pk=llm_model_id).model_id
+
         generate_summary.delay(
             "on_demand", str(period_start), str(period_end),
             summary_id=summary.id,
+            model_override=model_override,
         )
 
         detail_serializer = SummaryDetailSerializer(summary)
@@ -254,7 +268,7 @@ class SummaryRegenerateView(APIView):
     @extend_schema(
         summary="Regenerate a summary",
         description="Creates a new version of an existing summary. Returns immediately with pending new version.",
-        request=None,
+        request=RegenerateRequestSerializer,
         responses={
             202: SummaryDetailSerializer,
             404: OpenApiResponse(description="Summary not found"),
@@ -263,6 +277,9 @@ class SummaryRegenerateView(APIView):
         tags=["Summaries"],
     )
     def post(self, request, pk):
+        serializer = RegenerateRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         org = request.user.organization
         try:
             original = ReportSummary.objects.get(pk=pk, organization=org)
@@ -291,10 +308,129 @@ class SummaryRegenerateView(APIView):
             requested_by=request.user,
         )
 
+        model_override = None
+        llm_model_id = serializer.validated_data.get("llm_model_id")
+        if llm_model_id:
+            model_override = LLMModel.objects.get(pk=llm_model_id).model_id
+
         generate_summary.delay(
             original.period_type, str(original.period_start), str(original.period_end),
             summary_id=summary.id,
+            model_override=model_override,
         )
 
         detail_serializer = SummaryDetailSerializer(summary)
         return Response(detail_serializer.data, status=status.HTTP_202_ACCEPTED)
+
+
+class SummaryGenerationStatusView(APIView):
+    """GET /api/summaries/{id}/generation-status/ — poll pipeline stage during generation."""
+    permission_classes = [IsManagerOrEngineer]
+
+    @extend_schema(
+        summary="Poll summary generation status",
+        description=(
+            "Returns the current generation status and pipeline stage for a summary. "
+            "Poll until status is 'completed' or 'failed'."
+        ),
+        responses={
+            200: inline_serializer("SummaryGenerationStatus", fields={
+                "id": drf_serializers.IntegerField(),
+                "status": drf_serializers.CharField(),
+                "stage": drf_serializers.CharField(allow_null=True),
+                "stage_meta": drf_serializers.DictField(allow_null=True),
+            }),
+            404: OpenApiResponse(description="Summary not found"),
+        },
+        tags=["Summaries"],
+    )
+    def get(self, request, pk):
+        org = request.user.organization
+        try:
+            summary = ReportSummary.objects.only("id", "status").get(pk=pk, organization=org)
+        except ReportSummary.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        response_data = {
+            "id": summary.id,
+            "status": summary.status,
+            "stage": None,
+            "stage_meta": {},
+        }
+
+        # Read pipeline stage from Redis (best-effort)
+        try:
+            redis_client = Redis.from_url(settings.CELERY_BROKER_URL)
+            raw = redis_client.get(f"summary_generate:{summary.id}:stage")
+            if raw:
+                stage_data = _json.loads(raw)
+                response_data["stage"] = stage_data.get("stage")
+                response_data["stage_meta"] = stage_data.get("stage_meta", {})
+        except Exception:
+            pass
+
+        return Response(response_data)
+
+
+class LLMModelListView(ListAPIView):
+    """GET /api/llm-models/ — list active LLM models."""
+
+    serializer_class = LLMModelSerializer
+    permission_classes = [IsManagerOrEngineer]
+    pagination_class = None
+
+    @extend_schema(
+        summary="List available LLM models",
+        description="Returns all active LLM models that can be selected for AI generation.",
+        tags=["LLM Models"],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return LLMModel.objects.filter(is_active=True)
+
+
+class OrgDefaultModelView(APIView):
+    """GET/PATCH /api/llm-models/org-default/ — manage organization's default LLM model."""
+
+    permission_classes = [IsManager]
+
+    @extend_schema(
+        summary="Get organization's default LLM model",
+        responses={200: inline_serializer("OrgDefaultModelResponse", fields={
+            "default_llm_model": LLMModelSerializer(allow_null=True),
+        })},
+        tags=["LLM Models"],
+    )
+    def get(self, request):
+        org = request.user.organization
+        model = org.default_llm_model
+        return Response({
+            "default_llm_model": LLMModelSerializer(model).data if model else None,
+        })
+
+    @extend_schema(
+        summary="Set organization's default LLM model",
+        request=OrgDefaultModelSerializer,
+        responses={200: inline_serializer("OrgDefaultModelPatchResponse", fields={
+            "default_llm_model": LLMModelSerializer(allow_null=True),
+        })},
+        tags=["LLM Models"],
+    )
+    def patch(self, request):
+        serializer = OrgDefaultModelSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        org = request.user.organization
+        model_id = serializer.validated_data["default_llm_model_id"]
+        if model_id is not None:
+            org.default_llm_model = LLMModel.objects.get(pk=model_id, is_active=True)
+        else:
+            org.default_llm_model = None
+        org.save(update_fields=["default_llm_model"])
+
+        model = org.default_llm_model
+        return Response({
+            "default_llm_model": LLMModelSerializer(model).data if model else None,
+        })

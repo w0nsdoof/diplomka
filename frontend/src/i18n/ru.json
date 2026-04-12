@@ -147,13 +147,24 @@
     "addTask": "Добавить задачу",
     "noTasks": "Нет задач.",
     "generateTasks": "Сгенерировать задачи с ИИ",
+    "aiModel": "AI Модель",
+    "defaultModel": "По умолчанию для организации",
     "generating": "Генерация задач...",
     "generationFailed": "Ошибка генерации задач. Попробуйте ещё раз.",
     "generationInProgress": "Генерация уже выполняется",
     "previewTitle": "Просмотр сгенерированных задач",
     "confirmTasks": "Подтвердить и создать",
     "tasksCreated": "{count} задач успешно создано",
-    "noTasksToConfirm": "Добавьте хотя бы одну задачу для подтверждения"
+    "noTasksToConfirm": "Добавь��е хотя бы одну задачу для подтверждения",
+    "pipeline": {
+      "title": "Конвейер AI-генерации",
+      "collectingContext": "Сбор контекста",
+      "buildingPrompt": "Формирование промпта",
+      "callingLlm": "Вызов AI-модели",
+      "parsingResponse": "Разбор ответа",
+      "validating": "Валидация задач",
+      "ready": "Готово к ��роверке"
+    }
   },
   "clients": {
     "title": "Клиенты",
@@ -209,7 +220,9 @@
     "allProjects": "Все проекты",
     "allClients": "Все клиенты",
     "focusPrompt": "Фокус (необязательно)",
-    "focusPlaceholder": "напр. Сфокусируйся на просроченных задачах по биллингу"
+    "focusPlaceholder": "напр. Сфокусируйся на просроченных задачах по биллингу",
+    "aiModel": "AI Модель",
+    "defaultModel": "По умолчанию для организации"
   },
   "summaries": {
     "title": "История сводок",
@@ -232,6 +245,8 @@
     "versions": "Версии:",
     "error": "Ошибка:",
     "regenerate": "Перегенерировать",
+    "aiModel": "AI Модель",
+    "defaultModel": "По умолчанию для организации",
     "regenerating": "Перегенерация...",
     "versionHistory": "История версий",
     "regenerationStarted": "Перегенерация запущена",
@@ -241,7 +256,15 @@
     "statusDistribution": "Распределение по статусам",
     "priorityDistribution": "Распределение по приоритетам",
     "engineerWorkload": "Нагрузка инженеров",
-    "clientActivity": "Активность клиентов"
+    "clientActivity": "Активность клиентов",
+    "pipeline": {
+      "title": "Конвейер AI-отчёта",
+      "collectingMetrics": "Сбор метрик",
+      "buildingPrompt": "Формирование промпта",
+      "callingLlm": "Вызов AI-модели",
+      "parsingSections": "Разбор секций",
+      "ready": "Отчёт готов"
+    }
   },
   "admin": {
     "title": "Управление пользователями",
@@ -395,7 +418,12 @@
     "linkFirst": "Сначала привяжите аккаунт Telegram, чтобы включить уведомления",
     "notificationsToggled": "Уведомления в Telegram обновлены",
     "codeFallbackHint": "Если ссылка не сработала автоматически, скопируйте этот код и отправьте его боту:",
-    "codeCopied": "Код скопирован"
+    "codeCopied": "Код скопирован",
+    "aiModel": "AI Модель по умолчанию",
+    "aiModelHint": "Модель по умолчанию для запланированных и ручных AI генераций вашей организации",
+    "defaultModel": "Модель по умолчанию",
+    "systemDefault": "Системная по умолчанию",
+    "modelSaved": "AI модель по умолчанию обновлена"
   },
   "hierarchy": {
     "project": "Проект",

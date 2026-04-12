@@ -147,13 +147,24 @@
     "addTask": "Add Task",
     "noTasks": "No tasks yet.",
     "generateTasks": "Generate Tasks with AI",
+    "aiModel": "AI Model",
+    "defaultModel": "Organization default",
     "generating": "Generating tasks...",
     "generationFailed": "Task generation failed. Please try again.",
     "generationInProgress": "Generation already in progress",
     "previewTitle": "Review Generated Tasks",
     "confirmTasks": "Confirm & Create",
     "tasksCreated": "{count} tasks created successfully",
-    "noTasksToConfirm": "Add at least one task to confirm"
+    "noTasksToConfirm": "Add at least one task to confirm",
+    "pipeline": {
+      "title": "AI Generation Pipeline",
+      "collectingContext": "Collecting context",
+      "buildingPrompt": "Building prompt",
+      "callingLlm": "Calling AI model",
+      "parsingResponse": "Parsing response",
+      "validating": "Validating tasks",
+      "ready": "Ready for review"
+    }
   },
   "clients": {
     "title": "Clients",
@@ -209,7 +220,9 @@
     "allProjects": "All Projects",
     "allClients": "All Clients",
     "focusPrompt": "Focus (optional)",
-    "focusPlaceholder": "e.g. Focus on overdue risks for billing module"
+    "focusPlaceholder": "e.g. Focus on overdue risks for billing module",
+    "aiModel": "AI Model",
+    "defaultModel": "Organization default"
   },
   "summaries": {
     "title": "Summary History",
@@ -233,6 +246,8 @@
     "error": "Error:",
     "regenerate": "Regenerate",
     "regenerating": "Regenerating...",
+    "aiModel": "AI Model",
+    "defaultModel": "Organization default",
     "versionHistory": "Version History",
     "regenerationStarted": "Regeneration started",
     "regenerationFailed": "Regeneration failed",
@@ -241,7 +256,15 @@
     "statusDistribution": "Status Distribution",
     "priorityDistribution": "Priority Distribution",
     "engineerWorkload": "Engineer Workload",
-    "clientActivity": "Client Activity"
+    "clientActivity": "Client Activity",
+    "pipeline": {
+      "title": "AI Summary Pipeline",
+      "collectingMetrics": "Collecting metrics",
+      "buildingPrompt": "Building prompt",
+      "callingLlm": "Calling AI model",
+      "parsingSections": "Parsing sections",
+      "ready": "Summary ready"
+    }
   },
   "admin": {
     "title": "User Management",
@@ -395,7 +418,12 @@
     "linkFirst": "Link your Telegram account first to enable notifications",
     "notificationsToggled": "Telegram notifications updated",
     "codeFallbackHint": "If the link didn't open automatically, copy this code and paste it to the bot:",
-    "codeCopied": "Code copied to clipboard"
+    "codeCopied": "Code copied to clipboard",
+    "aiModel": "Default AI Model",
+    "aiModelHint": "Default model for scheduled and on-demand AI generations in your organization",
+    "defaultModel": "Default model",
+    "systemDefault": "System default",
+    "modelSaved": "Default AI model updated"
   },
   "hierarchy": {
     "project": "Project",

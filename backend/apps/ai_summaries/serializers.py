@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from .models import ReportSummary
+from .models import LLMModel, ReportSummary
+
+
+class LLMModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LLMModel
+        fields = ["id", "model_id", "display_name", "is_default"]
 
 
 class RequestedBySerializer(serializers.Serializer):
@@ -77,6 +83,13 @@ class GenerateRequestSerializer(serializers.Serializer):
     focus_prompt = serializers.CharField(required=False, allow_blank=True, default="",
                                          max_length=500,
                                          help_text="Optional custom focus instructions for the AI.")
+    llm_model_id = serializers.IntegerField(required=False, allow_null=True, default=None,
+                                            help_text="Optional LLM model ID to use for generation.")
+
+    def validate_llm_model_id(self, value):
+        if value is not None and not LLMModel.objects.filter(pk=value, is_active=True).exists():
+            raise serializers.ValidationError("Selected LLM model is not available.")
+        return value
 
     def validate(self, data):
         if data["period_end"] < data["period_start"]:
@@ -84,3 +97,23 @@ class GenerateRequestSerializer(serializers.Serializer):
                 {"period_end": "period_end must be >= period_start."}
             )
         return data
+
+
+class RegenerateRequestSerializer(serializers.Serializer):
+    llm_model_id = serializers.IntegerField(required=False, allow_null=True, default=None,
+                                            help_text="Optional LLM model ID to use for regeneration.")
+
+    def validate_llm_model_id(self, value):
+        if value is not None and not LLMModel.objects.filter(pk=value, is_active=True).exists():
+            raise serializers.ValidationError("Selected LLM model is not available.")
+        return value
+
+
+class OrgDefaultModelSerializer(serializers.Serializer):
+    default_llm_model_id = serializers.IntegerField(allow_null=True,
+                                                     help_text="LLM model ID to set as org default, or null to clear.")
+
+    def validate_default_llm_model_id(self, value):
+        if value is not None and not LLMModel.objects.filter(pk=value, is_active=True).exists():
+            raise serializers.ValidationError("Selected LLM model is not available.")
+        return value

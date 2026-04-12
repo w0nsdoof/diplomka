@@ -10,10 +10,13 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, interval, switchMap, takeUntil, takeWhile } from 'rxjs';
 import { TelegramService, TelegramStatus, TelegramLinkResponse } from '../../core/services/telegram.service';
 import { ProfileService, UserProfile } from '../../core/services/profile.service';
+import { LlmModelService, LLMModel } from '../../core/services/llm-model.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
     selector: 'app-settings',
@@ -29,6 +32,7 @@ import { ProfileService, UserProfile } from '../../core/services/profile.service
         MatProgressSpinnerModule,
         MatFormFieldModule,
         MatInputModule,
+        MatSelectModule,
         TranslateModule,
     ],
     template: `
@@ -107,6 +111,24 @@ import { ProfileService, UserProfile } from '../../core/services/profile.service
             {{ 'common.save' | translate }}
           </button>
         </mat-card-actions>
+      </mat-card>
+
+      <!-- AI Model card (managers only) -->
+      <mat-card *ngIf="isManager" class="ai-model-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="ai-icon">psychology</mat-icon>
+          <mat-card-title>{{ 'settings.aiModel' | translate }}</mat-card-title>
+          <mat-card-subtitle>{{ 'settings.aiModelHint' | translate }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full-width" style="margin-top: 16px;">
+            <mat-label>{{ 'settings.defaultModel' | translate }}</mat-label>
+            <mat-select [value]="orgDefaultModelId" (selectionChange)="onOrgModelChange($event.value)">
+              <mat-option [value]="null">{{ 'settings.systemDefault' | translate }}</mat-option>
+              <mat-option *ngFor="let m of llmModels" [value]="m.id">{{ m.display_name }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </mat-card-content>
       </mat-card>
 
       <!-- Telegram card -->
@@ -317,6 +339,22 @@ import { ProfileService, UserProfile } from '../../core/services/profile.service
       margin: 0 0 8px;
     }
 
+    .ai-model-card {
+      margin-bottom: 24px;
+    }
+
+    .ai-icon {
+      background: #7c3aed;
+      color: #fff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
     .telegram-card {
       margin-bottom: 24px;
     }
@@ -487,12 +525,20 @@ export class SettingsComponent implements OnInit, OnDestroy {
   linking = false;
   unlinking = false;
   togglingNotifications = false;
+
+  // AI Model
+  isManager = false;
+  llmModels: LLMModel[] = [];
+  orgDefaultModelId: number | null = null;
+
   private destroy$ = new Subject<void>();
   private stopPolling$ = new Subject<void>();
 
   constructor(
     private profileService: ProfileService,
     private telegramService: TelegramService,
+    private authService: AuthService,
+    private llmModelService: LlmModelService,
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
     private translate: TranslateService,
@@ -500,6 +546,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.isManager = this.authService.hasRole('manager');
+
     this.profileForm = this.fb.group({
       first_name: ['', Validators.required],
       last_name: ['', Validators.required],
@@ -511,6 +559,38 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
     this.loadProfile();
     this.loadStatus();
+    if (this.isManager) {
+      this.loadLlmModels();
+    }
+  }
+
+  private loadLlmModels(): void {
+    this.llmModelService.listActive().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (models) => {
+        this.llmModels = models;
+        this.cdr.markForCheck();
+      },
+    });
+    this.llmModelService.getOrgDefault().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        this.orgDefaultModelId = res.default_llm_model?.id ?? null;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  onOrgModelChange(modelId: number | null): void {
+    this.llmModelService.setOrgDefault(modelId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        this.orgDefaultModelId = res.default_llm_model?.id ?? null;
+        this.snackBar.open(
+          this.translate.instant('settings.modelSaved'),
+          this.translate.instant('common.dismiss'),
+          { duration: 3000 },
+        );
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   ngOnDestroy(): void {

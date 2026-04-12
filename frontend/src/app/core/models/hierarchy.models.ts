@@ -132,10 +132,20 @@ export interface GenerationResult {
   generation_meta: GenerationMeta;
 }
 
+export type PipelineStage =
+  | 'collecting_context'
+  | 'building_prompt'
+  | 'calling_llm'
+  | 'parsing_response'
+  | 'validating'
+  | 'completed';
+
 export interface GenerationStatus {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   result?: GenerationResult;
   error?: string;
+  stage?: PipelineStage;
+  stage_meta?: Record<string, any>;
 }
 
 export interface ConfirmTasksResponse {

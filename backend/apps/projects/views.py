@@ -539,7 +539,19 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
 
         from apps.projects.tasks import generate_epic_tasks
 
-        result = generate_epic_tasks.delay(epic.id)
+        model_override = None
+        llm_model_id = request.data.get("llm_model_id")
+        if llm_model_id is not None:
+            from apps.ai_summaries.models import LLMModel
+            try:
+                model_override = LLMModel.objects.get(pk=llm_model_id, is_active=True).model_id
+            except LLMModel.DoesNotExist:
+                return Response(
+                    {"detail": "Selected LLM model is not available."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        result = generate_epic_tasks.delay(epic.id, model_override=model_override)
         return Response({"task_id": result.id}, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
@@ -565,7 +577,7 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
     )
     @action(detail=True, methods=["get"], url_path="generate-tasks/status")
     def generate_tasks_status(self, request, pk=None):
-        self.get_object()  # validate epic exists + permissions
+        epic = self.get_object()  # validate epic exists + permissions
 
         task_id = request.query_params.get("task_id")
         if not task_id:
@@ -593,6 +605,19 @@ class EpicViewSet(OrganizationQuerySetMixin, viewsets.ModelViewSet):
             response_data["error"] = (
                 str(result.result) if result.result else "Task generation failed."
             )
+
+        # Attach pipeline stage info from Redis (backwards-compatible)
+        import json as _json
+
+        try:
+            redis_client = Redis.from_url(settings.CELERY_BROKER_URL)
+            raw = redis_client.get(f"epic_generate:{epic.id}:stage")
+            if raw:
+                stage_data = _json.loads(raw)
+                response_data["stage"] = stage_data.get("stage")
+                response_data["stage_meta"] = stage_data.get("stage_meta", {})
+        except Exception:
+            pass  # stage info is best-effort
 
         return Response(response_data)
 
