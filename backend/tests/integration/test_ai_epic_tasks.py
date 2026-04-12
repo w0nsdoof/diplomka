@@ -64,7 +64,7 @@ class TestGenerateTasksEndpoint:
 
         assert response.status_code == 202
         assert response.data["task_id"] == "abc-123"
-        mock_delay.assert_called_once_with(epic_with_project.id)
+        mock_delay.assert_called_once_with(epic_with_project.id, model_override=None)
 
     def test_engineer_gets_403(self, engineer_client, epic_with_project):
         url = GENERATE_URL.format(id=epic_with_project.id)

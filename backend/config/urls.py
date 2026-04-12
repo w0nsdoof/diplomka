@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/notifications/", include("apps.notifications.urls")),
     path("api/reports/", include("apps.reports.urls")),
     path("api/summaries/", include("apps.ai_summaries.urls")),
+    path("api/llm-models/", include("apps.ai_summaries.urls_llm")),
     path("api/portal/", include("apps.clients.urls_portal")),
     path("api/telegram/", include("apps.telegram.urls")),
     # OpenAPI schema

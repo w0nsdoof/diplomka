@@ -91,7 +91,8 @@ def generate_weekly_summary():
 
 @shared_task
 def generate_summary(period_type, period_start, period_end, requested_by_id=None,
-                     prev_metrics=None, summary_id=None, organization_id=None):
+                     prev_metrics=None, summary_id=None, organization_id=None,
+                     model_override=None):
     """Core shared task: acquire lock, create or use existing ReportSummary, generate content.
 
     If summary_id is provided, use the existing row (created by view).
@@ -138,7 +139,9 @@ def generate_summary(period_type, period_start, period_end, requested_by_id=None
             )
             logger.info("Created ReportSummary id=%s for %s", summary.id, lock_key)
 
-        generate_summary_for_period(summary.id, prev_metrics=prev_metrics)
+        generate_summary_for_period(
+            summary.id, prev_metrics=prev_metrics, model_override=model_override,
+        )
         return summary.id
     finally:
         try:

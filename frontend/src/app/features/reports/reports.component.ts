@@ -22,6 +22,7 @@ import { SummaryService, SummaryListItem } from '../../core/services/summary.ser
 import { AuthService } from '../../core/services/auth.service';
 import { ProjectService } from '../../core/services/project.service';
 import { ClientService } from '../../core/services/client.service';
+import { LlmModelService, LLMModel } from '../../core/services/llm-model.service';
 
 @Component({
     selector: 'app-reports',
@@ -114,6 +115,13 @@ import { ClientService } from '../../core/services/client.service';
           <mat-select [(ngModel)]="aiClientId">
             <mat-option [value]="null">{{ 'reports.allClients' | translate }}</mat-option>
             <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="scope-field" *ngIf="llmModels.length > 1">
+          <mat-label>{{ 'reports.aiModel' | translate }}</mat-label>
+          <mat-select [(ngModel)]="aiLlmModelId">
+            <mat-option [value]="null">{{ 'reports.defaultModel' | translate }}</mat-option>
+            <mat-option *ngFor="let m of llmModels" [value]="m.id">{{ m.display_name }}</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
@@ -250,9 +258,11 @@ export class ReportsComponent implements OnInit, OnDestroy {
   aiProjectId: number | null = null;
   aiClientId: number | null = null;
   aiFocusPrompt = '';
+  aiLlmModelId: number | null = null;
   generating = false;
   projects: { id: number; title: string }[] = [];
   clients: { id: number; name: string }[] = [];
+  llmModels: LLMModel[] = [];
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -262,6 +272,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private projectService: ProjectService,
     private clientService: ClientService,
+    private llmModelService: LlmModelService,
     private snackBar: MatSnackBar,
     private router: Router,
     public translate: TranslateService,
@@ -305,6 +316,12 @@ export class ReportsComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+    this.llmModelService.listActive().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (models) => {
+        this.llmModels = models;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   generateAISummary(): void {
@@ -317,6 +334,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
       projectId: this.aiProjectId,
       clientId: this.aiClientId,
       focusPrompt: this.aiFocusPrompt,
+      llmModelId: this.aiLlmModelId,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
         this.generating = false;

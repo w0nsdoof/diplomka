@@ -235,6 +235,8 @@ import {
     }
     .method-badge.ai { background: #e8f5e9; color: #2e7d32; }
     .method-badge.fallback { background: #fff3e0; color: #e65100; }
+    .regen-actions { display: flex; align-items: center; gap: 12px; }
+    .model-select { min-width: 160px; font-size: 13px; }
     .versions-card { margin-top: 16px; }
     .version-item { cursor: pointer; }
     .version-item:hover { background: rgba(0, 0, 0, 0.04); }
@@ -317,6 +319,10 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
     }
   };
 
+  // LLM model selection for regenerate
+  llmModels: LLMModel[] = [];
+  regenLlmModelId: number | null = null;
+
   // Chart data
   statusChartData: ChartData<'doughnut'> | null = null;
   priorityChartData: ChartData<'bar'> | null = null;
@@ -353,6 +359,7 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
     private summaryService: SummaryService,
     private authService: AuthService,
     private genWs: GenerationWsService,
+    private llmModelService: LlmModelService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
     public translate: TranslateService,
@@ -363,6 +370,11 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.loadSummary(+params['id']);
     });
+    if (this.isManager) {
+      this.llmModelService.listActive().pipe(takeUntil(this.destroy$)).subscribe({
+        next: (models) => { this.llmModels = models; this.cdr.markForCheck(); },
+      });
+    }
   }
 
   loadSummary(id: number): void {
@@ -491,7 +503,7 @@ export class SummaryDetailComponent implements OnInit, OnDestroy {
     if (!this.summary) return;
     this.regenerating = true;
     this.cdr.markForCheck();
-    this.summaryService.regenerate(this.summary.id).pipe(takeUntil(this.destroy$)).subscribe({
+    this.summaryService.regenerate(this.summary.id, this.regenLlmModelId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (newSummary) => {
         this.regenerating = false;
         this.cdr.markForCheck();

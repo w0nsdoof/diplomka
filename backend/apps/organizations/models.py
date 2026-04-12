@@ -6,6 +6,15 @@ class Organization(models.Model):
     name = models.CharField("name", max_length=255, unique=True)
     slug = models.SlugField("slug", max_length=255, unique=True)
     is_active = models.BooleanField("active", default=True, db_index=True)
+    default_llm_model = models.ForeignKey(
+        "ai_summaries.LLMModel",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="organizations",
+        verbose_name="default LLM model",
+        help_text="Default LLM model for this organization's AI generations.",
+    )
     created_at = models.DateTimeField("created at", auto_now_add=True)
     updated_at = models.DateTimeField("updated at", auto_now=True)
 

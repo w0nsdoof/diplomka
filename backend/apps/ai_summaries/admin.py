@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import ReportSummary
+from .models import LLMModel, ReportSummary
+
+
+@admin.register(LLMModel)
+class LLMModelAdmin(admin.ModelAdmin):
+    list_display = ["display_name", "model_id", "is_active", "is_default", "created_at"]
+    list_filter = ["is_active", "is_default"]
+    search_fields = ["display_name", "model_id"]
+    readonly_fields = ["created_at", "updated_at"]
 
 
 @admin.register(ReportSummary)
